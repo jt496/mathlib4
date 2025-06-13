@@ -7,7 +7,7 @@ import Mathlib.Combinatorics.SimpleGraph.Coloring
 import Mathlib.Combinatorics.SimpleGraph.Flag.Counting
 set_option linter.style.header false
 /-!
-## TODO:
+## TODO: --test
   1. Prove that:
 
     ‖{(e₁, e₂) : (F₁ ↪f F) × (F₁ ↪f F) // ¬ e₁.Compat e₂}‖ ≤
