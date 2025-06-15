@@ -78,6 +78,9 @@ def Flag_equiv_prod (α ι : Type*) : Flag α ι ≃ (SimpleGraph α) × (ι ↪
 structure FlagEmbedding {α β ι : Type*} (F₁ : Flag α ι) (F₂ : Flag β ι) extends F₁.G ↪g F₂.G where
  labels_eq : F₂.θ = toEmbedding ∘ F₁.θ
 
+
+
+
 /-- An isomorphism of flags is an isomorphism of the underlying graphs that preserves labels. -/
 @[ext]
 structure FlagIso {α β ι : Type*} (F₁ : Flag α ι) (F₂ : Flag β ι) extends F₁.G ≃g F₂.G where
@@ -87,6 +90,12 @@ structure FlagIso {α β ι : Type*} (F₁ : Flag α ι) (F₂ : Flag β ι) ext
 @[inherit_doc] infixl:50 " ≃f " => FlagIso
 
 variable {γ  : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι} {F₃ : Flag γ ι}
+
+instance : FunLike (F₁ ↪f F₂) α β where
+  coe x := x.toFun
+  coe_injective' f g h := by
+    ext a; simp [h]
+    exact congrFun h a
 
 /-- An isomorphism of graphs gives rise to an embedding of graphs. -/
 abbrev FlagIso.toEmbedding (f : F₁ ≃f F₂): F₁ ↪f F₂ :=
@@ -191,7 +200,9 @@ def Flag.induceEquiv (F₁ : Flag α ι) (F₂ : Flag β ι) (t : Set β) (h : �
                 by simp [Flag.induce_adj]⟩, by ext i; simp [F₂.induce_labels_eq t h, e.1.labels_eq]⟩
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
-
+variable {β : Type*} {F₁ : Flag β ι} {F₂ : Flag β ι} {F : Flag α ι}
+    (e₁ : F₁ ↪f F) (e₂ : F₂ ↪f F) (b : β)
+#check e₁.toRelEmbedding b
 /--
 Two flag embeddings `e₁ : F₁ ↪f F` and `e₂ : F₂ ↪f F` are compatible if they are in
 `general position`, i.e. the intersection of their images is exactly the set of labelled vertices
