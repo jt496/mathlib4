@@ -195,7 +195,7 @@ lemma sum_card_embeddings_induce_n {n : ℕ} (G : SimpleGraph (Fin (n + 1))) (H 
     rw [this, mul_zero]
     convert sum_const_zero
     apply Fintype.card_eq_zero_iff.2 <| isEmpty_iff.2
-      fun e ↦ (Fintype.card_le_of_embedding e.toEmbedding).not_lt (by simp_all)
+      fun e ↦ (Fintype.card_le_of_embedding e.toEmbedding).not_gt (by simp_all)
 
 def topBoolEmbeddingDartsEquiv (G : SimpleGraph α) : ((⊤ : SimpleGraph Bool) ↪g G) ≃ G.Dart where
   toFun := fun e ↦ ⟨⟨e true, e false⟩, by simp⟩

@@ -133,10 +133,11 @@ lemma FlagIso.symm_eq {α β ι : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι}
      : F₁.θ = e.symm.toFun ∘ F₂.θ := by
   ext x; simp [e.labels_eq];
 
+
 /--
 Pairs of isomorphic flags have equivalent embeddings
 -/
-def FlagIso.flagEmbeddings_equiv_of_flagIso {α α' β β' ι : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι}
+def FlagIso.flagEmbeddingCongr {α α' β β' ι : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι}
     {F₁' : Flag α' ι} {F₂' : Flag β' ι}  (e₁ : F₁ ≃f F₁') (e₂ : F₂ ≃f F₂') :
     (F₁ ↪f F₂) ≃ (F₁' ↪f F₂') where
   toFun := fun f ↦ (e₁.symm.toEmbedding.trans f).trans e₂.toEmbedding
@@ -149,10 +150,10 @@ Given a pair of isomorphic flags `F` and `F'` and a pair of isomorphic graphs `H
 and an injective map `θ : ι ↪ β`, the embeddings of `F` in `H` are equivalent to the embeddings
 of `F'` in `(H', e ∘ θ)`.
 -/
-def Iso.flagEmbeddings_equiv {α α' β β' ι : Type*} {F : Flag α ι} {F' : Flag α' ι}
+def Iso.flagEmbeddingCongr {α α' β β' ι : Type*} {F : Flag α ι} {F' : Flag α' ι}
     {f : F ≃f F'} {H : SimpleGraph β} {H' : SimpleGraph β'} {θ : ι ↪ β} {e :  H ≃g H'} :
     (F ↪f ⟨H, θ⟩) ≃ (F' ↪f ⟨H', θ.trans (e : β ↪ β')⟩) :=
-  f.flagEmbeddings_equiv_of_flagIso (⟨e, by ext; simp⟩)
+  f.flagEmbeddingCongr (⟨e, by ext; simp⟩)
 
 /--
 `F` is a `σ`-flag iff the labelled subgraph given by `θ` is `σ`
@@ -280,7 +281,7 @@ lemma Flag.sum_card_embeddings_induce_eq (F₁ : Flag β ι) (F : Flag α ι) [F
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun x hx ↦ ht2 (by simpa using hx)⟩
 
 /--
-The set of all compatible embeddings of a pair of `(β,ι)`-flags in a `(α,ι)`-flag.
+The subtype of all compatible embeddings of a pair of `(β,ι)`-flags in an `(α,ι)`-flag.
 -/
 abbrev compat_pairs (F₁₂ : Flag β ι × Flag β ι) (F : Flag α ι) :=
   {e : F₁₂.1 ↪f F × F₁₂.2 ↪f F // e.1.Compat e.2}
