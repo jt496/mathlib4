@@ -97,6 +97,64 @@ lemma card_supersets_inter  {α : Type*} [Fintype α] [DecidableEq α] (u : Fins
       simp [← hx.1, card_supersets_inter' hx.2]
     · exact (card_supersets hk).symm
 
+#check Finset.map
+
+/-- Given an embedding into a set `s` this is the same embedding into the type. -/
+abbrev _root_.Function.Embedding.intoType {α ι : Type*} {s : Set α} (θ : (ι ↪ s)) : ι ↪ α :=
+  θ.trans (Function.Embedding.subtype _)
+
+/--
+Given a sum over embeddings `θ : ι ↪ α`, we can average over subsets of size `‖ι‖ ≤ k` of `α` and
+sum over embeddings `θ : ι ↪ s` for those subsets.
+(Each `e : ι ↪ α` will occur `choose (‖α‖ - ‖ι‖) (k - ‖ι‖)`, once for each choice of set `t` of size
+`k - ‖ι‖` that we can union with the image of `e` to get a set of size `k`.)
+-/
+lemma sum_embeddings_eq_sum {α ι M : Type*} [CommRing M] [Fintype α] [DecidableEq α] [DecidableEq ι]
+    [Fintype ι] {hk : ‖ι‖ ≤ k} {f : (ι ↪ α) → M} :
+    Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖) * ∑ θ : ι ↪ α, f θ =
+        ∑ s : Finset α with #s = k, ∑ θ : ι ↪ s, f θ.intoType := by
+  calc
+  _ = ∑ θ : ι ↪ α, Nat.choose (‖α‖ - #(Finset.map θ univ)) (k - #(Finset.map θ univ)) * f θ := by
+    rw [mul_sum]
+    congr with θ; simp
+  _ = ∑ θ : ι ↪ α, #{t : Finset α | #t = k ∧ Finset.map θ univ ⊆ t} * f θ := by
+    congr with θ
+    rw [← card_supersets (by simpa using hk)]
+  _ = ∑ θ : ι ↪ α, ∑ t : Finset α with #t = k ∧ Finset.map θ univ ⊆ t, f θ := by
+    congr with θ
+    rw [card_eq_sum_ones, Nat.cast_sum, sum_mul, Nat.cast_one, one_mul]
+  _ = ∑ t : Finset α with #t = k, ∑ θ : ι ↪ α with Finset.map θ univ ⊆ t, f θ:= by
+    rw [Finset.sum_comm']
+    simp [and_comm]
+  _ = _ := by
+    congr with t
+    calc
+    _ = _ := by
+      apply sum_bij
+      pick_goal 5
+      · intro θ hθ
+        have : ∀ i, θ i ∈ t := by
+          intro i; simp only [mem_filter, mem_univ, true_and] at hθ
+          apply hθ (by simp)
+        exact ⟨fun i ↦ ⟨θ i, this i⟩, by intro i j hij; simpa using hij⟩
+      · simp
+      · intro θ₁ h₁ θ₂ h₂ h
+        ext i
+        simp only [Function.Embedding.mk.injEq] at h
+        rw [funext_iff] at h
+        simpa using h i
+      · intro θ hθ
+        use  θ.trans (Function.Embedding.subtype _)
+        simp only [Function.Embedding.trans_apply, Function.Embedding.subtype_apply,
+          Subtype.coe_eta, Function.Embedding.mk_coe, mem_filter, mem_univ, true_and, exists_prop,
+          and_true]
+        intro a ha
+        simp only [mem_map, mem_univ, Function.Embedding.trans_apply,
+          Function.Embedding.subtype_apply, true_and] at ha
+        obtain ⟨i, rfl⟩ := ha
+        simp
+      · intro θ hθ
+        rfl
 
 end Finset
 namespace SimpleGraph

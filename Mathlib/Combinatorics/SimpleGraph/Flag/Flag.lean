@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: John Talbot
 -/
 import Mathlib.Combinatorics.SimpleGraph.Coloring
+import Mathlib.Data.Fintype.Perm
 import Mathlib.Combinatorics.SimpleGraph.Flag.Counting
 set_option linter.style.header false
 /-!
@@ -23,6 +24,7 @@ set_option linter.style.header false
 
 -/
 
+local notation "‖" x "‖" => Fintype.card x
 namespace SimpleGraph
 variable {α β δ ι : Type*} {k : ℕ} (e : δ ≃ ι) (f : α ≃ β)
 
@@ -160,9 +162,22 @@ and an injective map `θ : ι ↪ β`, the embeddings of `F` in `H` are equivale
 of `F'` in `(H', e ∘ θ)`.
 -/
 def Iso.flagEmbeddingCongr {α α' β β' ι : Type*} {F : Flag α ι} {F' : Flag α' ι}
-    {f : F ≃f F'} {H : SimpleGraph β} {H' : SimpleGraph β'} {θ : ι ↪ β} {e :  H ≃g H'} :
+    {H : SimpleGraph β} {H' : SimpleGraph β'} {θ : ι ↪ β} (e :  H ≃g H')  (f : F ≃f F') :
     (F ↪f ⟨H, θ⟩) ≃ (F' ↪f ⟨H', θ.trans (e : β ↪ β')⟩) :=
   f.flagEmbeddingCongr (⟨e, by ext; simp⟩)
+
+open Finset
+/-- If `H ≃g H'` as graphs and `F ≃f F'` as flags, then
+`∑ θ : ι ↪ β, ‖F ↪f ⟨H, θ⟩‖ = ∑ θ' : ι ↪ β', ‖F' ↪f ⟨H', θ'⟩‖`
+where the sum is over all injective maps from `ι` to `β` and `β'` respectively.
+-/
+lemma Iso.sum_card_flagEmbedding {α α' β β' ι : Type*} [Fintype β] [Fintype β'] [Fintype ι]
+    [Fintype α] [Fintype α'] {F : Flag α ι} {F' : Flag α' ι} {H : SimpleGraph β}
+    {H' : SimpleGraph β'} (e :  H ≃g H') (f : F ≃f F') :
+    ∑ (θ : ι ↪ β), ‖F ↪f ⟨H, θ⟩‖ = ∑ (θ' : ι ↪ β'), ‖F' ↪f ⟨H', θ'⟩‖ :=
+  Fintype.sum_equiv ((Equiv.refl _).embeddingCongr e) _ _
+    (fun _ ↦ Fintype.card_congr <| e.flagEmbeddingCongr f)
+
 
 /--
 `F` is a `σ`-flag iff the labelled subgraph given by `θ` is `σ`
@@ -239,7 +254,6 @@ lemma FlagEmbedding.compat_iff_inter_eq {β : Type*} {F₁ F₂ : Flag β ι} {F
     simp
 
 variable {k m n : ℕ}
-local notation "‖" x "‖" => Fintype.card x
 
 open Finset
 
