@@ -310,18 +310,21 @@ lemma Flag.sum_card_embeddings_induce_eq (F₁ : Flag β ι) (F : Flag α ι) [F
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun x hx ↦ ht2 (by simpa using hx)⟩
 
 
-lemma Flag.sum_card_embeddings_induce_eq' (F₁ : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
+lemma Flag.sum_card_embeddings_induce_eq' (F : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
   (hk : ‖β‖ ≤ k) (θ : ι ↪ α): ∑ t : Finset α with #t = k,
-    (if ht : (⟨G, θ⟩ : Flag α ι) ⊆ₗt then ‖F₁ ↪f (⟨G, θ⟩ : Flag α ι).induce t ht‖ else 0)
-                              = ‖F₁ ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) :=
-  sum_card_embeddings_induce_eq F₁ _ hk
-  
+    (if ht : (⟨G, θ⟩ : Flag α ι) ⊆ₗt then ‖F ↪f (⟨G, θ⟩ : Flag α ι).induce t ht‖ else 0)
+                              = ‖F ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) :=
+  sum_card_embeddings_induce_eq F _ hk
+
 variable [DecidableEq ι]
-#check sum_attach
+/--
+TODO : fix RHS of this which should have another sum ∑ t : Finset α with #t = k,
+-/
 lemma Flag.ave_sum_card_embeddings_induce_eq (F : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
   (hk : ‖β‖ ≤ k) :
   ∑ θ : ι ↪ α, (Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖)) * ‖F ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖)
-    = ∑ t : Finset α with #t = k, ∑ θ : ι ↪ t, ‖F ↪f ⟨G.induce t, θ⟩‖ := by
+    = ∑ s : Finset α with #s = k, ∑ θ : ι ↪ s, ∑ t : Finset α with #t = k,
+    (if ht : (⟨G.induce s, θ⟩ : Flag s ι) ⊆ₗ t then ‖F ↪f (⟨G, θ⟩ : Flag α ι).induce t ht‖ else 0) := by
   simp_rw [mul_assoc, ← sum_card_embeddings_induce_eq' F G hk, ← mul_sum, sum_dite, sum_const_zero,
           add_zero]
   rw [sum_embeddings_eq_sum (F.card_le_card.trans hk)]
