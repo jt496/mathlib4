@@ -97,11 +97,9 @@ lemma card_supersets_inter  {α : Type*} [Fintype α] [DecidableEq α] (u : Fins
       simp [← hx.1, card_supersets_inter' hx.2]
     · exact (card_supersets hk).symm
 
-#check Finset.map
-
 /-- Given an embedding into a set `s` this is the same embedding into the type. -/
 abbrev _root_.Function.Embedding.intoType {α ι : Type*} {s : Set α} (θ : (ι ↪ s)) : ι ↪ α :=
-  θ.trans (Function.Embedding.subtype _)
+  θ.trans (Function.Embedding.subtype s)
 
 /--
 Given a sum over embeddings `θ : ι ↪ α`, we can average over subsets of size `‖ι‖ ≤ k` of `α` and
@@ -109,10 +107,9 @@ sum over embeddings `θ : ι ↪ s` for those subsets.
 (Each `e : ι ↪ α` will occur `choose (‖α‖ - ‖ι‖) (k - ‖ι‖)` times, once for each choice of set `t`
 of size `k - ‖ι‖` that we can union with the image of `e` to get a set of size `k`.)
 -/
-lemma sum_embeddings_eq_sum {α ι M : Type*} [CommRing M] [Fintype α] [DecidableEq α] [DecidableEq ι]
-    [Fintype ι] {hk : ‖ι‖ ≤ k} {f : (ι ↪ α) → M} :
-    Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖) * ∑ θ : ι ↪ α, f θ =
-        ∑ s : Finset α with #s = k, ∑ θ : ι ↪ s, f θ.intoType := by
+lemma sum_embeddings_eq_sum {α ι : Type*} [Fintype α] [DecidableEq α] [DecidableEq ι] [Fintype ι]
+    (hk : ‖ι‖ ≤ k) {f : (ι ↪ α) → ℕ} : Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖) * ∑ θ : ι ↪ α, f θ =
+    ∑ s : Finset α with #s = k, ∑ θ : ι ↪ s, f θ.intoType := by
   calc
   _ = ∑ θ : ι ↪ α, Nat.choose (‖α‖ - #(Finset.map θ univ)) (k - #(Finset.map θ univ)) * f θ := by
     rw [mul_sum]
@@ -122,7 +119,7 @@ lemma sum_embeddings_eq_sum {α ι M : Type*} [CommRing M] [Fintype α] [Decidab
     rw [← card_supersets (by simpa using hk)]
   _ = ∑ θ : ι ↪ α, ∑ t : Finset α with #t = k ∧ Finset.map θ univ ⊆ t, f θ := by
     congr with θ
-    rw [card_eq_sum_ones, Nat.cast_sum, sum_mul, Nat.cast_one, one_mul]
+    rw [card_eq_sum_ones, sum_mul, one_mul]
   _ = ∑ t : Finset α with #t = k, ∑ θ : ι ↪ α with Finset.map θ univ ⊆ t, f θ:= by
     rw [Finset.sum_comm']
     simp [and_comm]

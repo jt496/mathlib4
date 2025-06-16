@@ -75,6 +75,10 @@ def Flag_equiv_prod (α ι : Type*) : Flag α ι ≃ (SimpleGraph α) × (ι ↪
   left_inv := fun F ↦ by cases F; rfl
   right_inv := fun p ↦ by cases p; rfl
 
+lemma Flag.card_le_card {α ι : Type*} (F : Flag α ι)  [Fintype α] [Fintype ι] : ‖ι‖ ≤ ‖α‖ :=
+  Fintype.card_le_of_embedding F.θ
+
+
 /-- An embedding of flags is an embedding of the underlying graphs that preserves labels. -/
 @[ext]
 structure FlagEmbedding {α β ι : Type*} (F₁ : Flag α ι) (F₂ : Flag β ι) extends F₁.G ↪g F₂.G where
@@ -304,6 +308,32 @@ lemma Flag.sum_card_embeddings_induce_eq (F₁ : Flag β ι) (F : Flag α ι) [F
       rw [← hs, ← card_supersets (hs ▸ hk)]
       congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun x hx ↦ ht2 (by simpa using hx)⟩
+
+
+lemma Flag.sum_card_embeddings_induce_eq' (F₁ : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
+  (hk : ‖β‖ ≤ k) (θ : ι ↪ α): ∑ t : Finset α with #t = k,
+    (if ht : (⟨G, θ⟩ : Flag α ι) ⊆ₗt then ‖F₁ ↪f (⟨G, θ⟩ : Flag α ι).induce t ht‖ else 0)
+                              = ‖F₁ ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) :=
+  sum_card_embeddings_induce_eq F₁ _ hk
+  
+variable [DecidableEq ι]
+#check sum_attach
+lemma Flag.ave_sum_card_embeddings_induce_eq (F : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
+  (hk : ‖β‖ ≤ k) :
+  ∑ θ : ι ↪ α, (Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖)) * ‖F ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖)
+    = ∑ t : Finset α with #t = k, ∑ θ : ι ↪ t, ‖F ↪f ⟨G.induce t, θ⟩‖ := by
+  simp_rw [mul_assoc, ← sum_card_embeddings_induce_eq' F G hk, ← mul_sum, sum_dite, sum_const_zero,
+          add_zero]
+  rw [sum_embeddings_eq_sum (F.card_le_card.trans hk)]
+  congr with t
+  congr with θ
+  simp_rw [← card_univ, card_eq_sum_ones]
+
+
+  sorry
+
+
+
 
 /--
 The subtype of all compatible embeddings of a pair of `(β,ι)`-flags in an `(α,ι)`-flag.
