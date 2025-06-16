@@ -106,8 +106,8 @@ abbrev _root_.Function.Embedding.intoType {α ι : Type*} {s : Set α} (θ : (ι
 /--
 Given a sum over embeddings `θ : ι ↪ α`, we can average over subsets of size `‖ι‖ ≤ k` of `α` and
 sum over embeddings `θ : ι ↪ s` for those subsets.
-(Each `e : ι ↪ α` will occur `choose (‖α‖ - ‖ι‖) (k - ‖ι‖)`, once for each choice of set `t` of size
-`k - ‖ι‖` that we can union with the image of `e` to get a set of size `k`.)
+(Each `e : ι ↪ α` will occur `choose (‖α‖ - ‖ι‖) (k - ‖ι‖)` times, once for each choice of set `t`
+of size `k - ‖ι‖` that we can union with the image of `e` to get a set of size `k`.)
 -/
 lemma sum_embeddings_eq_sum {α ι M : Type*} [CommRing M] [Fintype α] [DecidableEq α] [DecidableEq ι]
     [Fintype ι] {hk : ‖ι‖ ≤ k} {f : (ι ↪ α) → M} :
