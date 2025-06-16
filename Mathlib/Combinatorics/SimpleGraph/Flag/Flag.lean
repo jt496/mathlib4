@@ -309,6 +309,24 @@ lemma Flag.sum_card_embeddings_induce_eq (F₁ : Flag β ι) (F : Flag α ι) [F
       congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun x hx ↦ ht2 (by simpa using hx)⟩
 
+lemma Flag.sum_card_embeddings_induce_eq'' (F₁ : Flag β ι) (F : Flag α ι) [Fintype β] {k : ℕ}
+  (hk : ‖β‖ ≤ k) : ∑ t : {s : Finset α // F ⊆ₗ s} with #t.1 = k, ‖F₁ ↪f (F.induce t t.prop)‖
+                              = ‖F₁ ↪f F‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
+  rw [← sum_card_embeddings_induce_eq F₁ F hk]
+  rw [sum_dite,sum_const_zero, add_zero]
+  rw [sum_bij]
+  · intro t ht
+    exact ⟨t, by simpa using ⟨by simpa using ht, t.2⟩⟩
+  · simp
+  · intro s hs t ht h
+    apply Subtype.eq (by simpa using h)
+  · intro s t
+    simp_all only [mem_filter, mem_univ, true_and, Subtype.exists]
+    use s.val
+    simp only [Subtype.coe_eta, exists_prop, and_true]
+    simpa [and_comm] using s.2
+  · intro s hs;
+    simp
 
 lemma Flag.sum_card_embeddings_induce_eq' (F : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
   (hk : ‖β‖ ≤ k) (θ : ι ↪ α): ∑ t : Finset α with #t = k,
@@ -318,13 +336,12 @@ lemma Flag.sum_card_embeddings_induce_eq' (F : Flag β ι) (G : SimpleGraph α) 
 
 variable [DecidableEq ι]
 /--
-TODO : fix RHS of this which should have another sum ∑ t : Finset α with #t = k,
+TODO : fix RHS of this which should have another sum ∑ t : Finset α with #t = m
 -/
 lemma Flag.ave_sum_card_embeddings_induce_eq (F : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
   (hk : ‖β‖ ≤ k) :
   ∑ θ : ι ↪ α, (Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖)) * ‖F ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖)
-    = ∑ s : Finset α with #s = k, ∑ θ : ι ↪ s, ∑ t : Finset α with #t = k,
-    (if ht : (⟨G.induce s, θ⟩ : Flag s ι) ⊆ₗ t then ‖F ↪f (⟨G, θ⟩ : Flag α ι).induce t ht‖ else 0) := by
+    = ∑ s : Finset α with #s = k, ∑ θ : ι ↪ s, ‖F ↪f (⟨G.induce s, θ⟩ : Flag s ι)‖  := by
   simp_rw [mul_assoc, ← sum_card_embeddings_induce_eq' F G hk, ← mul_sum, sum_dite, sum_const_zero,
           add_zero]
   rw [sum_embeddings_eq_sum (F.card_le_card.trans hk)]
