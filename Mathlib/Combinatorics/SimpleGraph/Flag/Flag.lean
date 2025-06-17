@@ -348,7 +348,7 @@ lemma Flag.ave_sum_card_embeddings_induce_eq (F : Flag β ι) (G : SimpleGraph �
   congr with t
   congr with θ
   simp_rw [← card_univ, card_eq_sum_ones]
-
+  -- test 
 
   sorry
 
