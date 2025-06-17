@@ -109,7 +109,7 @@ of size `k - ‖ι‖` that we can union with the image of `e` to get a set of s
 -/
 lemma sum_embeddings_eq_sum {α ι : Type*} [Fintype α] [DecidableEq α] [DecidableEq ι] [Fintype ι]
     (hk : ‖ι‖ ≤ k) {f : (ι ↪ α) → ℕ} : Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖) * ∑ θ : ι ↪ α, f θ =
-    ∑ s : Finset α with #s = k, ∑ θ : ι ↪ s, f θ.intoType := by
+    ∑ s : {s : Finset α // #s = k}, ∑ θ : ι ↪ s, f θ.intoType := by
   calc
   _ = ∑ θ : ι ↪ α, Nat.choose (‖α‖ - #(Finset.map θ univ)) (k - #(Finset.map θ univ)) * f θ := by
     rw [mul_sum]
@@ -123,6 +123,9 @@ lemma sum_embeddings_eq_sum {α ι : Type*} [Fintype α] [DecidableEq α] [Decid
   _ = ∑ t : Finset α with #t = k, ∑ θ : ι ↪ α with Finset.map θ univ ⊆ t, f θ:= by
     rw [Finset.sum_comm']
     simp [and_comm]
+  _ = ∑ s : {s : Finset α // #s = k}, ∑ θ : ι ↪ α with Finset.map θ univ ⊆ s, f θ := by
+    rw [← sum_subtype_eq_sum_filter]
+    congr with t; simp
   _ = _ := by
     congr with t
     calc
@@ -130,7 +133,7 @@ lemma sum_embeddings_eq_sum {α ι : Type*} [Fintype α] [DecidableEq α] [Decid
       apply sum_bij
       pick_goal 5
       · intro θ hθ
-        have : ∀ i, θ i ∈ t := by
+        have : ∀ i, θ i ∈ t.1 := by
           intro i; simp only [mem_filter, mem_univ, true_and] at hθ
           apply hθ (by simp)
         exact ⟨fun i ↦ ⟨θ i, this i⟩, by intro i j hij; simpa using hij⟩
@@ -455,7 +458,7 @@ theorem isExtremalH_free_iff :
 lemma card_embeddings_of_isExtremalH_free (h : G.IsExtremalH H F.Free) :
     ‖H ↪g G‖ = exᵢ (card α) H F := (isExtremalH_free_iff.mp h).2
 
-lemma antitone_extremalInduced_div_choose (H : SimpleGraph γ) (F : SimpleGraph β)
+lemma antitoneOn_extremalInduced_div_choose (H : SimpleGraph γ) (F : SimpleGraph β)
     [DecidableRel H.Adj] [DecidableRel F.Adj] :
     AntitoneOn (fun n ↦ (exᵢ n H F / n.choose ‖γ‖ : ℚ)) {x | ‖γ‖ ≤ x} := by
   apply antitoneOn_div_choose _ ‖γ‖
