@@ -160,19 +160,82 @@ end Finset
 namespace SimpleGraph
 open Finset
 
-variable {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β}
+variable {α α' β β' : Type*} {G : SimpleGraph α} {H : SimpleGraph β}{G' : SimpleGraph α'}
+  {H' : SimpleGraph β'}
+
+def Iso.embeddingCongr (e₁ : G ≃g G') (e₂ : H ≃g H') : G ↪g H ≃ G' ↪g H' where
+  toFun := fun f ↦ (e₁.symm.toEmbedding.trans f).trans e₂.toEmbedding
+  invFun := fun f ↦ (e₁.toEmbedding.trans f).trans e₂.symm.toEmbedding
+  left_inv := fun _ ↦ by ext; simp
+  right_inv := fun _ ↦ by ext; simp
+
+def Iso.isoCongr (e₁ : G ≃g G') (e₂ : H ≃g H') : G ≃g H ≃ G' ≃g H' where
+  toFun := fun f ↦ (e₁.symm.trans f).trans e₂
+  invFun := fun f ↦ (e₁.trans f).trans e₂.symm
+  left_inv := fun _ ↦ by ext; simp
+  right_inv := fun _ ↦ by ext; simp
+
 
 abbrev Aut (G : SimpleGraph α) := G ≃g G
 
-noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableRel G.Adj] [DecidableEq α][Fintype α]:
-  Fintype (Aut G) := by
+noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableRel G.Adj] [DecidableEq α]
+    [Fintype α]: Fintype (Aut G) := by
   rw [Aut]
   exact FunLike.fintype (G ≃g G)
 
 /-- G.induces t H iff there is a graph iso `G.induce t ≃g H` -/
 abbrev induces {α β : Type*} (G : SimpleGraph α)  (t : Set α) (H : SimpleGraph β) :=
- Nonempty (G.induce t ≃g H)
+ Nonempty (H ≃g G.induce t)
 
+
+noncomputable def iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
+    (e : H ↪g G) : H ≃g G.induce (Set.range e)  := by
+  let f := e.toEmbedding.codRestrict (Set.range e) (fun x ↦ by simp)
+  let f':= f.equivOfSurjective (fun x ↦ by
+    obtain ⟨y, hy⟩ := Set.mem_range.mp x.2
+    use y
+    dsimp [f]
+    simp_rw [hy])
+  refine ⟨f',?_⟩
+  simp only [comap_adj, Function.Embedding.subtype_apply, Subtype.forall, Set.mem_range,
+    forall_exists_index, f]
+  intro a b
+  exact RelEmbedding.map_rel_iff e
+
+@[simp]
+lemma iso_of_embedding' {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
+    (e : H ↪g G) (b : β) : iso_of_embedding G H e b = e b := by rfl
+
+
+noncomputable def label_equiv  {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) :
+    H ↪g G ≃ {s : Set α // G.induces s H} × Aut H where
+  toFun := fun f ↦ by
+    have hs : G.induces (Set.range f) H := ⟨iso_of_embedding G H f⟩
+    -- fix RHS of the next line: it needs to use `f` not just `Set.range f`
+    exact ⟨⟨Set.range f, hs⟩, (iso_of_embedding G H f).symm.isoCongr (Iso.refl (G := H))
+      (iso_of_embedding G H f).symm⟩
+  invFun := fun ⟨s, a⟩ ↦ by
+    let f := (Embedding.induce s.1).comp <| s.2.some.toEmbedding.comp a.toEmbedding
+    exact f
+  left_inv := fun f ↦ by
+    ext b; simp [Iso.isoCongr]
+    have hs : G.induces (Set.range f) H := ⟨iso_of_embedding G H f⟩
+    rw [induces] at hs
+    have hs':= hs.some
+
+    sorry
+  right_inv := fun (s, a) ↦ by
+    ext a'
+    · simp
+      constructor <;> intro h
+      · obtain ⟨y,hy⟩ := h
+        rw [← hy]
+        simp
+      ·
+        sorry
+    · simp [Iso.isoCongr]
+       
+      sorry
 open Classical in
 lemma embeddings_eq_disjUnion [Fintype α] [Fintype β] (e : α ↪ β) : ∃! s : Finset β, #s = ‖α‖ ∧
     Set.range e = s := by
