@@ -159,6 +159,42 @@ lemma sum_embeddings_eq_sum {α ι : Type*} [Fintype α] [DecidableEq α] [Decid
 end Finset
 namespace SimpleGraph
 open Finset
+
+variable {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β}
+
+abbrev Aut (G : SimpleGraph α) := G ≃g G
+
+noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableRel G.Adj] [DecidableEq α][Fintype α]:
+  Fintype (Aut G) := by
+  rw [Aut]
+  exact FunLike.fintype (G ≃g G)
+
+/-- G.induces t H iff there is a graph iso `G.induce t ≃g H` -/
+abbrev induces {α β : Type*} (G : SimpleGraph α)  (t : Set α) (H : SimpleGraph β) :=
+ Nonempty (G.induce t ≃g H)
+
+open Classical in
+lemma embeddings_eq_disjUnion [Fintype α] [Fintype β] (e : α ↪ β) : ∃! s : Finset β, #s = ‖α‖ ∧
+    Set.range e = s := by
+  use (Set.range e).toFinset
+  simp [e.inj', Set.toFinset_range]
+  constructor
+  · rw [card_image_of_injective  ]
+    · rfl
+    · exact Function.Embedding.injective e
+  · intro y hy hy'
+    rw [← Set.toFinset_range]
+    simp_all only [toFinset_coe]
+
+open Classical in
+lemma unlabelled_induced_mul_card_aut_eq_card_embeddding [Fintype α] [Fintype β] (G : SimpleGraph α)
+   (H : SimpleGraph β) : #{t : Finset α | #t = ‖β‖ ∧ G.induces t H} * ‖H.Aut‖ = ‖H ↪g G‖:= by
+  rw  [← card_univ (α := H ↪g G)]
+  rw [ card_eq_sum_ones, card_eq_sum_ones univ, sum_mul, one_mul]
+  rw [← sum_subtype_eq_sum_filter]
+
+  sorry
+
 variable {α β : Type*}
 theorem monotoneOn_nat_Ici_of_le_succ {γ : Type*} [Preorder γ] {f : ℕ → γ} {k : ℕ}
     (hf : ∀ n ≥ k, f n ≤ f (n + 1)) :
