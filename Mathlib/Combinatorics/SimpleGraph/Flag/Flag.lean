@@ -180,19 +180,26 @@ lemma Iso.sum_card_flagEmbedding {α α' β β' ι : Type*} [Fintype β] [Fintyp
   Fintype.sum_equiv ((Equiv.refl _).embeddingCongr e) _ _
     (fun _ ↦ Fintype.card_congr <| e.flagEmbeddingCongr f)
 
+abbrev Flag.σ (F : Flag α ι) : SimpleGraph ι := F.G.comap F.θ
 
 /--
 `F` is a `σ`-flag iff the labelled subgraph given by `θ` is `σ`
 -/
 def Flag.IsSigma (F : Flag α ι) (σ : SimpleGraph ι) : Prop :=
-  F.G.comap F.θ = σ
+  F.σ = σ
+
+abbrev Flag.embeddableIn (F₁ : Flag α ι) (F₂ : Flag β ι) : Prop := Nonempty (F₁ ↪f F₂)
+
+lemma FlagEmbedding.sigma_eq {α β ι : Type*} {F₁ : Flag α ι}
+    {F₂ : Flag β ι} (e : F₁ ↪f F₂) : F₂.σ = F₁.σ := by
+  ext u v; simp [comap_adj, e.labels_eq]
+
+lemma sigma_eq_of_embeddableIn {α β ι : Type*} {F₁ : Flag α ι}
+    {F₂ : Flag β ι} {h : F₁.embeddableIn F₂} : F₂.σ = F₁.σ := by
+  obtain ⟨e⟩:= h
+  exact e.sigma_eq
 
 lemma Flag.isSigma_self (F : Flag α ι) : F.IsSigma (F.G.comap F.θ) := rfl
-
-lemma Flag.isSigma_of_embedding {α β ι : Type*} {σ : SimpleGraph ι} {F₁ : Flag α ι}
-    {F₂ : Flag β ι} (e : F₁ ↪f F₂)  (h1 : F₁.IsSigma σ) : F₂.IsSigma σ := by
-  rw [IsSigma, e.labels_eq, ← h1] at *
-  ext; simp
 
 variable {α ι  : Type*} [Fintype α] [Fintype ι] [DecidableEq α]
 
@@ -334,10 +341,10 @@ lemma Flag.sum_card_embeddings_induce_eq' (F : Flag β ι) (G : SimpleGraph α) 
 
 lemma Flag.ave_sum_card_embeddings_induce_eq1  [Fintype β] {j k : ℕ} (hk : ‖β‖ ≤ k) (F : Flag β ι)
     (G : SimpleGraph α) {s : {x : Finset α // #x = j}} {θ : ι ↪ s} :
-  ‖F ↪f ⟨G, θ.intoType⟩‖ * (Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖))
+ (Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖)) *  ‖F ↪f ⟨G, θ.intoType⟩‖
     = ∑ t : {t : Finset α // #t = k ∧ ∀ i, (θ i).1 ∈ t},
       ‖F ↪f (⟨G, θ.intoType⟩ : Flag α ι).induce t t.prop.2‖ := by
-  rw [ ← sum_card_embeddings_induce_eq'' F _ hk]
+  rw [mul_comm, ← sum_card_embeddings_induce_eq'' F _ hk]
   congr with t
 
 
@@ -350,11 +357,11 @@ lemma Flag.ave_sum_card_embeddings_induce_eq1  [Fintype β] {j k : ℕ} (hk : �
 
 lemma Flag.ave_sum_card_embeddings_induce_eq (F : Flag β ι) (G : SimpleGraph α) [Fintype β]
     [DecidableEq ι] {j k : ℕ} (hj : ‖ι‖ ≤ j) (hk : ‖β‖ ≤ k) :
-  (Nat.choose (‖α‖ - ‖ι‖) (j - ‖ι‖)) * ∑ θ : ι ↪ α, ‖F ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖)
+  (Nat.choose (‖α‖ - ‖ι‖) (j - ‖ι‖)) * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) * ∑ θ : ι ↪ α, ‖F ↪f ⟨G, θ⟩‖
   = ∑ s : {s : Finset α // #s = j} , ∑ θ : ι ↪ s, ∑ t : {t : Finset α // #t = k ∧ ∀ i, (θ i).1 ∈ t},
       ‖F ↪f (⟨G, θ.intoType⟩ : Flag α ι).induce t t.prop.2‖  := by
-  simp_rw [←sum_mul, ← mul_assoc, sum_embeddings_eq_sum hj, sum_mul,
-    ave_sum_card_embeddings_induce_eq1 hk]
+  rw [mul_assoc, mul_sum, sum_embeddings_eq_sum hj]
+  simp_rw  [ave_sum_card_embeddings_induce_eq1 hk]
 
 
 /--
