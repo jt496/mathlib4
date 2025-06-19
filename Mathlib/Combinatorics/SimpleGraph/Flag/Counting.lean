@@ -188,10 +188,32 @@ abbrev induces {α β : Type*} (G : SimpleGraph α)  (t : Set α) (H : SimpleGra
  Nonempty (H ≃g G.induce t)
 #check Finset.choose
 
-lemma some_eq {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) (s t : Set α) (h : s = t)
+@[simp]
+lemma some_eq_trans {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t u: Set α}
+  (h1 : s = t) (h2 : t = u) (hs : G.induces s H) (ht : G.induces t H) (hu : G.induces u H) :
+    (h1 ▸ h2 ▸ hu.some) = hs.some := by
+  subst_vars
+  rfl
+
+
+lemma some_eq {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α} (h : s = t)
 (hs : G.induces s H) (ht : G.induces t H)  : hs.some = (h ▸ ht.some) := by
   subst h
   rfl
+
+@[simp]
+lemma some_eq_apply {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α} (h : s = t)
+(hs : G.induces s H) (ht : G.induces t H) (b : β)  : (hs.some b : α) = (ht.some b) := by
+  subst h
+  rfl
+
+
+lemma some_eq' {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α} (h : s = t)
+(hs : G.induces s H)  : hs.some = (h ▸ hs.some) := by
+  subst h
+  rfl
+
+
 
 noncomputable def iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
     (e : H ↪g G) : H ≃g G.induce (Set.range e)  := by
@@ -213,14 +235,18 @@ lemma iso_of_embedding_apply {α β : Type*} (G : SimpleGraph α) (H : SimpleGra
 lemma iso_of_embedding_apply_val {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
     (e : H ↪g G) (b : β) : G.iso_of_embedding H e b = e b := rfl
 
-
+#check Subtype.ext_iff_val
 
 @[simp]
 lemma range_iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
     (e : H ↪g G) : Set.range (iso_of_embedding G H e) = Set.range e := by
   ext a; simp
 
-noncomputable def label_equiv  {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) :
+/--
+Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subset of the vertices of
+`G` that induces `H` and `j` is any automorphism of `H`.
+-/
+noncomputable def embeddingsEquivSetProdAut  {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) :
     H ↪g G ≃ {s : Set α // G.induces s H} × Aut H where
   toFun := fun e ↦ by
     have hiₛ : G.induces (Set.range e) H := ⟨iso_of_embedding G H e⟩
@@ -229,8 +255,8 @@ noncomputable def label_equiv  {α β : Type*} (G : SimpleGraph α) (H : SimpleG
   left_inv := fun f ↦ by
     ext b; simp
   right_inv := fun (s, j) ↦ by
-    set e := ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding with he
-    set t : Set α := Set.range e with ht
+    let e := ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding
+    let t : Set α := Set.range e
     have hts : t = s := by
       ext a
       simp only [Set.mem_range, Function.comp_apply, Embedding.comap_apply,
@@ -238,29 +264,19 @@ noncomputable def label_equiv  {α β : Type*} (G : SimpleGraph α) (H : SimpleG
       constructor <;> intro h
       · obtain ⟨y, hy⟩ := h
         subst_vars
-        simp [he]
-      · use j.symm ( s.2.some.symm ⟨a, h⟩)
-        simp [he]
+        simp [e]
+      · exact ⟨j.symm ( s.2.some.symm ⟨a, h⟩), by simp [e]⟩
     have hit : G.induces t H := ⟨hts ▸ s.2.some⟩
     ext a
     · simp
-    · have : hit.some = hts.symm ▸ s.2.some := by
-        convert some_eq G H s.1 t hts.symm s.2 hit
-        exact hts.symm
-      simp
-      rw [ht] at hit
-      apply_fun hit.some
-      simp_all only [RelEmbedding.coe_trans, RelIso.coe_toRelEmbedding, EquivLike.range_comp,
-                     RelIso.apply_symm_apply, e, t]
+    · apply_fun hit.some
+      simp only [RelEmbedding.coe_trans, RelIso.coe_toRelEmbedding, EquivLike.range_comp,
+                RelIso.trans_apply, RelIso.apply_symm_apply, e, t]
       change G.iso_of_embedding H e a = _
-      have hea : G.iso_of_embedding H e a = e a:= by rfl
-      have hes : e a ∈ Set.range e := by aesop
-      rw [Subtype.ext_iff, hea]
-      dsimp [e]
-      
-      --have hea' : G.iso_of_embedding H e a = ⟨e a , hes⟩ := by rfl
-      --simp [hea', he]
-      sorry
+      rw [Subtype.ext_iff, iso_of_embedding_apply]
+      dsimp [t, e]
+      rw [some_eq_apply hts.symm s.2 hit]
+      rfl
 
 open Classical in
 lemma embeddings_eq_disjUnion [Fintype α] [Fintype β] (e : α ↪ β) : ∃! s : Finset β, #s = ‖α‖ ∧
