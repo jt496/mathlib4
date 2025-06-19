@@ -186,7 +186,12 @@ noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableRel G.Adj] [Dec
 /-- G.induces t H iff there is a graph iso `H ≃g G.induce t` -/
 abbrev induces {α β : Type*} (G : SimpleGraph α)  (t : Set α) (H : SimpleGraph β) :=
  Nonempty (H ≃g G.induce t)
+#check Finset.choose
 
+lemma some_eq {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) (s t : Set α) (h : s = t)
+(hs : G.induces s H) (ht : G.induces t H)  : hs.some = (h ▸ ht.some) := by
+  subst h
+  rfl
 
 noncomputable def iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
     (e : H ↪g G) : H ≃g G.induce (Set.range e)  := by
@@ -201,41 +206,62 @@ noncomputable def iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : Sim
   exact RelEmbedding.map_rel_iff e
 
 @[simp]
-lemma iso_of_embedding' {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
-    (e : H ↪g G) (b : β) : iso_of_embedding G H e b = e b := rfl
+lemma iso_of_embedding_apply {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
+    (e : H ↪g G) (b : β) : G.iso_of_embedding H e b = e b := rfl
 
+@[simp]
+lemma iso_of_embedding_apply_val {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
+    (e : H ↪g G) (b : β) : G.iso_of_embedding H e b = e b := rfl
+
+
+
+@[simp]
+lemma range_iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
+    (e : H ↪g G) : Set.range (iso_of_embedding G H e) = Set.range e := by
+  ext a; simp
 
 noncomputable def label_equiv  {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) :
     H ↪g G ≃ {s : Set α // G.induces s H} × Aut H where
-  toFun := fun f ↦ by
-    have hs : G.induces (Set.range f) H := ⟨iso_of_embedding G H f⟩
-    -- fix RHS of the next line, it needs to take the arbitrary embedding given by `hs.some`
-    -- will need lemmas about `isoCongr`
-    exact ⟨⟨Set.range f, hs⟩, (hs.some.symm.isoCongr   (Iso.refl (G := H))
-      hs.some.symm).comp ((iso_of_embedding G H f).symm.isoCongr (Iso.refl (G := H))
-      (iso_of_embedding G H f).symm)⟩
-  invFun := fun ⟨s, a⟩ ↦ by
-    let f := (Embedding.induce s.1).comp <| s.2.some.toEmbedding.comp a.toEmbedding
-    exact f
+  toFun := fun e ↦ by
+    have hiₛ : G.induces (Set.range e) H := ⟨iso_of_embedding G H e⟩
+    exact ⟨⟨Set.range e, hiₛ⟩, hiₛ.some.symm.comp (iso_of_embedding G H e)⟩
+  invFun := fun ⟨s, j⟩ ↦  ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding
   left_inv := fun f ↦ by
-    ext b; simp [Iso.isoCongr]
-    have hs : G.induces (Set.range f) H := ⟨iso_of_embedding G H f⟩
-    rw [induces] at hs
-    have hs':= hs.some
-
-    sorry
-  right_inv := fun (s, a) ↦ by
-    ext a'
-    · simp
+    ext b; simp
+  right_inv := fun (s, j) ↦ by
+    set e := ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding with he
+    set t : Set α := Set.range e with ht
+    have hts : t = s := by
+      ext a
+      simp only [Set.mem_range, Function.comp_apply, Embedding.comap_apply,
+                Function.Embedding.subtype_apply, t]
       constructor <;> intro h
-      · obtain ⟨y,hy⟩ := h
-        rw [← hy]
-        simp
-      ·
-        sorry
-    · simp [Iso.isoCongr]
-
+      · obtain ⟨y, hy⟩ := h
+        subst_vars
+        simp [he]
+      · use j.symm ( s.2.some.symm ⟨a, h⟩)
+        simp [he]
+    have hit : G.induces t H := ⟨hts ▸ s.2.some⟩
+    ext a
+    · simp
+    · have : hit.some = hts.symm ▸ s.2.some := by
+        convert some_eq G H s.1 t hts.symm s.2 hit
+        exact hts.symm
+      simp
+      rw [ht] at hit
+      apply_fun hit.some
+      simp_all only [RelEmbedding.coe_trans, RelIso.coe_toRelEmbedding, EquivLike.range_comp,
+                     RelIso.apply_symm_apply, e, t]
+      change G.iso_of_embedding H e a = _
+      have hea : G.iso_of_embedding H e a = e a:= by rfl
+      have hes : e a ∈ Set.range e := by aesop
+      rw [Subtype.ext_iff, hea]
+      dsimp [e]
+      
+      --have hea' : G.iso_of_embedding H e a = ⟨e a , hes⟩ := by rfl
+      --simp [hea', he]
       sorry
+
 open Classical in
 lemma embeddings_eq_disjUnion [Fintype α] [Fintype β] (e : α ↪ β) : ∃! s : Finset β, #s = ‖α‖ ∧
     Set.range e = s := by
