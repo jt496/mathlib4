@@ -16,17 +16,17 @@ import Mathlib.Combinatorics.SimpleGraph.Copy
 import Mathlib.Combinatorics.SimpleGraph.DegreeSum
 set_option linter.style.header false
 local notation "‖" x "‖" => Fintype.card x
+
+variable {k m n : ℕ} {α β ι : Type*}
+
 namespace Finset
-
-variable {k m n : ℕ}
-
 open Finset
 
 /--
 Given `s : Finset α`, the number of super-sets of `s` of size `k` is `choose (‖α‖ - #s) (k - #s)`,
 for `#s ≤ k`.
 -/
-lemma card_supersets {α : Type*} [Fintype α] [DecidableEq α] {s : Finset α} (hk : #s ≤ k) :
+lemma card_supersets [Fintype α] [DecidableEq α] {s : Finset α} (hk : #s ≤ k) :
     #{t : Finset α | #t = k ∧ s ⊆ t} = Nat.choose (‖α‖ - #s) (k - #s) := by
   simp_rw [← card_compl, ← card_powersetCard]
   apply card_nbij (i := (· \ s))
@@ -46,10 +46,10 @@ lemma card_supersets {α : Type*} [Fintype α] [DecidableEq α] {s : Finset α} 
 
 
 /--
-Given `s : Finset α`, the number of super-sets of `s` of size `k` is `choose (‖α‖ - #s) (k - #s)`,
-for `#s ≤ k`.
+Given `s u : Finset α`, with `u ⊆ s` the number of sets of the same size as `s` that meet `s` in
+exactly `u` is `choose (‖α‖ - #s) (#s - #u)`.
 -/
-lemma card_supersets_inter' {α : Type*} [Fintype α] [DecidableEq α] {s u : Finset α} (hu : u ⊆ s) :
+lemma card_supersets_inter' [Fintype α] [DecidableEq α] {s u : Finset α} (hu : u ⊆ s) :
     #{t : Finset α | #t = #s ∧ s ∩ t = u} = Nat.choose (‖α‖ - #s) (#s - #u) := by
   simp_rw [← card_compl, ← card_powersetCard]
   apply card_nbij (i := (· \ u))
@@ -78,7 +78,9 @@ lemma card_supersets_inter' {α : Type*} [Fintype α] [DecidableEq α] {s u : Fi
       apply disjoint_of_subset_right hz.1 (LE.le.disjoint_compl_right fun ⦃a⦄ a ↦ a)
     simp [this]
 
-lemma card_supersets_inter  {α : Type*} [Fintype α] [DecidableEq α] (u : Finset α) (hk : #u ≤ k) :
+/-- The number of ordered pairs of sets of size `k` that meet in exactly the set `u` is
+`choose (‖α‖ - #u) (k - #u) * choose (‖α‖ - k) (k - #u)`. -/
+lemma card_supersets_inter  [Fintype α] [DecidableEq α] (u : Finset α) (hk : #u ≤ k) :
     #{(s, t) : Finset α × Finset α | #s = k ∧ #t = k ∧ s ∩ t = u} =
     (‖α‖ - #u).choose (k - #u) * (‖α‖ - k).choose (k - #u) := by
   calc
@@ -99,17 +101,17 @@ lemma card_supersets_inter  {α : Type*} [Fintype α] [DecidableEq α] (u : Fins
     · exact (card_supersets hk).symm
 
 /-- Given an embedding into a set `s` this is the same embedding into the type. -/
-abbrev _root_.Function.Embedding.intoType {α ι : Type*} {s : Set α} (θ : (ι ↪ s)) : ι ↪ α :=
+abbrev _root_.Function.Embedding.intoType {s : Set α} (θ : ι ↪ s) : ι ↪ α :=
   θ.trans (Function.Embedding.subtype s)
 
 /--
-Given a sum over embeddings `θ : ι ↪ α`, we can average over subsets of size `‖ι‖ ≤ k` of `α` and
+Given a sum over embeddings `θ : ι ↪ α`, we can average over `k`-subsets of `α` (if `‖ι‖ ≤ k`) and
 sum over embeddings `θ : ι ↪ s` for those subsets.
 (Each `e : ι ↪ α` will occur `choose (‖α‖ - ‖ι‖) (k - ‖ι‖)` times, once for each choice of set `t`
 of size `k - ‖ι‖` that we can union with the image of `e` to get a set of size `k`.)
 -/
-lemma sum_embeddings_eq_sum {α ι : Type*} [Fintype α] [DecidableEq α] [DecidableEq ι] [Fintype ι]
-    (hk : ‖ι‖ ≤ k) {f : (ι ↪ α) → ℕ} : Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖) * ∑ θ : ι ↪ α, f θ =
+lemma sum_embeddings_eq_sum [Fintype α] [DecidableEq α] [DecidableEq ι] [Fintype ι] (hk : ‖ι‖ ≤ k)
+    {f : (ι ↪ α) → ℕ} : Nat.choose (‖α‖ - ‖ι‖) (k - ‖ι‖) * ∑ θ : ι ↪ α, f θ =
     ∑ s : {s : Finset α // #s = k}, ∑ θ : ι ↪ s, f θ.intoType := by
   calc
   _ = ∑ θ : ι ↪ α, Nat.choose (‖α‖ - #(Finset.map θ univ)) (k - #(Finset.map θ univ)) * f θ := by
@@ -158,10 +160,11 @@ lemma sum_embeddings_eq_sum {α ι : Type*} [Fintype α] [DecidableEq α] [Decid
         rfl
 
 end Finset
+
 namespace SimpleGraph
 open Finset
 
-variable {α α' β β' : Type*} {G : SimpleGraph α} {H : SimpleGraph β}{G' : SimpleGraph α'}
+variable {α' β' : Type*} {G : SimpleGraph α} {H : SimpleGraph β}{G' : SimpleGraph α'}
   {H' : SimpleGraph β'}
 
 def Iso.embeddingCongr (e₁ : G ≃g G') (e₂ : H ≃g H') : G ↪g H ≃ G' ↪g H' where
@@ -204,35 +207,30 @@ lemma card_aut_top {α : Type*} [Fintype α] [DecidableEq α] :
   _ = _ := Fintype.card_perm
 
 /-- `G.induces t H` iff there is a graph isomorphism `H ≃g G.induce t`. -/
-abbrev induces {α β : Type*} (G : SimpleGraph α) (t : Set α) (H : SimpleGraph β) :=
-  Nonempty (H ≃g G.induce t)
+abbrev induces (G : SimpleGraph α) (t : Set α) (H : SimpleGraph β) := Nonempty (H ≃g G.induce t)
 
 /-- If `s` and `t` are the same set and they both induce `H` in `G` then the canonical isomorphism
 given by using choice with `Nonempty H ≃g G.induce s` yields the same isomorphism in both cases. -/
 @[simp]
-lemma induces_eq_apply {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α}
-    (h : s = t) (hs : G.induces s H) (ht : G.induces t H) {b : β} :
-    (hs.some b : α) = ht.some b := by
+lemma induces_eq_apply {s t : Set α} (h : s = t) (hs : G.induces s H) (ht : G.induces t H) {b : β} :
+     (hs.some b : α) = ht.some b := by
   subst h
   rfl
 
 /--
 Given an embedding `e : H ↪g G` this is `e` as the isomorphism  `H ≃g G.induce Set.range e`.
 -/
-noncomputable def Embedding.isoInduce {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β}
+noncomputable def Embedding.isoInduce
     (e : H ↪g G) : H ≃g G.induce (Set.range e) :=
   let f := e.toEmbedding.codRestrict (Set.range e) (fun x ↦ by simp)
   ⟨f.equivOfSurjective (fun x ↦ let ⟨y, hy⟩ := Set.mem_range.mp x.2; ⟨y, by simp [hy, f]⟩),
    RelEmbedding.map_rel_iff e⟩
 
+@[simp]
+lemma Embedding.isoInduce_apply (e : H ↪g G) (b : β) : e.isoInduce b = e b := rfl
 
 @[simp]
-lemma Embedding.isoInduce_apply {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β}
-    (e : H ↪g G) (b : β) : e.isoInduce b = e b := rfl
-
-@[simp]
-lemma range_aut_embedding_induce_eq  {α β : Type*} {s : Set α} {G : SimpleGraph α}
-    {H : SimpleGraph β} (f : H ≃g G.induce s) (j : Aut H) :
+lemma range_aut_embedding_induce_eq {s : Set α} (f : H ≃g G.induce s) (j : Aut H) :
     Set.range (((Embedding.induce s).comp f.toEmbedding).comp j.toEmbedding) = s := by
   ext; simp
 
@@ -240,7 +238,7 @@ lemma range_aut_embedding_induce_eq  {α β : Type*} {s : Set α} {G : SimpleGra
 Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subset of the vertices of
 `G` that induces `H` and `j` is an automorphism of `H`.
 -/
-noncomputable def embeddingsEquivSetProdAut  {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) :
+noncomputable def embeddingsEquivInduceProdAut (G : SimpleGraph α) (H : SimpleGraph β) :
     H ↪g G ≃ {s : Set α // G.induces s H} × Aut H where
   toFun := fun e ↦ by
     have hiₛ : G.induces (Set.range e) H := ⟨e.isoInduce⟩
@@ -261,31 +259,30 @@ noncomputable def embeddingsEquivSetProdAut  {α β : Type*} (G : SimpleGraph α
       exact induces_eq_apply hts.symm s.2 hir
 
 @[simp]
-lemma card_induces [Fintype α] [Fintype β] {G : SimpleGraph α} {H : SimpleGraph β} {s : Finset α}
-    (h : G.induces s H) : #s = ‖β‖ := by
+lemma card_induces [Fintype α] [Fintype β] {s : Finset α} (h : G.induces s H) : #s = ‖β‖ := by
   obtain ⟨e⟩ := h
   convert e.symm.card_eq
   simp
 
 open Classical in
 lemma card_embeddings_eq_card_induces_mul_card_aut [Fintype α] [Fintype β] (G : SimpleGraph α)
-    (H : SimpleGraph β) :   ‖H ↪g G‖ = #{t : Finset α | #t = ‖β‖ ∧ G.induces t H} * ‖H.Aut‖ := by
-  rw [Fintype.card_congr (embeddingsEquivSetProdAut G H), Fintype.card_prod, Fintype.card_subtype]
+    (H : SimpleGraph β) :  ‖H ↪g G‖ = #{t : Finset α | #t = ‖β‖ ∧ G.induces t H} * ‖H.Aut‖ := by
+  rw [Fintype.card_congr (embeddingsEquivInduceProdAut ..), Fintype.card_prod, Fintype.card_subtype]
   congr!
   calc
   _ = #{t : Finset α |  G.induces t H} := card_equiv Fintype.finsetEquivSet.symm (by simp)
   _ = _ := by
     rw [filter_congr (q := fun t ↦ #t = ‖β‖ ∧ G.induces t H)]
-    intro t ht
+    intros
     exact iff_and_self.2 (fun h ↦ card_induces h)
 
-variable {α β : Type*}
-theorem monotoneOn_nat_Ici_of_le_succ {γ : Type*} [Preorder γ] {f : ℕ → γ} {k : ℕ}
+variable {γ : Type*}
+theorem monotoneOn_nat_Ici_of_le_succ [Preorder γ] {f : ℕ → γ} {k : ℕ}
     (hf : ∀ n ≥ k, f n ≤ f (n + 1)) :
     MonotoneOn f { x | k ≤ x } :=
   fun _ hab _ _ hle ↦ Nat.rel_of_forall_rel_succ_of_le_of_le (· ≤ ·) hf hab hle
 
-theorem antitoneOn_nat_Ici_of_succ_le {γ : Type*} [Preorder γ]  {f : ℕ → γ} {k : ℕ}
+theorem antitoneOn_nat_Ici_of_succ_le [Preorder γ]  {f : ℕ → γ} {k : ℕ}
     (hf : ∀ n ≥ k, f (n + 1) ≤ f n) :
     AntitoneOn f { x | k ≤ x } :=
   @monotoneOn_nat_Ici_of_le_succ γᵒᵈ _ f k hf
@@ -325,7 +322,7 @@ If `G` is a graph on `α` and `H` is a graph on `β`, then
 `#(H ↪g G) * (choose (‖α‖ - ‖β‖) (k - ‖β‖))` is equal to the sum of the number of embeddings
 `H ↪g (G.induce t)` over subsets `t` of `α` of size `k`, for any `‖β‖ ≤ k`.
 -/
-lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α][Fintype β]
+lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
   {k : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖H ↪g (G.induce t)‖
                               = ‖H ↪g G‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
   classical
@@ -389,8 +386,8 @@ def topBoolEmbeddingDartsEquiv (G : SimpleGraph α) : ((⊤ : SimpleGraph Bool) 
   left_inv := fun e ↦ by ext a; cases a <;> simp
   right_inv := fun d ↦ rfl
 
-variable  [Fintype α]
-lemma card_embedding_top_two_eq_twice_card_edges (G : SimpleGraph α)
+
+lemma card_embedding_top_two_eq_twice_card_edges  [Fintype α] (G : SimpleGraph α)
     [DecidableRel G.Adj] : ‖(⊤ : SimpleGraph Bool) ↪g G‖ = 2 * #G.edgeFinset :=
   (Fintype.card_congr G.topBoolEmbeddingDartsEquiv).trans <| dart_card_eq_twice_card_edges _
 
@@ -408,8 +405,7 @@ open Finset Fintype
 
 section IsExtremal
 
-variable {α γ : Type*} [Fintype α] [Fintype γ] {G : SimpleGraph α} [DecidableRel G.Adj]
-{H : SimpleGraph γ} [DecidableRel H.Adj]
+variable [Fintype α] [Fintype γ] [DecidableRel G.Adj] {H : SimpleGraph γ} [DecidableRel H.Adj]
 
 /--
 `G` is an exᵢ graph satisfying `p` if `G` has the maximum number of induced copies of
@@ -462,7 +458,7 @@ def Iso.embeddings_equiv_of_equiv {α' γ' : Type*} {G' : SimpleGraph α'} {H' :
   right_inv := fun _ ↦ by ext; simp
 
 open Classical in
-theorem extremalInduced_of_fintypeCard_eq (hc : card α = n) :
+theorem extremalInduced_of_fintypeCard_eq  [Fintype α] (hc : card α = n) :
     exᵢ n H F = sup { G : SimpleGraph α | F.Free G } (fun G ↦ ‖H ↪g G‖) := by
   let e := Fintype.equivFinOfCardEq hc
   rw [extremalInduced, le_antisymm_iff]
@@ -482,20 +478,20 @@ theorem extremalInduced_of_fintypeCard_eq (hc : card α = n) :
 /--
 If `G` is `F`-free, then `G` has at most `exᵢ (card α) F H` induced copies of `H`.
 -/
-theorem card_embeddings_le_extremalInduced (h : F.Free G) :
+theorem card_embeddings_le_extremalInduced  [Fintype α] (h : F.Free G) :
      ‖H ↪g G‖ ≤ exᵢ (card α) H F := by
   rw [extremalInduced_of_fintypeCard_eq rfl]
   convert @le_sup _ _ _ _ { G | F.Free G } (fun G ↦ ‖H ↪g G‖) G (by simpa using h)
 
 /-- If `G` has more than `exᵢ (card V) H` edges, then `G` contains a copy of `H`. -/
-theorem IsContained.of_extremalInduced_lt_card_embeddings
+theorem IsContained.of_extremalInduced_lt_card_embeddings  [Fintype α]
     (h : exᵢ (card α) H F <  ‖H ↪g G‖) : F ⊑ G := by
   contrapose! h
   exact card_embeddings_le_extremalInduced h
 
 /-- `exᵢ (card V) H F` is at most `x` if and only if every `F`-free simple graph `G` has
 at most `x` embeddings of `H`. -/
-theorem extremalInduced_le_iff (F : SimpleGraph β) (m : ℕ) :
+theorem extremalInduced_le_iff  [Fintype α] (F : SimpleGraph β) (m : ℕ) :
     exᵢ (card α) H F ≤ m ↔
       ∀ ⦃G : SimpleGraph α⦄ [DecidableRel G.Adj], F.Free G →  ‖H ↪g G‖ ≤ m := by
   simp_rw [extremalInduced_of_fintypeCard_eq rfl, Finset.sup_le_iff, mem_filter, mem_univ, true_and]
@@ -504,7 +500,7 @@ theorem extremalInduced_le_iff (F : SimpleGraph β) (m : ℕ) :
 
 /-- `exᵢ (card V) F H` is greater than `x` if and only if there exists a `F`-free simple
 graph `G` with more than `x` embeddings of `H`. -/
-theorem lt_extremalInduced_iff (F : SimpleGraph β) (m : ℕ) :
+theorem lt_extremalInduced_iff [Fintype α] (F : SimpleGraph β) (m : ℕ) :
     m < exᵢ (card α) H F ↔
       ∃ G : SimpleGraph α, ∃ _ : DecidableRel G.Adj, F.Free G ∧ m < ‖H ↪g G‖ := by
   simp_rw [extremalInduced_of_fintypeCard_eq rfl, Finset.lt_sup_iff, mem_filter, mem_univ, true_and]
@@ -513,14 +509,14 @@ theorem lt_extremalInduced_iff (F : SimpleGraph β) (m : ℕ) :
 variable {R : Type*} [Semiring R] [LinearOrder R] [FloorSemiring R]
 
 @[inherit_doc extremalInduced_le_iff]
-theorem extremalInduced_le_iff_of_nonneg (F : SimpleGraph β) {m : R} (h : 0 ≤ m) :
+theorem extremalInduced_le_iff_of_nonneg [Fintype α] (F : SimpleGraph β) {m : R} (h : 0 ≤ m) :
     exᵢ (card α) H F ≤ m ↔
       ∀ ⦃G : SimpleGraph α⦄ [DecidableRel G.Adj], F.Free G → ‖H ↪g G‖ ≤ m := by
   simp_rw [← Nat.le_floor_iff h]
   exact extremalInduced_le_iff F ⌊m⌋₊
 
 @[inherit_doc lt_extremalInduced_iff]
-theorem lt_extremalInduced_iff_of_nonneg (F : SimpleGraph β) {m : R} (h : 0 ≤ m) :
+theorem lt_extremalInduced_iff_of_nonneg [Fintype α] (F : SimpleGraph β) {m : R} (h : 0 ≤ m) :
     m < exᵢ (card α) H F ↔
       ∃ G : SimpleGraph α, ∃ _ : DecidableRel G.Adj, F.Free G ∧ m < ‖H ↪g G‖ := by
   simp_rw [← Nat.floor_lt h]
@@ -570,12 +566,12 @@ theorem extremalInduced_congr_right {β₁ β₂ : Type*} {F₁ : SimpleGraph β
 variable [DecidableRel H.Adj] [DecidableRel G.Adj]
 /-- `H`-free extremal graphs are `H`-free simple graphs having `exᵢ (card V) H` many
 edges. -/
-theorem isExtremalH_free_iff :
+theorem isExtremalH_free_iff   [Fintype α] :
     G.IsExtremalH H F.Free ↔ F.Free G ∧ ‖H ↪g G‖ = exᵢ (card α) H F := by
   rw [IsExtremalH, and_congr_right_iff, ← extremalInduced_le_iff]
   exact fun h ↦ ⟨eq_of_le_of_le (card_embeddings_le_extremalInduced h), ge_of_eq⟩
 
-lemma card_embeddings_of_isExtremalH_free (h : G.IsExtremalH H F.Free) :
+lemma card_embeddings_of_isExtremalH_free  [Fintype α] (h : G.IsExtremalH H F.Free) :
     ‖H ↪g G‖ = exᵢ (card α) H F := (isExtremalH_free_iff.mp h).2
 
 lemma antitoneOn_extremalInduced_div_choose (H : SimpleGraph γ) (F : SimpleGraph β)

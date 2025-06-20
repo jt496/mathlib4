@@ -347,14 +347,6 @@ lemma Flag.ave_sum_card_embeddings_induce_eq1  [Fintype β] {j k : ℕ} (hk : �
   rw [mul_comm, ← sum_card_embeddings_induce_eq'' F _ hk]
   congr with t
 
-
--- lemma Flag.ave_sum_card_embeddings_induce_eq2 [DecidableEq ι] [Fintype β] (F : Flag β ι)
---     (G : SimpleGraph α) {j : ℕ} (hj : ‖ι‖ ≤ j) :
---     (Nat.choose (‖α‖ - ‖ι‖) (j - ‖ι‖)) * ∑ θ : ι ↪ α, ‖F ↪f ⟨G, θ⟩‖ =
---     ∑ s : {s : Finset α // #s = j} , ∑ θ : ι ↪ s, ‖F ↪f (⟨G, θ.intoType⟩ : Flag α ι)‖ :=
---   sum_embeddings_eq_sum hj
-
-
 lemma Flag.ave_sum_card_embeddings_induce_eq (F : Flag β ι) (G : SimpleGraph α) [Fintype β]
     [DecidableEq ι] {j k : ℕ} (hj : ‖ι‖ ≤ j) (hk : ‖β‖ ≤ k) :
   (Nat.choose (‖α‖ - ‖ι‖) (j - ‖ι‖)) * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) * ∑ θ : ι ↪ α, ‖F ↪f ⟨G, θ⟩‖
