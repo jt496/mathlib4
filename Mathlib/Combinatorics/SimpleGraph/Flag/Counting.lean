@@ -230,9 +230,15 @@ noncomputable def Embedding.isoInduce {α β : Type*} {G : SimpleGraph α} {H : 
 lemma Embedding.isoInduce_apply {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β}
     (e : H ↪g G) (b : β) : e.isoInduce b = e b := rfl
 
+@[simp]
+lemma range_aut_embedding_induce_eq  {α β : Type*} {s : Set α} {G : SimpleGraph α}
+    {H : SimpleGraph β} (f : H ≃g G.induce s) (j : Aut H) :
+    Set.range (((Embedding.induce s).comp f.toEmbedding).comp j.toEmbedding) = s := by
+  ext; simp
+
 /--
 Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subset of the vertices of
-`G` that induces `H` and `j` is any automorphism of `H`.
+`G` that induces `H` and `j` is an automorphism of `H`.
 -/
 noncomputable def embeddingsEquivSetProdAut  {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) :
     H ↪g G ≃ {s : Set α // G.induces s H} × Aut H where
@@ -243,25 +249,16 @@ noncomputable def embeddingsEquivSetProdAut  {α β : Type*} (G : SimpleGraph α
   left_inv := fun f ↦ by ext b; simp
   right_inv := fun (s, j) ↦ by
     let e := ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding
-    let t : Set α := Set.range e
-    have hts : t = s := by
-      ext a
-      simp only [Set.mem_range, Function.comp_apply, Embedding.comap_apply,
-                Function.Embedding.subtype_apply, t]
-      constructor <;> intro h
-      · obtain ⟨y, hy⟩ := h
-        subst_vars
-        simp [e]
-      · exact ⟨j.symm (s.2.some.symm ⟨a, h⟩), by simp [e]⟩
-    have hit : G.induces t H := ⟨hts ▸ s.2.some⟩
+    have hts : Set.range e = s := range_aut_embedding_induce_eq _ _
+    have hir : G.induces (Set.range e) H := ⟨hts ▸ s.2.some⟩
     ext a
     · simp
-    · apply_fun hit.some
+    · apply_fun hir.some
       simp only [RelEmbedding.coe_trans, RelIso.coe_toRelEmbedding, EquivLike.range_comp,
-                RelIso.trans_apply, RelIso.apply_symm_apply, e, t]
+                RelIso.trans_apply, RelIso.apply_symm_apply, e]
       change e.isoInduce a = _
       rw [Subtype.ext_iff, e.isoInduce_apply]
-      exact induces_eq_apply hts.symm s.2 hit
+      exact induces_eq_apply hts.symm s.2 hir
 
 @[simp]
 lemma card_induces [Fintype α] [Fintype β] {G : SimpleGraph α} {H : SimpleGraph β} {s : Finset α}
