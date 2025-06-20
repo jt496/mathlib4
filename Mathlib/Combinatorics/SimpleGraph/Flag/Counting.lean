@@ -183,64 +183,32 @@ noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableRel G.Adj] [Dec
   rw [Aut]
   exact FunLike.fintype (G ≃g G)
 
-/-- G.induces t H iff there is a graph iso `H ≃g G.induce t` -/
-abbrev induces {α β : Type*} (G : SimpleGraph α)  (t : Set α) (H : SimpleGraph β) :=
- Nonempty (H ≃g G.induce t)
-#check Finset.choose
+/-- `G.induces t H` iff there is a graph isomorphism `H ≃g G.induce t`. -/
+abbrev induces {α β : Type*} (G : SimpleGraph α) (t : Set α) (H : SimpleGraph β) :=
+  Nonempty (H ≃g G.induce t)
 
+/-- If `s` and `t` are the same set and they both induce `H` in `G` then the canonical isomorphism
+given by using choice with `Nonempty H ≃g G.induce s` yields the same isomorphism in both cases. -/
 @[simp]
-lemma some_eq_trans {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t u: Set α}
-  (h1 : s = t) (h2 : t = u) (hs : G.induces s H) (ht : G.induces t H) (hu : G.induces u H) :
-    (h1 ▸ h2 ▸ hu.some) = hs.some := by
-  subst_vars
-  rfl
-
-
-lemma some_eq {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α} (h : s = t)
-(hs : G.induces s H) (ht : G.induces t H)  : hs.some = (h ▸ ht.some) := by
+lemma induces_eq_apply {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α}
+    (h : s = t) (hs : G.induces s H) (ht : G.induces t H) {b : β} :
+    (hs.some b : α) = ht.some b := by
   subst h
   rfl
 
-@[simp]
-lemma some_eq_apply {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α} (h : s = t)
-(hs : G.induces s H) (ht : G.induces t H) (b : β)  : (hs.some b : α) = (ht.some b) := by
-  subst h
-  rfl
-
-
-lemma some_eq' {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {s t : Set α} (h : s = t)
-(hs : G.induces s H)  : hs.some = (h ▸ hs.some) := by
-  subst h
-  rfl
-
-
-
-noncomputable def iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
-    (e : H ↪g G) : H ≃g G.induce (Set.range e)  := by
+/--
+Given an embedding `e : H ↪g G` this is `e` as the isomorphism  `H ≃g G.induce Set.range e`.
+-/
+noncomputable def Embedding.isoInduce {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β}
+    (e : H ↪g G) : H ≃g G.induce (Set.range e) :=
   let f := e.toEmbedding.codRestrict (Set.range e) (fun x ↦ by simp)
-  let f':= f.equivOfSurjective (fun x ↦
-    let ⟨y, hy⟩ := Set.mem_range.mp x.2
-    ⟨y, by simp [hy,f]⟩)
-  refine ⟨f', ?_⟩
-  intro a b
-  simp only [comap_adj, Function.Embedding.subtype_apply, Subtype.forall, Set.mem_range,
-    forall_exists_index, f]
-  exact RelEmbedding.map_rel_iff e
+  ⟨f.equivOfSurjective (fun x ↦ let ⟨y, hy⟩ := Set.mem_range.mp x.2; ⟨y, by simp [hy, f]⟩),
+   RelEmbedding.map_rel_iff e⟩
+
 
 @[simp]
-lemma iso_of_embedding_apply {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
-    (e : H ↪g G) (b : β) : G.iso_of_embedding H e b = e b := rfl
-
-@[simp]
-lemma iso_of_embedding_apply_val {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
-    (e : H ↪g G) (b : β) : G.iso_of_embedding H e b = e b := rfl
-
-#check Subtype.ext_iff_val
-
-@[simp]
-lemma range_iso_of_embedding {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β)
-    (e : H ↪g G) : Set.range (iso_of_embedding G H e) = Set.range e := by
-  ext a; simp
+lemma Embedding.isoInduce_apply {α β : Type*} {G : SimpleGraph α} {H : SimpleGraph β}
+    (e : H ↪g G) (b : β) : e.isoInduce b = e b := rfl
 
 /--
 Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subset of the vertices of
@@ -249,11 +217,10 @@ Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subs
 noncomputable def embeddingsEquivSetProdAut  {α β : Type*} (G : SimpleGraph α) (H : SimpleGraph β) :
     H ↪g G ≃ {s : Set α // G.induces s H} × Aut H where
   toFun := fun e ↦ by
-    have hiₛ : G.induces (Set.range e) H := ⟨iso_of_embedding G H e⟩
-    exact ⟨⟨Set.range e, hiₛ⟩, hiₛ.some.symm.comp (iso_of_embedding G H e)⟩
-  invFun := fun ⟨s, j⟩ ↦  ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding
-  left_inv := fun f ↦ by
-    ext b; simp
+    have hiₛ : G.induces (Set.range e) H := ⟨e.isoInduce⟩
+    exact ⟨⟨Set.range e, hiₛ⟩, hiₛ.some.symm.comp e.isoInduce⟩
+  invFun := fun ⟨s, j⟩ ↦ ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding
+  left_inv := fun f ↦ by ext b; simp
   right_inv := fun (s, j) ↦ by
     let e := ((Embedding.induce s.1).comp s.2.some.toEmbedding).comp j.toEmbedding
     let t : Set α := Set.range e
@@ -265,40 +232,35 @@ noncomputable def embeddingsEquivSetProdAut  {α β : Type*} (G : SimpleGraph α
       · obtain ⟨y, hy⟩ := h
         subst_vars
         simp [e]
-      · exact ⟨j.symm ( s.2.some.symm ⟨a, h⟩), by simp [e]⟩
+      · exact ⟨j.symm (s.2.some.symm ⟨a, h⟩), by simp [e]⟩
     have hit : G.induces t H := ⟨hts ▸ s.2.some⟩
     ext a
     · simp
     · apply_fun hit.some
       simp only [RelEmbedding.coe_trans, RelIso.coe_toRelEmbedding, EquivLike.range_comp,
                 RelIso.trans_apply, RelIso.apply_symm_apply, e, t]
-      change G.iso_of_embedding H e a = _
-      rw [Subtype.ext_iff, iso_of_embedding_apply]
-      dsimp [t, e]
-      rw [some_eq_apply hts.symm s.2 hit]
-      rfl
+      change e.isoInduce a = _
+      rw [Subtype.ext_iff, e.isoInduce_apply]
+      exact induces_eq_apply hts.symm s.2 hit
+
+@[simp]
+lemma card_induces [Fintype α] [Fintype β] {G : SimpleGraph α} {H : SimpleGraph β} {s : Finset α}
+    (h : G.induces s H) : #s = ‖β‖ := by
+  obtain ⟨e⟩ := h
+  convert e.symm.card_eq
+  simp
 
 open Classical in
-lemma embeddings_eq_disjUnion [Fintype α] [Fintype β] (e : α ↪ β) : ∃! s : Finset β, #s = ‖α‖ ∧
-    Set.range e = s := by
-  use (Set.range e).toFinset
-  simp [e.inj', Set.toFinset_range]
-  constructor
-  · rw [card_image_of_injective  ]
-    · rfl
-    · exact Function.Embedding.injective e
-  · intro y hy hy'
-    rw [← Set.toFinset_range]
-    simp_all only [toFinset_coe]
-
-open Classical in
-lemma unlabelled_induced_mul_card_aut_eq_card_embeddding [Fintype α] [Fintype β] (G : SimpleGraph α)
-   (H : SimpleGraph β) : #{t : Finset α | #t = ‖β‖ ∧ G.induces t H} * ‖H.Aut‖ = ‖H ↪g G‖:= by
-  rw  [← card_univ (α := H ↪g G)]
-  rw [ card_eq_sum_ones, card_eq_sum_ones univ, sum_mul, one_mul]
-  rw [← sum_subtype_eq_sum_filter]
-
-  sorry
+lemma card_embeddings_eq_card_induces_mul_card_aut [Fintype α] [Fintype β] (G : SimpleGraph α)
+    (H : SimpleGraph β) :   ‖H ↪g G‖ = #{t : Finset α | #t = ‖β‖ ∧ G.induces t H} * ‖H.Aut‖ := by
+  rw [Fintype.card_congr (embeddingsEquivSetProdAut G H), Fintype.card_prod, Fintype.card_subtype]
+  congr!
+  calc
+  _ = #{t : Finset α |  G.induces t H} := card_equiv Fintype.finsetEquivSet.symm (by simp)
+  _ = _ := by
+    rw [filter_congr (q := fun t ↦ #t = ‖β‖ ∧ G.induces t H)]
+    intro t ht
+    exact iff_and_self.2 (fun h ↦ card_induces h)
 
 variable {α β : Type*}
 theorem monotoneOn_nat_Ici_of_le_succ {γ : Type*} [Preorder γ] {f : ℕ → γ} {k : ℕ}
