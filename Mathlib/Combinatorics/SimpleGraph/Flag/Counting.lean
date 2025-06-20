@@ -7,6 +7,7 @@ import Mathlib.Combinatorics.SimpleGraph.Coloring
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Data.Finset.Powerset
+import Mathlib.Data.Fintype.Perm
 import Mathlib.Data.Rat.Floor
 import Mathlib.Algebra.Order.Floor.Defs
 import Mathlib.Algebra.Order.Floor.Semiring
@@ -178,10 +179,29 @@ def Iso.isoCongr (e₁ : G ≃g G') (e₂ : H ≃g H') : G ≃g H ≃ G' ≃g H'
 
 abbrev Aut (G : SimpleGraph α) := G ≃g G
 
-noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableRel G.Adj] [DecidableEq α]
-    [Fintype α]: Fintype (Aut G) := by
-  rw [Aut]
-  exact FunLike.fintype (G ≃g G)
+lemma top_adj_of_equiv (e : α ≃ α) : ∀ i j, i ≠ j → (⊤ : SimpleGraph α).Adj (e i) (e j) := by
+  simp
+
+/-- Any `α ≃ α` is an automorphism of the complete graph on α `(⊤ : SimpleGraph α)` -/
+def topAutOfEquiv (e : α ≃ α) : Aut (⊤ : SimpleGraph α) := ⟨e, by simp⟩
+
+lemma topAutOfEquiv_inj : Function.Injective (fun e : α ≃ α ↦ topAutOfEquiv e) := by
+  intro e₁ e₂ h
+  cases h; rfl
+
+lemma topAutOfEquiv_surj : Function.Surjective (fun e : α ≃ α ↦ topAutOfEquiv e) :=
+  fun e ↦ ⟨e.toEquiv, rfl⟩
+
+/-- Any graph with finite vertex type has finitely many automorphisms -/
+noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableEq α] [Fintype α]:
+    Fintype (Aut G) := FunLike.fintype (G ≃g G)
+
+lemma card_aut_top {α : Type*} [Fintype α] [DecidableEq α] :
+    ‖Aut (⊤ : SimpleGraph α)‖ = ‖α‖.factorial := by
+  calc
+  _ = ‖α ≃ α‖ := Fintype.card_congr
+                  (Equiv.ofBijective _ ⟨topAutOfEquiv_inj, topAutOfEquiv_surj⟩).symm
+  _ = _ := Fintype.card_perm
 
 /-- `G.induces t H` iff there is a graph isomorphism `H ≃g G.induce t`. -/
 abbrev induces {α β : Type*} (G : SimpleGraph α) (t : Set α) (H : SimpleGraph β) :=
