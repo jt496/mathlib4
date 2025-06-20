@@ -101,15 +101,13 @@ instance : FunLike (F₁ ↪f F₂) α β where
     ext a; simp [h]
     exact congrFun h a
 
-/-- An isomorphism of graphs gives rise to an embedding of graphs. -/
+/-- An isomorphism of flags gives rise to an embedding of flags. -/
 abbrev FlagIso.toEmbedding (f : F₁ ≃f F₂): F₁ ↪f F₂ :=
   ⟨f.toRelEmbedding, by ext x ; simp [f.labels_eq]⟩
-
 
 /-- The identity isomorphism of a flag with itself. -/
 abbrev FlagIso.refl : F₁ ≃f F₁ :=
   ⟨RelIso.refl _, rfl⟩
-
 
 /-- The inverse of a flag isomorphism. -/
 abbrev FlagIso.symm  (f : F₁ ≃f F₂) : F₂ ≃f F₁ :=
