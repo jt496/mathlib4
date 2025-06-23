@@ -49,10 +49,10 @@ abbrev Flag.labels_in {α ι : Type*} (F : Flag α ι) (t : Set α) : Prop := �
 Given a flag `F = (G, θ)` and set `t ⊆ V(G)` containing `im(θ)` `F.induce t`
 is the flag induced by `t` with the same labels_eq. i,e, `⟨G[t], θ∣ₜ⟩`
 -/
-def Flag.induce {α ι : Type*} (F : Flag α ι) (t : Set α) (ht : F ⊆ₗt) : Flag t ι :=
+def Flag.induce {α ι : Type*} (F : Flag α ι) (t : Set α) (ht : F ⊆ₗ t) : Flag t ι :=
   ⟨F.G.induce t, ⟨fun i ↦ ⟨F.θ i, ht i⟩, fun h ↦ by simp_all⟩⟩
 
-def Flag.induce_copy {α ι : Type*} (F : Flag α ι) {s t : Set α} (h : s = t) (hs : F ⊆ₗs) :
+def Flag.induce_copy {α ι : Type*} (F : Flag α ι) {s t : Set α} (h : s = t) (hs : F ⊆ₗ s) :
     Flag t ι := by
   subst_vars; exact F.induce t hs
 
@@ -93,7 +93,7 @@ structure FlagIso {α β ι : Type*} (F₁ : Flag α ι) (F₂ : Flag β ι) ext
 @[inherit_doc] infixl:50 " ↪f " => FlagEmbedding
 @[inherit_doc] infixl:50 " ≃f " => FlagIso
 
-variable {γ  : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι} {F₃ : Flag γ ι}
+variable {γ : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι} {F₃ : Flag γ ι}
 
 instance : FunLike (F₁ ↪f F₂) α β where
   coe x := x.toFun
@@ -110,11 +110,11 @@ abbrev FlagIso.refl : F₁ ≃f F₁ :=
   ⟨RelIso.refl _, rfl⟩
 
 /-- The inverse of a flag isomorphism. -/
-abbrev FlagIso.symm  (f : F₁ ≃f F₂) : F₂ ≃f F₁ :=
+abbrev FlagIso.symm (f : F₁ ≃f F₂) : F₂ ≃f F₁ :=
   ⟨RelIso.symm f.toRelIso, by ext; simp [f.labels_eq]⟩
 
 /-- Composition of flag isomorphisms. -/
-abbrev FlagIso.trans  (f₁₂ : F₁ ≃f F₂) (f₂₃ : F₂ ≃f F₃) : F₁ ≃f F₃ :=
+abbrev FlagIso.trans (f₁₂ : F₁ ≃f F₂) (f₂₃ : F₂ ≃f F₃) : F₁ ≃f F₃ :=
   ⟨f₁₂.toRelIso.trans f₂₃.toRelIso, by ext; simp [f₁₂.labels_eq, f₂₃.labels_eq]⟩
 
 /-- Composition of flag embeddings. -/
@@ -146,10 +146,10 @@ lemma FlagIso.symm_eq {α β ι : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι}
 
 
 /--
-Pairs of isomorphic flags have equivalent embeddings
+Pairs of isomorphic flags have equivalent embedding
 -/
 def FlagIso.flagEmbeddingCongr {α α' β β' ι : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι}
-    {F₁' : Flag α' ι} {F₂' : Flag β' ι}  (e₁ : F₁ ≃f F₁') (e₂ : F₂ ≃f F₂') :
+    {F₁' : Flag α' ι} {F₂' : Flag β' ι} (e₁ : F₁ ≃f F₁') (e₂ : F₂ ≃f F₂') :
     (F₁ ↪f F₂) ≃ (F₁' ↪f F₂') where
   toFun := fun f ↦ (e₁.symm.toEmbedding.trans f).trans e₂.toEmbedding
   invFun := fun f ↦ (e₁.toEmbedding.trans f).trans e₂.symm.toEmbedding
@@ -162,7 +162,7 @@ and an injective map `θ : ι ↪ β`, the embeddings of `F` in `H` are equivale
 of `F'` in `(H', e ∘ θ)`.
 -/
 def Iso.flagEmbeddingCongr {α α' β β' ι : Type*} {F : Flag α ι} {F' : Flag α' ι}
-    {H : SimpleGraph β} {H' : SimpleGraph β'} {θ : ι ↪ β} (e :  H ≃g H')  (f : F ≃f F') :
+    {H : SimpleGraph β} {H' : SimpleGraph β'} {θ : ι ↪ β} (e : H ≃g H') (f : F ≃f F') :
     (F ↪f ⟨H, θ⟩) ≃ (F' ↪f ⟨H', θ.trans (e : β ↪ β')⟩) :=
   f.flagEmbeddingCongr (⟨e, by ext; simp⟩)
 
@@ -199,7 +199,7 @@ lemma sigma_eq_of_embeddableIn {α β ι : Type*} {F₁ : Flag α ι}
 
 lemma Flag.isSigma_self (F : Flag α ι) : F.IsSigma (F.G.comap F.θ) := rfl
 
-variable {α ι  : Type*} [Fintype α] [Fintype ι] [DecidableEq α]
+variable {α ι : Type*} [Fintype α] [Fintype ι] [DecidableEq α]
 
 noncomputable instance : Fintype (Flag α ι) :=  Fintype.ofEquiv _ (Flag_equiv_prod α ι).symm
 

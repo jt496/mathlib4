@@ -164,7 +164,7 @@ end Finset
 namespace SimpleGraph
 open Finset
 
-variable {α' β' : Type*} {G : SimpleGraph α} {H : SimpleGraph β}{G' : SimpleGraph α'}
+variable {α' β' : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {G' : SimpleGraph α'}
   {H' : SimpleGraph β'}
 
 def Iso.embeddingCongr (e₁ : G ≃g G') (e₂ : H ≃g H') : G ↪g H ≃ G' ↪g H' where
@@ -218,7 +218,7 @@ lemma induces_eq_apply {s t : Set α} (h : s = t) (hs : G.induces s H) (ht : G.i
   rfl
 
 /--
-Given an embedding `e : H ↪g G` this is `e` as the isomorphism  `H ≃g G.induce Set.range e`.
+Given an embedding `e : H ↪g G` this is `e` as the isomorphism  `H ≃g G.induce (Set.range e)`.
 -/
 noncomputable def Embedding.isoInduce
     (e : H ↪g G) : H ≃g G.induce (Set.range e) :=
@@ -265,6 +265,10 @@ lemma card_induces [Fintype α] [Fintype β] {s : Finset α} (h : G.induces s H)
   simp
 
 open Classical in
+/--
+We can count embeddings of `H` in `G` (both finite) by counting subsets of size `‖β‖` in `V(G)` that
+ induce `H`, where `V(H) = β`, and multiplying by the number of automorphisms of `H`.
+-/
 lemma card_embeddings_eq_card_induces_mul_card_aut [Fintype α] [Fintype β] (G : SimpleGraph α)
     (H : SimpleGraph β) :  ‖H ↪g G‖ = #{t : Finset α | #t = ‖β‖ ∧ G.induces t H} * ‖H.Aut‖ := by
   rw [Fintype.card_congr (embeddingsEquivInduceProdAut ..), Fintype.card_prod, Fintype.card_subtype]
@@ -282,7 +286,7 @@ theorem monotoneOn_nat_Ici_of_le_succ [Preorder γ] {f : ℕ → γ} {k : ℕ}
     MonotoneOn f { x | k ≤ x } :=
   fun _ hab _ _ hle ↦ Nat.rel_of_forall_rel_succ_of_le_of_le (· ≤ ·) hf hab hle
 
-theorem antitoneOn_nat_Ici_of_succ_le [Preorder γ]  {f : ℕ → γ} {k : ℕ}
+theorem antitoneOn_nat_Ici_of_succ_le [Preorder γ] {f : ℕ → γ} {k : ℕ}
     (hf : ∀ n ≥ k, f (n + 1) ≤ f n) :
     AntitoneOn f { x | k ≤ x } :=
   @monotoneOn_nat_Ici_of_le_succ γᵒᵈ _ f k hf
@@ -458,7 +462,7 @@ def Iso.embeddings_equiv_of_equiv {α' γ' : Type*} {G' : SimpleGraph α'} {H' :
   right_inv := fun _ ↦ by ext; simp
 
 open Classical in
-theorem extremalInduced_of_fintypeCard_eq  [Fintype α] (hc : card α = n) :
+theorem extremalInduced_of_fintypeCard_eq [Fintype α] (hc : card α = n) :
     exᵢ n H F = sup { G : SimpleGraph α | F.Free G } (fun G ↦ ‖H ↪g G‖) := by
   let e := Fintype.equivFinOfCardEq hc
   rw [extremalInduced, le_antisymm_iff]
@@ -478,20 +482,20 @@ theorem extremalInduced_of_fintypeCard_eq  [Fintype α] (hc : card α = n) :
 /--
 If `G` is `F`-free, then `G` has at most `exᵢ (card α) F H` induced copies of `H`.
 -/
-theorem card_embeddings_le_extremalInduced  [Fintype α] (h : F.Free G) :
+theorem card_embeddings_le_extremalInduced [Fintype α] (h : F.Free G) :
      ‖H ↪g G‖ ≤ exᵢ (card α) H F := by
   rw [extremalInduced_of_fintypeCard_eq rfl]
   convert @le_sup _ _ _ _ { G | F.Free G } (fun G ↦ ‖H ↪g G‖) G (by simpa using h)
 
 /-- If `G` has more than `exᵢ (card V) H` edges, then `G` contains a copy of `H`. -/
-theorem IsContained.of_extremalInduced_lt_card_embeddings  [Fintype α]
-    (h : exᵢ (card α) H F <  ‖H ↪g G‖) : F ⊑ G := by
+theorem IsContained.of_extremalInduced_lt_card_embeddings [Fintype α]
+    (h : exᵢ (card α) H F < ‖H ↪g G‖) : F ⊑ G := by
   contrapose! h
   exact card_embeddings_le_extremalInduced h
 
 /-- `exᵢ (card V) H F` is at most `x` if and only if every `F`-free simple graph `G` has
 at most `x` embeddings of `H`. -/
-theorem extremalInduced_le_iff  [Fintype α] (F : SimpleGraph β) (m : ℕ) :
+theorem extremalInduced_le_iff [Fintype α] (F : SimpleGraph β) (m : ℕ) :
     exᵢ (card α) H F ≤ m ↔
       ∀ ⦃G : SimpleGraph α⦄ [DecidableRel G.Adj], F.Free G →  ‖H ↪g G‖ ≤ m := by
   simp_rw [extremalInduced_of_fintypeCard_eq rfl, Finset.sup_le_iff, mem_filter, mem_univ, true_and]
@@ -566,7 +570,7 @@ theorem extremalInduced_congr_right {β₁ β₂ : Type*} {F₁ : SimpleGraph β
 variable [DecidableRel H.Adj] [DecidableRel G.Adj]
 /-- `H`-free extremal graphs are `H`-free simple graphs having `exᵢ (card V) H` many
 edges. -/
-theorem isExtremalH_free_iff   [Fintype α] :
+theorem isExtremalH_free_iff [Fintype α] :
     G.IsExtremalH H F.Free ↔ F.Free G ∧ ‖H ↪g G‖ = exᵢ (card α) H F := by
   rw [IsExtremalH, and_congr_right_iff, ← extremalInduced_le_iff]
   exact fun h ↦ ⟨eq_of_le_of_le (card_embeddings_le_extremalInduced h), ge_of_eq⟩
