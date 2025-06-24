@@ -331,6 +331,24 @@ def induceEquiv (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) : H ↪g 
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
 
+section unlabelledgraphs
+
+
+
+end unlabelledgraphs
+
+
+open Classical in
+lemma sum_induce (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
+  {k : ℕ} (hk : ‖β‖ ≤ k) :
+    ∑ t : Finset α with #t = k , ‖H ↪g (G.induce t)‖ =
+    ∑ F : SimpleGraph (Fin k), #{t : Finset α | #t = k ∧ G.induces t F} * ‖H ↪g F‖ := by
+  sorry
+
+
+
+
+
 /-- **The principle of counting induced subgraphs by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then
 `#(H ↪g G) * (choose (‖α‖ - ‖β‖) (k - ‖β‖))` is equal to the sum of the number of embeddings
