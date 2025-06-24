@@ -222,6 +222,7 @@ def Flag.induceEquiv (F₁ : Flag α ι) (F₂ : Flag β ι) (t : Set β) (h : �
                 by simp [Flag.induce_adj]⟩, by ext i; simp [F₂.induce_labels_eq t h, e.1.labels_eq]⟩
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
+  
 variable {β : Type*} {F₁ : Flag β ι} {F₂ : Flag β ι} {F : Flag α ι}
     (e₁ : F₁ ↪f F) (e₂ : F₂ ↪f F) (b : β)
 #check e₁.toRelEmbedding b

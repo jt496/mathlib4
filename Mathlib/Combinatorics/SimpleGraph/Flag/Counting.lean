@@ -167,6 +167,16 @@ open Finset
 variable {α' β' : Type*} {G : SimpleGraph α} {H : SimpleGraph β} {G' : SimpleGraph α'}
   {H' : SimpleGraph β'}
 
+section EquivSets
+
+def inducesIso (G : SimpleGraph α) : Set α → Set α → Prop :=
+  fun s t ↦ Nonempty (G.induce s ≃g G.induce t)
+
+
+
+end EquivSets
+
+
 def Iso.embeddingCongr (e₁ : G ≃g G') (e₂ : H ≃g H') : G ↪g H ≃ G' ↪g H' where
   toFun := fun f ↦ (e₁.symm.toEmbedding.trans f).trans e₂.toEmbedding
   invFun := fun f ↦ (e₁.toEmbedding.trans f).trans e₂.symm.toEmbedding
