@@ -84,6 +84,7 @@ lemma sum_induce_fin' (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fi
   simp_rw [mul_comm _ (‖Aut H‖), mul_assoc, ←mul_sum, induce_eq] at h
   exact (mul_right_inj' Fintype.card_ne_zero).1 h
 
+-- TODO: change this to be useful 
 open Classical in
 lemma card_finGraph_eq (G : SimpleGraph α) (K : SimpleGraph (Fin k)) [Fintype α] :
    ‖{t : {t : Finset α // #t = k} // G.induces t K}‖  =
@@ -103,16 +104,33 @@ lemma card_finGraph_eq (G : SimpleGraph α) (K : SimpleGraph (Fin k)) [Fintype �
       dsimp [f] at t
       apply hf ⟨(t.2 ▸ (G.induces_finGraph t.1.1.2).some).symm.comp t.1.2.some⟩
     calc
-    _ = ∑ K' : {K' : SimpleGraph (Fin k) // Nonempty (K ≃g K')},‖{x // f x = K'}‖  := by
-      rw [Fintype.sum_dite]
-      sorry
+    _ = ∑ K' : {K' : SimpleGraph (Fin k) // Nonempty (K ≃g K')}, ‖{x // f x = K'}‖  := by
+      rw [← sum_filter_add_sum_filter_not univ (fun K' ↦ Nonempty (K ≃g K'))]
+      nth_rw 2 [sum_filter]
+      rw  [← add_zero (∑ K' : {K' : SimpleGraph (Fin k) // Nonempty (K ≃g K')}, ‖{x // f x = K'}‖)]
+      congr!
+      · rw [← sum_subtype_eq_sum_filter, subtype_univ]
+      · convert sum_const_zero with  x hx
+        split_ifs with h0
+        · rfl
+        · apply this _ h0
     _ = _ := by
       congr! with K' hK'
       dsimp [f]
       rw [← card_univ]
-
-
-      sorry
+      apply Finset.card_bij (i := fun x hx ↦ x.1.1)
+      · intro a ha
+        simpa using a.2
+      · intro a1 h1 a2 h2 h12
+        aesop
+      · intro a ha
+        refine ⟨⟨⟨a, ?_⟩, ?_⟩, ?_⟩
+        · let e := K'.2.some
+          simp at ha
+          let f := (ha ▸ G.induces_finGraph a.2).some
+          exact ⟨(f.comp e)⟩
+        · simpa using ha
+        · simp
   · simp
 
 #check Equiv.sigmaPreimageEquiv
