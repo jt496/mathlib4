@@ -219,6 +219,20 @@ lemma card_aut_top {α : Type*} [Fintype α] [DecidableEq α] :
 /-- `G.induces t H` iff there is a graph isomorphism `H ≃g G.induce t`. -/
 abbrev induces (G : SimpleGraph α) (t : Set α) (H : SimpleGraph β) := Nonempty (H ≃g G.induce t)
 
+/--
+If `G[t]` is isomorphic to `H` and `H'` then `H` and `H'` are isomorphic
+-/
+lemma induces_trans {G : SimpleGraph α} {t : Set α} {H : SimpleGraph β} {H' : SimpleGraph β'}
+    (h1 : G.induces t H) (h2 : G.induces t H') : Nonempty (H ≃g H') := ⟨h2.some.symm.comp h1.some⟩
+
+/--
+If `G[s]` is isomorphic to `H`, `G[t]` is isomorphic to `H'` and `s = t` then `H` and `H'` are
+isomorphic
+-/
+lemma induces_trans_congr {G : SimpleGraph α} {s t : Set α} {H : SimpleGraph β}
+    {H' : SimpleGraph β'} (h : s = t) (h1 : G.induces s H) (h2 : G.induces t H') :
+    Nonempty (H ≃g H') := ⟨(h ▸ h2.some).symm.comp h1.some⟩
+
 /-- If `s` and `t` are the same set and they both induce `H` in `G` then the canonical isomorphism
 given by using choice with `Nonempty H ≃g G.induce s` yields the same isomorphism in both cases. -/
 @[simp]
@@ -226,6 +240,12 @@ lemma induces_eq_apply {s t : Set α} (h : s = t) (hs : G.induces s H) (ht : G.i
      (hs.some b : α) = ht.some b := by
   subst h
   rfl
+
+def isIsoTo : SimpleGraph α → SimpleGraph α → Prop := fun G G' ↦ Nonempty (G ≃g G')
+
+instance isIsoToSetoid (α : Type*) : Setoid (SimpleGraph α) where
+  r := isIsoTo
+  iseqv := ⟨fun _ ↦ ⟨Iso.refl⟩, fun ⟨e⟩ ↦ ⟨e.symm⟩, fun ⟨e⟩ ⟨f⟩ ↦ ⟨e.trans f⟩⟩
 
 /--
 Given an embedding `e : H ↪g G` this is `e` as the isomorphism  `H ≃g G.induce (Set.range e)`.
@@ -243,6 +263,8 @@ lemma Embedding.isoInduce_apply (e : H ↪g G) (b : β) : e.isoInduce b = e b :=
 lemma range_aut_embedding_induce_eq {s : Set α} (f : H ≃g G.induce s) (j : Aut H) :
     Set.range (((Embedding.induce s).comp f.toEmbedding).comp j.toEmbedding) = s := by
   ext; simp
+
+
 
 /--
 Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subset of the vertices of
