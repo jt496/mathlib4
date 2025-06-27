@@ -323,6 +323,34 @@ theorem antitoneOn_nat_Ici_of_succ_le [Preorder γ] {f : ℕ → γ} {k : ℕ}
     AntitoneOn f { x | k ≤ x } :=
   @monotoneOn_nat_Ici_of_le_succ γᵒᵈ _ f k hf
 
+@[simp]
+theorem Nat.descFactorial_pos_of_le {n k : ℕ} (h : k ≤ n) : 0 < n.descFactorial k := by
+  contrapose! h
+  rw [Nat.le_zero] at h
+  exact Nat.descFactorial_eq_zero_iff_lt.mp h
+
+
+lemma antitoneOn_div_descFactorial (e : ℕ → ℕ) (k : ℕ)
+    (h : ∀ n, (n + 1 - k) * e (n + 1) ≤ (n + 1) * (e n)) :
+    AntitoneOn (fun n ↦ (e n / n.descFactorial k : ℚ)) {x | k ≤ x} := by
+  apply antitoneOn_nat_Ici_of_succ_le
+  intro n hₙ
+  have hn := h n
+  apply_fun (fun a ↦ (n.descFactorial k) * a) at hn
+  · dsimp at hn
+    simp_rw [← mul_assoc] at hn
+    have : (n.descFactorial k) * (e (n + 1)) ≤ ((n + 1).descFactorial k) * (e n) := by
+      simp_rw [mul_comm _ (n + 1),mul_comm _ (n + 1 - k), ← Nat.succ_descFactorial,mul_assoc] at hn
+      apply le_of_mul_le_mul_left hn (by omega)
+    apply (div_le_div_iff₀ (by exact_mod_cast Nat.descFactorial_pos_of_le (by omega))
+      (by exact_mod_cast Nat.descFactorial_pos_of_le hₙ)).2
+    norm_cast
+    simpa [mul_comm]
+  · exact mul_left_mono
+
+
+
+
 lemma antitoneOn_div_choose (e : ℕ → ℕ) (k : ℕ)
     (h : ∀ n, (n + 1 - k) * e (n + 1) ≤ (n + 1) * (e n)) :
     AntitoneOn (fun n ↦ (e n / n.choose k : ℚ)) {x | k ≤ x} := by
@@ -462,7 +490,7 @@ section IsExtremal
 variable [Fintype α] [Fintype γ] [DecidableRel G.Adj] {H : SimpleGraph γ} [DecidableRel H.Adj]
 
 /--
-`G` is an exᵢ graph satisfying `p` if `G` has the maximum number of induced copies of
+`G` is an extremal graph satisfying `p` if `G` has the maximum number of induced copies of
 `H` of any simple graph satisfying `p`.
 -/
 def IsExtremalH (G : SimpleGraph α) (H : SimpleGraph γ) [DecidableRel H.Adj]
@@ -472,7 +500,7 @@ def IsExtremalH (G : SimpleGraph α) (H : SimpleGraph γ) [DecidableRel H.Adj]
 lemma IsExtremalH.prop {p : SimpleGraph α → Prop} (h : G.IsExtremalH H p) : p G := h.1
 
 open Classical in
-/-- If one simple graph satisfies `p`, then there exists an extremal graph satisfying `p`. -/
+/-- If any graph satisfies `p`, then there exists an extremal graph satisfying `p`. -/
 theorem exists_isExtremalH_iff_exists (p : SimpleGraph α → Prop) :
     (∃ G : SimpleGraph α, ∃ _ : DecidableRel G.Adj, G.IsExtremalH H p) ↔ ∃ G, p G := by
   refine ⟨fun ⟨_, _, h⟩ ↦ ⟨_, h.1⟩, fun ⟨G, hp⟩ ↦ ?_⟩
@@ -493,8 +521,9 @@ section ExtremalInduced
 
 open Classical in
 /--
-The `exᵢ n H F` is the the maximum number of embeddings of `H` in an `F`-free graph on `n`
-vertices, e.g. if `H = K₂` this is twice the maximum number of edges in an `F`-free graph on `n`.
+`exᵢ n H F` is the the maximum number of embeddings of `H` in an `F`-free graph on `n`
+vertices, e.g. if `H = K₂` this is twice the maximum number of edges in an `F`-free graph on `n`
+vertices.
 -/
 noncomputable def extremalInduced (n : ℕ) {β γ : Type*} (H : SimpleGraph γ) (F : SimpleGraph β)
   [Fintype γ] : ℕ :=
@@ -504,7 +533,7 @@ local notation "exᵢ" => extremalInduced
 variable {n : ℕ} {β γ : Type*} [Fintype γ] {G : SimpleGraph α} {F : SimpleGraph β}
 {H : SimpleGraph γ}
 
-def Iso.embeddings_equiv_of_equiv {α' γ' : Type*} {G' : SimpleGraph α'} {H' : SimpleGraph γ'}
+def Iso.embeddings_equiv_of_iso {α' γ' : Type*} {G' : SimpleGraph α'} {H' : SimpleGraph γ'}
     (e : G ≃g G') (e' : H ≃g H') : (H ↪g G) ≃ (H' ↪g G') where
   toFun := fun f ↦ (e.toEmbedding.comp f).comp e'.symm.toEmbedding
   invFun := fun f ↦ (e.symm.toEmbedding.comp f).comp e'.toEmbedding
@@ -527,7 +556,7 @@ theorem extremalInduced_of_fintypeCard_eq [Fintype α] (hc : card α = n) :
     rw [mem_filter, ← free_congr .refl (.map e G)]
     simpa using h
   convert @le_sup _ _ _ _ { G | F.Free G } (fun G ↦ ‖H ↪g G‖) G' h'
-  exact Fintype.card_congr (Iso.embeddings_equiv_of_equiv (.map e G) (by rfl))
+  exact Fintype.card_congr (Iso.embeddings_equiv_of_iso (.map e G) (by rfl))
 
 /--
 If `G` is `F`-free, then `G` has at most `exᵢ (card α) F H` induced copies of `H`.
@@ -610,7 +639,7 @@ theorem extremalInduced_congr_left {γ₁ γ₂ : Type*} {F : SimpleGraph β} {H
     intro G _ h
     classical
     apply (card_embeddings_le_extremalInduced h).trans'
-    rw [Fintype.card_congr (Iso.embeddings_equiv_of_equiv (by rfl) (e.symm))]
+    rw [Fintype.card_congr (Iso.embeddings_equiv_of_iso (by rfl) (e.symm))]
 
 /-- If `F₁ ≃g F₂`, then `exᵢ n F₁ H` equals `exᵢ n F₂ H`. -/
 theorem extremalInduced_congr_right {β₁ β₂ : Type*} {F₁ : SimpleGraph β₁}
@@ -628,10 +657,15 @@ theorem isExtremalH_free_iff [Fintype α] :
 lemma card_embeddings_of_isExtremalH_free  [Fintype α] (h : G.IsExtremalH H F.Free) :
     ‖H ↪g G‖ = exᵢ (card α) H F := (isExtremalH_free_iff.mp h).2
 
+
+/--
+The maximum proportion of embeddings of `H` into an `n`-vertex `F`-free graph is a monotone
+decreasing sequence.
+-/
 lemma antitoneOn_extremalInduced_div_choose (H : SimpleGraph γ) (F : SimpleGraph β)
     [DecidableRel H.Adj] [DecidableRel F.Adj] :
-    AntitoneOn (fun n ↦ (exᵢ n H F / n.choose ‖γ‖ : ℚ)) {x | ‖γ‖ ≤ x} := by
-  apply antitoneOn_div_choose _ ‖γ‖
+    AntitoneOn (fun n ↦ (exᵢ n H F / n.descFactorial ‖γ‖ : ℚ)) {x | ‖γ‖ ≤ x} := by
+  apply antitoneOn_div_descFactorial _ ‖γ‖
   intro n
   by_cases hn : n < ‖γ‖
   · have : n + 1 - ‖γ‖ = 0 := by omega

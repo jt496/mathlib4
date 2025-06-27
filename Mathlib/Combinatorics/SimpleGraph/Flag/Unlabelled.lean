@@ -39,7 +39,7 @@ def equiv_setoid [Fintype α] (r : Setoid α) : α ≃ Σ c : r.classes, c  wher
     · simp
 
 open Classical in
-lemma sum_setoid [Fintype α] (r : Setoid α) (f : α → ℕ) :
+lemma sum_setoid [Fintype α] (r : Setoid α) (f : α → β) [AddCommMonoid β] :
   ∑ a, f a = ∑ c : r.classes, ∑ a : c, f a := by
   rw [Fintype.sum_equiv (equiv_setoid r) (g := fun ⟨c, x⟩ ↦ f x.val)]
   · rw [Fintype.sum_sigma]
@@ -146,6 +146,23 @@ lemma sum_induce_fin' (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fi
   simp_rw [mul_comm _ (‖Aut H‖), mul_assoc, ←mul_sum, induce_eq] at h
   exact (mul_right_inj' Fintype.card_ne_zero).1 h
 
+#check SimpleGraph.isIsoToSetoid (Fin k)
+
+
+variable (c : (isIsoToSetoid (Fin k)).classes)
+variable (K : ↑c)
+
+
+open Classical in
+lemma sum_induce_fin'' (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
+    {k : ℕ} (hk : ‖β‖ ≤ k) :
+    #{t : Finset α | G.induces t H} * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) =
+     ∑ c : (isIsoToSetoid (Fin k)).classes,
+     ∑ K : c, #{s : Finset (Fin k) | (K : SimpleGraph (Fin k)).induces s H} *
+        #{t : {t : Finset α // #t = k} | G.finGraph t.2 = K} := by
+  rw [sum_induce_fin' _ _ hk, sum_setoid]
+  
+
 
 
 open Classical in
@@ -207,7 +224,6 @@ lemma card_sum_finGraph_eq_mul (G : SimpleGraph α) [Fintype α] (f : SimpleGrap
 
 variable {G H : SimpleGraph α}
 
-
 def UnlabelledGraph (β : Type*) := Quot <| isIsoToSetoid β
 
 lemma iseqv_iff {G H : SimpleGraph α} : G ≈ H ↔ Nonempty (G ≃g H) := Iff.rfl
@@ -216,44 +232,6 @@ noncomputable def UnlabelledGraph.toFinGraph {β : Type*} (G : UnlabelledGraph �
   SimpleGraph β := G.out
 
 
-
-
-lemma map_eq_iff {G : SimpleGraph α} {e f : α ≃ α} :
-  SimpleGraph.map e G = SimpleGraph.map f.toEmbedding G ↔ e = f := by
-  constructor <;> intro h
-  ·
-    unfold SimpleGraph.map Relation.Map at h
-    simp only [Equiv.coe_toEmbedding, SimpleGraph.mk.injEq] at h
-    simp_rw [funext_iff] at h
-    ext a
-
-    specialize h (a) (a)
-    simp at h
-    sorry
-  · subst_vars; rfl
-
-open Classical in
-lemma card_class_eq_card_aut {G : SimpleGraph α} [Fintype α] :
-  ‖Aut G‖ = #{H | G ≈ H} := by
-  rw [← card_univ]
-  apply card_bij (i := fun e he ↦ SimpleGraph.map e.toEquiv G)
-  · intro e he
-    simp only [RelIso.coe_fn_toEquiv, mem_filter, mem_univ, true_and]
-    exact ⟨(SimpleGraph.Iso.map e.toEquiv G)⟩
-  · intro e1 h1 e2 h2 h
-    simp at h
-    unfold SimpleGraph.map  Relation.Map at h
-
-    rw [SimpleGraph.ext_iff] at h
-    simp_rw [funext_iff] at h
-    simp at h
-    sorry
-  · intro H hH
-    simp at hH
-    obtain ⟨e⟩:= hH
-
-    sorry
-
 def SimpleGraph.toUnlabelled {β : Type*} (G : SimpleGraph β) : UnlabelledGraph β :=
    Quot.mk (isIsoToSetoid β) G
 
@@ -261,82 +239,3 @@ noncomputable instance {β : Type*} [Fintype β] : Fintype (UnlabelledGraph β) 
   rw [UnlabelledGraph]
   classical
   apply Quotient.fintype
-
-open Classical in
-lemma sum_induce_unlabelled (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
-  {k : ℕ} (hk : ‖β‖ ≤ k) :
-    ∑ t : {t : Finset α // #t = k} , ‖H ↪g (G.induce t)‖ =
-    ∑ K : UnlabelledGraph (Fin k), #{t : Finset α | #t = k ∧ G.induces t K.out} * ‖H ↪g K.out‖ := by
-  let f : {t : Finset α // #t = k} → UnlabelledGraph (Fin k) :=
-    fun t ↦ ((G.induce t).overFin (n := k) (by simpa using t.2)).toUnlabelled
-  let e := Equiv.sigmaFiberEquiv f
-  let g : (K : UnlabelledGraph (Fin k)) × { t : {t : Finset α // #t = k} // f t = K } → ℕ :=
-    fun ⟨K, t⟩ ↦ ‖H ↪g K.out‖
-  rw [Fintype.sum_equiv e.symm _ g]
-  · rw [Fintype.sum_sigma]
-    congr! with K hk
-    dsimp [g]
-    rw [card_eq_sum_ones, sum_mul, one_mul]
-    dsimp [f]
-    rw [← sum_subtype_eq_sum_filter, sum_const, sum_const]
-    congr!
-    apply card_equiv (by sorry) (by sorry)
-  · intro t;
-    dsimp [g]
-    apply Fintype.card_congr
-    apply Iso.embeddingCongr  Iso.refl
-    dsimp [e, f]
---    exact ⟨fun t ↦ t, by sorry, by sorry, by sorry⟩
-    sorry
-/-
-    ∑ K : SimpleGraph (Fin k), (#{s : Finset (Fin k) | #s = ‖β‖ ∧ K.induces s H} / ‖Aut K‖) *
-      #{t : Finset α | #t = k ∧ G.induces t K}
--/
-#check embeddingsEquivInduceProdAut
-open Classical in
-lemma sum_induce_unlabelled' (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
-  {k : ℕ} (hk : ‖β‖ ≤ k) :
-    ∑ t : {t : Finset α // #t = k} , ‖H ↪g (G.induce t)‖   =
-    ∑ K : SimpleGraph (Fin k), (#{s : Finset (Fin k) | #s = ‖β‖ ∧ K.induces s H} * ‖Aut H‖) *
-      (#{t : Finset α | #t = k ∧ G.induces t K} / ‖Aut K‖) := by
-  let f : {t : Finset α // #t = k} → SimpleGraph (Fin k) :=
-    fun t ↦ ((G.induce t).overFin (n := k) (by simpa using t.2))
-  let e := (Equiv.sigmaFiberEquiv f).symm
-  let g : (K : SimpleGraph (Fin k)) × { t : {t : Finset α // #t = k} // f t = K } → ℕ :=
-    fun ⟨K, t⟩ ↦ ‖H ↪g K‖
-  rw [Fintype.sum_equiv e _ g]
-  · rw [Fintype.sum_sigma]
-    congr! with K hk
-    dsimp [g]
-    rw [sum_const, smul_eq_mul, card_univ, card_embeddings_eq_card_induces_mul_card_aut, mul_comm]
-    congr!
-    dsimp [f]
-    symm
-    apply Nat.div_eq_of_eq_mul_left (Fintype.card_pos)
-    rw [← Fintype.card_prod]
-    symm
-    rw [← card_univ]
-    apply card_bij (i := fun ⟨x, e⟩ hxe ↦ x.1.1)
-    · intro ⟨x, e⟩ ha
-
-      simp only [mem_filter, mem_univ, true_and]
-      constructor
-      · aesop
-      · have := x.2
-        sorry
-    · intro ⟨x1, e1⟩ h1 ⟨x2, e2⟩ h2 h
-      rw [Prod.ext_iff]
-      dsimp
-      constructor
-      · aesop
-      · sorry
-    · intro t ht
-      sorry
-    -- congr!
-    -- apply card_equiv (by sorry) (by sorry)
-  · intro t;
-    dsimp [g]
-    apply Fintype.card_congr
-    apply Iso.embeddingCongr  Iso.refl
-    dsimp [e, f]
-    exact (induce t G).overFinIso _
