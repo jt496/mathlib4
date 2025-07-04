@@ -19,9 +19,8 @@ that travels along `w` from `u` to `x` and then back to `v` without revisiting `
 
 We use these to construct an odd cycle from an odd length closed walk.
 
-Any closed walk of odd length contains an odd cycle, but its not obvious the endpoints of such a
-cycle will be so we introduce `G.Loop := Σ v, G.Walk v v` the type of closed walks in `G`.
-
+Any closed walk of odd length contains an odd cycle, but its not obvious what the endpoints of such
+a cycle will be so we introduce `G.Loop := Σ v, G.Walk v v` the type of closed walks in `G`.
 -/
 
 namespace SimpleGraph
@@ -45,8 +44,8 @@ lemma Walk.IsPath.length_one_of_end_start_mem_edges {u v : α} {w : G.Walk u v}
       · apply hp.2.2 (p.snd_mem_support_of_mem_edges hf)
 
 /--
-If `w : G.Walk u u` is a closed walk and `w.support.tail.Nodup` then it is almost a cycle, in
-the sense that is either a cycle or nil or has length 2.
+If `w : G.Walk u u` is a closed walk and `w.support.tail.Nodup` then it is almost a cycle, in the
+sense that is either a cycle or nil or has length 2.
 -/
 lemma Walk.isCycle_or_nil_or_length_two_of_support_tail_nodup {u : α} (w : G.Walk u u)
     (hn : w.support.tail.Nodup) : w.IsCycle ∨ w.Nil ∨ w.length = 2 := by
@@ -69,10 +68,7 @@ lemma Walk.isCycle_or_nil_or_length_two_of_support_tail_nodup {u : α} (w : G.Wa
     | nil => simp
     | cons h w =>
       rw [support_cons, List.tail_cons] at hn
-      rw [edges_cons]
-      apply nodup_cons.2 ⟨?_, edges_nodup_of_support_nodup hn⟩
-      intro hf
-      aesop
+      apply nodup_cons.2 ⟨by aesop, edges_nodup_of_support_nodup hn⟩
 
 lemma Walk.isCycle_odd_support_tail_nodup {u : α} (w : G.Walk u u) (hn : w.support.tail.Nodup)
     (ho : Odd w.length) : w.IsCycle := by
@@ -83,8 +79,13 @@ lemma Walk.isCycle_odd_support_tail_nodup {u : α} (w : G.Walk u u) (hn : w.supp
   · rw [hf] at ho
     exact (Nat.not_odd_iff_even.2 (by decide) ho).elim
 
+
+
+
 variable [DecidableEq α]
-lemma Walk.support_tail_nodup_iff_count_le {u : α} (w : G.Walk u u) : w.support.tail.Nodup ↔
+
+
+lemma Walk.support_tail_nodup_iff_count_le {u : α} (w : G.Walk u v) : w.support.tail.Nodup ↔
     w.support.count u ≤ 2 ∧ ∀ x ∈ w.support, x ≠ u → count x w.support ≤ 1 := by
   rw [List.nodup_iff_count_le_one]
   constructor
