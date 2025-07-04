@@ -495,4 +495,73 @@ lemma exists_getVert_first {S : Set V} (p : G.Walk u v) (hw : w ∈ S )
     | inr h => exact (h ▸ h1).symm ▸ (start_mem_support (p.drop n))
   | inr h => exact h
 
+/-! ## Subwalks -/
+
+variable {V : Type} {G : SimpleGraph V} {x : V}
+/-- `p.IsSubwalk q` means that the walk `p` is a contiguous subwalk of the walk `q`. -/
+def IsSubwalk {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
+  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
+
+
+/-- `p.IsPrefixwalk q` means that the walk `q` starts with the walk `p`. -/
+def IsPrefixwalk {u v₁ v₂} (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
+  ∃ (r : G.Walk v₁ v₂), q = p.append r
+
+lemma IsPrefixwalk_nil {u v} (q : G.Walk u v) : (nil' u).IsPrefixwalk q := by
+  use q; simp
+
+lemma IsPrefixwalk_cons' {u₁ u₂ x v₁ v₂} (p : G.Walk x v₁) (q : G.Walk u₂ v₂) (h : G.Adj u₁ x)
+    (h' : G.Adj u₁ u₂) (hp : (cons h p).IsPrefixwalk (cons h' q)) : x = u₂ := by
+  obtain ⟨r, hr⟩ := hp
+  aesop
+
+lemma IsPrefixwalk_cons {u₁ u₂ v₁ v₂} (p : G.Walk u₂ v₁) (q : G.Walk u₂ v₂) (h : G.Adj u₁ u₂) :
+    (cons h p).IsPrefixwalk (cons h q) ↔ p.IsPrefixwalk q := by
+  constructor <;> intro ⟨r, hr⟩ <;> exact ⟨r, by aesop⟩
+
+lemma IsPrefix_iff {u v₁ v₂} (p : G.Walk u v₁) (q : G.Walk u v₂) :
+    p.IsPrefixwalk q ↔ p.support <+: q.support := by
+  induction p generalizing v₂ with
+  | nil =>
+    constructor <;> intro h
+    · rw [support_nil, support_eq_cons]
+      simp
+    · use q; simp
+  | @cons _ y _ _ r ih =>
+    constructor <;> intro h'
+    · cases q with
+    | nil =>
+      obtain ⟨_, hr'⟩ := h'
+      simp at hr'
+    | cons h'' q =>
+      have := IsPrefixwalk_cons' _ _ _ _ h'
+      subst this
+      simpa using (ih q).1 <| (IsPrefixwalk_cons _ _ _).1 h'
+    · cases q with
+    | nil => simp at h'
+    | @cons _ b _ h'' p =>
+      simp only [support_cons, List.cons_prefix_cons, true_and] at h'
+      have : y = b := by
+        rw [support_eq_cons,support_eq_cons p, List.cons_prefix_cons] at h'
+        exact h'.1
+      subst this
+      apply (IsPrefixwalk_cons ..).2 <| (ih _).2 h'
+
+
+/-- `p.IsSuffixwalk q` means that the walk `q` starts with the walk `p`. -/
+def IsSuffixwalk {u₁ u₂ v} (p : G.Walk u₂ v) (q : G.Walk u₁ v) : Prop :=
+  ∃ (r : G.Walk u₁ u₂), q = r.append p
+
+
+lemma IsSuffixwalk_iff_reverse_isPrefixwalk {u₁ u₂ v} (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
+    p.IsSuffixwalk q ↔ p.reverse.IsPrefixwalk q.reverse := by
+  constructor <;> intro ⟨r, hr⟩ <;>
+  · apply_fun Walk.reverse at hr
+    use r.reverse
+    simpa using hr
+
+lemma IsSuffix_iff {u₁ u₂ v} (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
+    p.IsSuffixwalk q ↔ p.support <:+ q.support := by
+  simp [IsSuffixwalk_iff_reverse_isPrefixwalk, IsPrefix_iff]
+
 end SimpleGraph.Walk
