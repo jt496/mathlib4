@@ -564,4 +564,17 @@ lemma IsSuffix_iff {u₁ u₂ v} (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
     p.IsSuffixwalk q ↔ p.support <:+ q.support := by
   simp [IsSuffixwalk_iff_reverse_isPrefixwalk, IsPrefix_iff]
 
+lemma IsSubwalk_iff_exists_isPrefix {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
+  p.IsSubwalk q ↔ ∃ r : G.Walk u₂ u₁, (r.append p).IsPrefixwalk q := by
+  constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
+  · use r, s
+
+lemma IsSubwalk_iff_exists_isSuffix {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
+  p.IsSubwalk q ↔ ∃ s : G.Walk v₁ v₂, (p.append s).IsSuffixwalk q := by
+  constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
+  · use s, r
+    rw [hs, append_assoc]
+
+
+
 end SimpleGraph.Walk
