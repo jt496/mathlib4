@@ -241,11 +241,6 @@ lemma induces_eq_apply {s t : Set α} (h : s = t) (hs : G.induces s H) (ht : G.i
   subst h
   rfl
 
-def isIsoTo : SimpleGraph α → SimpleGraph α → Prop := fun G G' ↦ Nonempty (G ≃g G')
-
-instance isIsoToSetoid (α : Type*) : Setoid (SimpleGraph α) where
-  r := isIsoTo
-  iseqv := ⟨fun _ ↦ ⟨Iso.refl⟩, fun ⟨e⟩ ↦ ⟨e.symm⟩, fun ⟨e⟩ ⟨f⟩ ↦ ⟨e.trans f⟩⟩
 
 /--
 Given an embedding `e : H ↪g G` this is `e` as the isomorphism  `H ≃g G.induce (Set.range e)`.
