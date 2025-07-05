@@ -502,6 +502,10 @@ variable {V : Type} {G : SimpleGraph V} {x : V}
 def IsSubWalk {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
   ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
 
+@[simp]
+lemma IsSubWalk_refl {u₁ v₁} (p : G.Walk u₁ v₁) : p.IsSubWalk p := by
+  use nil, nil; simp
+
 /-- `p.IsPrefixWalk q` means that the walk `q` starts with the walk `p`. -/
 def IsPrefixWalk {u v₁ v₂} (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
   ∃ (r : G.Walk v₁ v₂), q = p.append r
@@ -646,53 +650,37 @@ lemma append_cons_eq_concat_append {u v w z} {p : G.Walk u v} {q : G.Walk w z} {
   | nil => simp [concat_nil]
   | cons h' p ih => simp [ih]
 
+
 lemma append_left_inj {u v₁ v₂} {p₁ p₂: G.Walk u v₁} {q : G.Walk v₁ v₂} :
     p₁.append q = p₂.append q ↔ p₁ = p₂ := by
-  induction q generalizing u with
-  | nil => simp
-  | cons h q ih =>
-    constructor <;> intro hc
-    · simp_rw [append_cons_eq_concat_append] at hc
-      have := ih.1 hc
-      apply_fun reverse at this
-      simp_rw [reverse_concat] at this
-      simp only [cons.injEq, heq_eq_eq, true_and] at this
-      apply_fun reverse at this
-      simpa
-    · subst hc; rfl
+  constructor <;> intro heq
+  · obtain ⟨_, h1, h2⟩ := append_inj heq (by apply_fun length at heq; simpa using heq)
+    simp [← h1]
+  · subst heq; rfl
 
 lemma append_right_inj {u₁ u₂ v} {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
     p.append q₁ = p.append q₂ ↔ q₁ = q₂ := by
   constructor <;> intro heq
-  · apply_fun reverse at heq
-    simp_rw [reverse_append, append_left_inj] at heq
-    apply_fun reverse at heq
-    rwa [reverse_reverse, reverse_reverse] at heq
+  · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
+    simp [← h2]
   · subst heq; rfl
 
-
-lemma IsSubWalk_isSubWalk' {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.IsSubWalk q)
-    (h2 : q.IsSubWalk p) : ∃ hu : u₁ = u₂, ∃ hv : v₁ = v₂, p.copy hu hv = q := by
-  have hs := IsSubWalk_isSubWalk.1 ⟨h1, h2⟩
-  have hs' := IsSubWalk_isSubWalk.1 ⟨IsSubWalk_reverse.1 h1, IsSubWalk_reverse.1 h2⟩
-  rw  [support_eq_cons, support_eq_cons q, support_eq_cons q.reverse] at *
-  simp only [List.cons.injEq] at *
-  use hs.1, hs'.1
-  obtain ⟨a, b, hpq⟩ := h1
-  obtain ⟨c, d, hqp⟩ := h2
-  simp_rw [hpq, append_assoc] at hqp
-  apply_fun length at hqp
-  simp only [length_append] at hqp
-  have ha : a.length = 0 := by omega
-  have hb : b.length = 0 := by omega
-  have han : a.Nil := nil_iff_length_eq.mpr ha
-  have hbn : b.Nil := nil_iff_length_eq.mpr hb
-  have ha' := han.eq
-  have hb' := hbn.eq
-  subst ha' hb'
-  simp_rw [hpq]
-  rw [nil_iff_eq_nil] at han hbn
-  rw [han, hbn]
-  simp
+lemma IsSubWalk_isSubWalk_iff {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} :
+    p.IsSubWalk q ∧ q.IsSubWalk p ↔ ∃ hu : u₁ = u₂, ∃ hv : v₁ = v₂, p.copy hu hv = q := by
+  constructor
+  · intro ⟨h1, h2⟩
+    obtain ⟨a, b, hpq⟩ := h1
+    obtain ⟨c, d, hqp⟩ := h2
+    simp_rw [hpq, append_assoc] at hqp
+    apply_fun length at hqp
+    simp only [length_append] at hqp
+    have han : a.Nil := nil_iff_length_eq.mpr (by omega)
+    have hbn : b.Nil := nil_iff_length_eq.mpr (by omega)
+    have ha' := han.eq
+    have hb' := hbn.eq
+    subst ha' hb'
+    simp [hpq, han.eq_nil, hbn.eq_nil]
+  · rintro ⟨rfl, rfl, rfl⟩
+    simp
 
 end SimpleGraph.Walk
