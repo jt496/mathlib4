@@ -650,23 +650,8 @@ lemma append_cons_eq_concat_append {u v w z} {p : G.Walk u v} {q : G.Walk w z} {
   | nil => simp [concat_nil]
   | cons h' p ih => simp [ih]
 
-
-lemma append_left_inj {u v₁ v₂} {p₁ p₂: G.Walk u v₁} {q : G.Walk v₁ v₂} :
-    p₁.append q = p₂.append q ↔ p₁ = p₂ := by
-  constructor <;> intro heq
-  · obtain ⟨_, h1, h2⟩ := append_inj heq (by apply_fun length at heq; simpa using heq)
-    simp [← h1]
-  · subst heq; rfl
-
-lemma append_right_inj {u₁ u₂ v} {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
-    p.append q₁ = p.append q₂ ↔ q₁ = q₂ := by
-  constructor <;> intro heq
-  · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
-    simp [← h2]
-  · subst heq; rfl
-
-lemma IsSubWalk_isSubWalk_iff {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} :
-    p.IsSubWalk q ∧ q.IsSubWalk p ↔ ∃ hu : u₁ = u₂, ∃ hv : v₁ = v₂, p.copy hu hv = q := by
+lemma IsSubWalk_antisymm_iff {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} :
+    p.IsSubWalk q ∧ q.IsSubWalk p ↔ ∃ hu hv, p.copy hu hv = q := by
   constructor
   · intro ⟨h1, h2⟩
     obtain ⟨a, b, hpq⟩ := h1
@@ -683,4 +668,84 @@ lemma IsSubWalk_isSubWalk_iff {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : 
   · rintro ⟨rfl, rfl, rfl⟩
     simp
 
+alias ⟨IsSubWalk_antisymm, _⟩ := IsSubWalk_antisymm_iff
+
+
+/--
+If `p₁ ++ p₂ = q₁ ++ q₂` and `p₁.length = q₁.length` then `p₁ = q₁` and `p₂ = q₂`.
+-/
+lemma append_inj {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁}
+    {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂) (hl : p₁.length = q₁.length) :
+    ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
+  have : u₁ = v₁ := by
+    have h1 := getVert_append p₁ p₂ p₁.length
+    have h2 := getVert_append q₁ q₂ q₁.length
+    simp only [lt_self_iff_false, ↓reduceIte, Nat.sub_self, getVert_zero] at h1 h2
+    rwa [← hp, ← hl, h1] at h2
+  use this
+  subst this
+  induction p₁ with
+  | nil =>
+    rw [length_nil] at hl
+    have hq1 := (nil_iff_length_eq.mpr hl.symm).eq_nil
+    rw [nil_append, copy_rfl_rfl, hp] at *
+    exact ⟨hq1.symm, by simp [hq1]⟩
+  | cons h p ih =>
+    cases q₁ with
+    | nil => simp at hl
+    | cons h' q₁' =>
+      simp only [cons_append, cons.injEq] at *
+      have := hp.1
+      subst this
+      obtain ⟨_, _, _⟩ := ih (by simpa using hp) (by simpa using hl)
+      simp_all
+
+/--
+If `p₁ ++ p₂ = q₁ ++ q₂` and `p₂.length = q₂.length` then `p₁ = q₁` and `p₂ = q₂`.
+-/
+lemma append_inj' {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁}
+    {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂) (hl : p₂.length = q₂.length) :
+    ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
+  apply append_inj hp
+  apply_fun length at hp
+  simp_rw [length_append] at hp
+  omega
+
+lemma append_left_inj {u v₁ v₂} {p₁ p₂: G.Walk u v₁} {q : G.Walk v₁ v₂} :
+    p₁.append q = p₂.append q ↔ p₁ = p₂ := by
+  constructor <;> intro heq
+  · obtain ⟨_, h1, h2⟩ := append_inj heq (by apply_fun length at heq; simpa using heq)
+    simp [← h1]
+  · subst heq; rfl
+
+lemma append_right_inj {u₁ u₂ v} {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
+    p.append q₁ = p.append q₂ ↔ q₁ = q₂ := by
+  constructor <;> intro heq
+  · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
+    simp [← h2]
+  · subst heq; rfl
+
+lemma cons_eq_cons {u v₁ v₂ w} (p₁ : G.Walk v₁ w) (p₂ : G.Walk v₂ w) (h₁ : G.Adj u v₁)
+    (h₂ : G.Adj u v₂) : cons h₁ p₁ = cons h₂ p₂ ↔ ∃ h', p₁.copy h' rfl = p₂ := by
+  constructor <;> rintro ⟨rfl, hp⟩ <;> simp_all
+
+lemma append_eq_append_of_length_le {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v}
+    {q₁ : G.Walk u v₁} {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂)
+    (hl : p₁.length ≤ q₁.length) : ∃ r : G.Walk u₁ v₁, q₁ = p₁.append r ∧ p₂ = r.append q₂ := by
+    have hu : q₁.getVert p₁.length = u₁ := by
+        have h1 := getVert_append q₁ q₂ p₁.length
+        have h2 := getVert_append p₁ p₂ p₁.length
+        simp [hp, hl] at h1 h2
+        sorry
+    have hv : (p₂.getVert (q₁.length - p₁.length)) = v₁ := by
+      have h1 := getVert_append q₁ q₂ (q₁.length)
+      have h2 := getVert_append p₁ p₂ (q₁.length)
+      simp [hp, hl] at h1 h2
+      obtain (hlt | heq) := hl.lt_or_eq
+      · sorry
+      · sorry
+    let sp := (p₂.take (q₁.length - p₁.length)).copy rfl hv
+
+    let sq := (q₁.drop p₁.length).copy hu rfl
+    sorry
 end SimpleGraph.Walk

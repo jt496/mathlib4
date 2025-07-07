@@ -883,37 +883,6 @@ lemma nil_iff_eq_nil : ∀ {p : G.Walk v v}, p.Nil ↔ p = nil
 
 alias ⟨Nil.eq_nil, _⟩ := nil_iff_eq_nil
 
-#check List.append_inj'
-/--
-If `p₁ ++ p₂ = q₁ ++ q₂` and `p₁.length = p₂.length` then `p₁ = q₁` and `p₂ = q₂`.
--/
-lemma append_inj {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁}
-    {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂) (hl : p₁.length = q₁.length) :
-    ∃ (h : u₁ = v₁), p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
-  have : u₁ = v₁ := by
-    have h1 := getVert_append p₁ p₂ p₁.length
-    have h2 := getVert_append q₁ q₂ q₁.length
-    simp only [lt_self_iff_false, ↓reduceIte, Nat.sub_self, getVert_zero] at h1 h2
-    rwa [← hp, ← hl, h1] at h2
-  use this
-  subst this
-  induction p₁ with
-  | nil =>
-    rw [length_nil] at hl
-    have hq1 := (nil_iff_length_eq.mpr hl.symm).eq_nil
-    rw [nil_append, copy_rfl_rfl, hp] at *
-    exact ⟨hq1.symm, by simp [hq1]⟩
-  | cons h p ih =>
-    cases q₁ with
-    | nil => simp at hl
-    | cons h' q₁' =>
-      simp only [cons_append, cons.injEq] at *
-      have := hp.1
-      subst this
-      obtain ⟨_, _, _⟩ := ih (by simpa using hp) (by simpa using hl)
-      simp_all
-#check Walk.cons.inj
-
 /-- The recursion principle for nonempty walks -/
 @[elab_as_elim]
 def notNilRec {motive : {u w : V} → (p : G.Walk u w) → (h : ¬ p.Nil) → Sort*}
