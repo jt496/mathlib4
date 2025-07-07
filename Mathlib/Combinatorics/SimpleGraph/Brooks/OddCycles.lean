@@ -79,11 +79,7 @@ lemma Walk.isCycle_odd_support_tail_nodup {u : α} (w : G.Walk u u) (hn : w.supp
   · rw [hf] at ho
     exact (Nat.not_odd_iff_even.2 (by decide) ho).elim
 
-
-
-
 variable [DecidableEq α]
-
 
 lemma Walk.support_tail_nodup_iff_count_le {u : α} (w : G.Walk u v) : w.support.tail.Nodup ↔
     w.support.count u ≤ 2 ∧ ∀ x ∈ w.support, x ≠ u → count x w.support ≤ 1 := by
@@ -124,7 +120,8 @@ lemma Walk.shortClosed_of_eq {y: α} (w : G.Walk u v) (hx : x ∈ w.support) (hy
     (h : y = x) : w.shortClosed hx = (w.shortClosed hy).copy h h := by
   subst h
   rfl
-
+#check List.Sublist
+#check List.IsInfix
 @[simp]
 lemma Walk.dropUntil_spec (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortClosed hx).append (w.reverse.takeUntil x (w.mem_support_reverse.2 hx)).reverse =
