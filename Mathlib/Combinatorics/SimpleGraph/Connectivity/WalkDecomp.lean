@@ -748,74 +748,182 @@ lemma SubWalk_refl {u v : V} {p : G.Walk u v} : SubWalk ⟨⟨u,v⟩,p⟩ ⟨⟨
   | cons h _ ih => exact SubWalk.cons₂ h h ih
 
 @[simp]
-lemma SubWalk_nil {u v x : V} {q : G.Walk u v} (hx : x ∈ q.support) :
+lemma SubWalk_nil_iff {u v x : V} {q : G.Walk u v} :
+    SubWalk ⟨⟨u, v⟩, q⟩ ⟨⟨x, x⟩, nil⟩ ↔ q.Nil ∧ u = x ∧ v = x := by
+  constructor
+  · intro h
+    cases q with
+    | nil =>
+      simp_all only [nil_nil, and_self, true_and]
+      cases h with
+      | nil => rfl
+    | cons _ _ => cases h
+  · rintro ⟨hn, rfl, rfl⟩
+    have := nil_iff_eq_nil.1 hn
+    subst this
+    rfl
+
+@[simp]
+lemma nil_subWalk {u v x : V} {q : G.Walk u v} (hx : x ∈ q.support) :
   SubWalk ⟨⟨x, x⟩, nil⟩ ⟨⟨u, v⟩, q⟩ := by
   induction q with
-  | nil =>
-    simp_all; subst hx; rfl
-  | @cons a b c h q ih =>
+  | nil => simp_all
+  | cons _ _ ih =>
     simp_all only [support_cons, List.mem_cons]
     obtain (rfl | hx) := hx
     · exact SubWalk.nil
     · exact SubWalk.cons _ (ih hx)
 
-lemma SubWalk_nil_iff {u v x : V} {q : G.Walk u v} :
+@[simp]
+lemma nil_subWalk_iff {u v x : V} {q : G.Walk u v} :
     SubWalk ⟨⟨x, x⟩, nil⟩ ⟨⟨u, v⟩, q⟩ ↔ x ∈ q.support := by
   constructor <;> intro h
   · induction q <;> cases h <;> simp_all
   · simp [h]
 
-lemma SubWalk_reverse {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
-    (hs : SubWalk ⟨⟨u, v⟩,p⟩ ⟨⟨x, y⟩,q⟩) : SubWalk ⟨⟨v, u⟩, p.reverse⟩ ⟨⟨y, x⟩, q.reverse⟩ := by
-  induction p with
-  | @nil u =>
-    induction q with
-    | nil => simp_all
-    | @cons a b c h q ih =>
-      rw [SubWalk_nil_iff] at hs
-      apply SubWalk_nil
-      rw [support_reverse]
-      apply List.mem_reverse.2 hs
-  | @cons a b c h p ih =>
-    
-    sorry
-
-
 @[simp]
 lemma SubWalk_cons {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
-    (hs : SubWalk ⟨⟨u,v⟩,p⟩ ⟨⟨x,y⟩,q⟩) (h : G.Adj z x) : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨z,y⟩, q.cons h⟩ :=
-  SubWalk.cons h hs
+    (hs : SubWalk ⟨(u, v), p⟩ ⟨(x, y), q⟩) (h : G.Adj z x) :
+    SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨z,y⟩, q.cons h⟩ := SubWalk.cons h hs
 
 @[simp]
 lemma SubWalk_cons₂ {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
-    (hs : SubWalk ⟨⟨u,v⟩,p⟩ ⟨⟨x,y⟩,q⟩) (hp : G.Adj z u) (hq : G.Adj z x) :
+    (hs : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x,y⟩, q⟩) (hp : G.Adj z u) (hq : G.Adj z x) :
     SubWalk ⟨⟨z, v⟩, p.cons hp⟩ ⟨⟨z, y⟩, q.cons hq⟩ :=
   SubWalk.cons₂ hp hq hs
 
 @[simp]
-lemma SubWalk_of_append {u v x y s : V} {p : G.Walk u v} {q : G.Walk x y}
+lemma mem_support_of_subWalk'  {z : V} {p q : (x : V × V) × G.Walk x.1 x.2} (hs : SubWalk p q)
+  (hz : z ∈ p.2.support) : z ∈ q.2.support := by
+  apply SubWalk.rec
+    (motive := fun p q _ ↦ (∀ {z}, z ∈ p.2.support → z ∈ q.2.support)) _ _ _ hs hz
+      <;> simp_all
+
+/-- If `p <+ q` then `p.support <+ q.support` -/
+@[simp]
+lemma support_subList_of_subWalk'  {p q : (x : V × V) × G.Walk x.1 x.2} (hs : SubWalk p q) :
+  p.2.support.Sublist q.2.support := SubWalk.rec
+    (motive := fun p q hpq ↦ p.2.support.Sublist q.2.support) (by simp) (by simp_all) (by simp) hs
+
+lemma support_subList_of_subWalk {u v x y  : V} {p : G.Walk u v} {q : G.Walk x y}
+    (hs : SubWalk ⟨(u, v), p⟩ ⟨(x, y), q⟩) : p.support.Sublist q.support :=
+  support_subList_of_subWalk' hs 
+
+-- lemma mem_support_of_subWalk  {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
+--     (hs : SubWalk ⟨(u, v), p⟩ ⟨(x, y), q⟩) (hz : z ∈ p.support) : z ∈ q.support :=
+--   mem_support_of_subWalk' hs (by simpa)
+
+/-- If `p <+ q` then `r ++ p <+ q` -/
+@[simp]
+lemma SubWalk_append_left {u v x y s : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, y⟩, q⟩) (r : G.Walk s x) :
     SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨s, y⟩, r.append q⟩ := by
   induction r <;> simp_all
 
+/-- If `z :: p <+ q` then `p <+ q` -/
 @[simp]
-lemma SubWalk_append {u v x y s : V} {p : G.Walk u v} {q : G.Walk x y}
+lemma SubWalk_of_cons {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
+    (h : G.Adj z u) (hs : SubWalk ⟨⟨z, v⟩, p.cons h⟩ ⟨⟨x, y⟩, q⟩) :
+    SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, y⟩, q⟩ := by
+  induction q <;> cases hs <;> simp_all
+
+/-- If `z :: p <+ t :: q` and `z ≠ t` then `z :: p <+ q` -/
+@[simp]
+lemma SubWalk_of_cons₂_of_ne {u v x y z t : V} {p : G.Walk u v} {q : G.Walk x y}
+    (hp : G.Adj z u) (hq : G.Adj t x) (hs : SubWalk ⟨⟨z, v⟩, p.cons hp⟩ ⟨⟨t, y⟩, q.cons hq⟩)
+    (hne : z ≠ t) : SubWalk ⟨⟨z, v⟩, p.cons hp⟩ ⟨⟨x, y⟩, q⟩ := by
+  cases hs <;> trivial
+
+
+/-- If `z :: p <+ t :: q` and `z ≠ t` then `z :: p <+ q` -/
+@[simp]
+lemma SubWalk_of_cons₂_of_ne' {u v x y z t : V} {p : G.Walk u v} {q : G.Walk x y}
+    (hp : G.Adj z u) (hq : G.Adj z x) (hs : SubWalk ⟨⟨z, v⟩, p.cons hp⟩ ⟨⟨z, y⟩, q.cons hq⟩)
+    (hne : u ≠ x) : SubWalk ⟨⟨z, v⟩, p.cons hp⟩ ⟨⟨x, y⟩, q⟩ := by
+  cases hs with
+  | cons h _ => simp_all
+  | @cons₂ p q w hp hq hs =>
+    simp_all
+    cases hs with
+    | nil => simp_all
+    | @cons _ q s  h' hs =>
+      simp_all
+
+      have := SubWalk.cons h' hs
+      have := @SubWalk.cons₂ V G p ⟨⟨s,q.1.2⟩, q.2.cons h'⟩ z hp hq this
+      dsimp at this
+  --    apply SubWalk_of_cons₂_of_ne _ _ _ hq.ne
+      sorry
+    | cons₂ hp hq _ => simp_all
+
+
+/-- If `p <+ q` then `p <+ q ++ [z]` -/
+@[simp]
+lemma SubWalk_concat {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
+    (hs : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, y⟩, q⟩) (h : G.Adj y z) :
+    SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, z⟩, q.concat h⟩ := by
+  induction q generalizing u v <;> cases hs <;> simp_all
+
+/-- If `p <+ q` then `p ++ [z] <+ q ++ [z]` -/
+@[simp]
+lemma SubWalk_concat₂ {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
+    (hs : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, y⟩, q⟩) (hp : G.Adj v z) (hq : G.Adj y z) :
+    SubWalk ⟨⟨u, z⟩, p.concat hp⟩ ⟨⟨x, z⟩, q.concat hq⟩ := by
+  induction q generalizing u v <;> cases hs <;> simp_all [concat_eq_append]
+
+/-- If `p ++ [z] <+ q ++ [t]` and `z ≠ t` then `p ++ [z] <+ q` -/
+--@[simp]
+lemma SubWalk_of_concat₂_of_ne {u v x y z t : V} {p : G.Walk u v} {q : G.Walk x y}
+    (hp : G.Adj v z) (hq : G.Adj y t) (h : SubWalk ⟨⟨u, z⟩, p.concat hp⟩ ⟨⟨x, t⟩, q.concat hq⟩)
+    (hne : z ≠ t) : SubWalk ⟨⟨u, z⟩, p.concat hp⟩ ⟨⟨x, y⟩, q⟩ :=
+  sorry
+
+/-- If `p <+ q` then `p <+ q ++ r` -/
+@[simp]
+lemma SubWalk_append_right {u v x y s : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, y⟩, q⟩) (r : G.Walk y s) :
     SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, s⟩, q.append r⟩ := by
-  induction r with
-  | @nil z => simp_all
-  | @cons a b c h r ih =>
-    let q':= q.concat h
-    have := SubWalk.cons h hs
-    sorry
+  induction r <;> simp_all [append_cons_eq_concat_append]
+
+@[simp]
+lemma SubWalk_trans {u v x y s t : V} {p : G.Walk u v} {q : G.Walk x y} {r : G.Walk s t}
+    (hpq : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨x, y⟩, q⟩) (hqr : SubWalk ⟨⟨x, y⟩, q⟩ ⟨⟨s, t⟩, r⟩) :
+    SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨s, t⟩, r⟩ := by
+  cases hpq with
+  | nil =>
+    cases hqr with
+    | nil => simp_all
+    | @cons a q' h h' hs =>
+      simp_all; right; sorry
+    | cons₂ hp hq _ => sorry
+  | cons h _ => sorry
+  | cons₂ hp hq _ => sorry
 
 
 
-lemma IsPrefixWalk_SubWalk {u v₁ v₂} {p : G.Walk u v₁} {q : G.Walk u v₂} (h : p.IsPrefixWalk q) :
-    SubWalk ⟨⟨u,v₁⟩,p⟩ ⟨⟨u, v₂⟩, q⟩ := by
-  induction p with
-  | @nil x => simp_all; sorry
-  | cons h p ih => sorry
+
+
+
+lemma SubWalk_reverse {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
+    (hs : SubWalk ⟨⟨u, v⟩,p⟩ ⟨⟨x, y⟩,q⟩) : SubWalk ⟨⟨v, u⟩, p.reverse⟩ ⟨⟨y, x⟩, q.reverse⟩ := by
+  induction q generalizing p u v with
+  | nil => simp_all
+  | @cons a b c h q ih =>
+    rw [reverse_cons, append_cons_eq_concat_append, append_nil]
+    by_cases ha : u = a
+    · subst ha
+      cases p with
+      | nil => simp_all
+      | @cons _ w _ h' p =>
+      simp_all [reverse_cons, append_cons_eq_concat_append, append_nil]
+
+      sorry
+    · have : SubWalk ⟨⟨u, v⟩, p⟩ ⟨⟨b, c⟩, q⟩ := by
+        cases p with
+        | nil => simp_all
+        | cons h' p => exact SubWalk_of_cons₂_of_ne h' h hs ha
+      exact SubWalk_concat (ih this) _
+
 
 
 end SimpleGraph.Walk
