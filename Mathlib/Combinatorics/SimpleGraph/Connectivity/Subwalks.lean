@@ -24,6 +24,7 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v �
   | cons₂ {u v y z : V} {p :  G.Walk u v} {q : G.Walk u y} (h : G.Adj z u) :
       Subwalk p q → Subwalk (p.cons h) (q.cons h)
 
+/- ?? How do I open this notation rather than reintroducing it -/
 @[inherit_doc] scoped infixl:50 " <+ " => List.Sublist
 
 /-- The support of a Subwalk is a Sublist of the support -/
