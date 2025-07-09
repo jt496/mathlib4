@@ -120,8 +120,7 @@ lemma Walk.shortClosed_of_eq {y: α} (w : G.Walk u v) (hx : x ∈ w.support) (hy
     (h : y = x) : w.shortClosed hx = (w.shortClosed hy).copy h h := by
   subst h
   rfl
-#check List.Sublist
-#check List.IsInfix
+
 @[simp]
 lemma Walk.dropUntil_spec (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortClosed hx).append (w.reverse.takeUntil x (w.mem_support_reverse.2 hx)).reverse =
@@ -142,6 +141,15 @@ lemma Walk.take_shortClosed_reverse_spec (w : G.Walk u v) (hx : x ∈ w.support)
   conv_rhs =>
     rw [← take_spec w hx]
   rw [w.dropUntil_spec hx]
+
+lemma shortClosed_isInfix {u v x : α} (p : G.Walk u v) (hx : x ∈ p.support) :
+   IsInfixWalk (p.shortClosed hx) p := by
+  use p.takeUntil _ hx, (p.reverse.takeUntil _ (p.mem_support_reverse.2 hx)).reverse
+  have := (take_shortClosed_reverse_spec p hx).symm
+  rwa [← Walk.append_assoc]
+
+
+
 
 lemma Walk.count_reverse {y : α} (w : G.Walk u v) :
     w.reverse.support.count y = w.support.count y := by
@@ -210,10 +218,15 @@ to `x` and then back to `v` without revisiting `x` -/
 abbrev Walk.shortCut (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk u v :=
   (w.takeUntil _ hx).append (w.reverse.takeUntil _ (w.mem_support_reverse.2 hx)).reverse
 
+lemma Walk.shortCut_isSubWalk {u v x : α} (p : G.Walk u v) (hx : x ∈ p.support) :
+   (p.shortCut hx).SubWalk p := by
+  have := (take_shortClosed_reverse_spec p hx).symm
+  convert SubWalk_of_prefix_append_suffix
+
 @[simp]
 lemma Walk.shortCut_start (w : G.Walk u v) : w.shortCut w.start_mem_support =
-    (w.reverse.takeUntil _ (w.mem_support_reverse.2 (by simp))).reverse:= by
-  cases w <;> simp [shortCut];
+    (w.reverse.takeUntil _ (w.mem_support_reverse.2 (by simp))).reverse := by
+  cases w <;> simp [shortCut]
 
 lemma Walk.mem_support_shortCut (w : G.Walk u v) (hx : x ∈ w.support) :
     x ∈ (w.shortCut hx).support := by
@@ -226,22 +239,8 @@ lemma Walk.shortCut_not_nil (w : G.Walk u v) (hx : x ∈ w.support) (hu : x ≠ 
   rintro rfl; contradiction
 
 lemma Walk.shortCut_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
-    (w.shortCut hx).support.count y ≤ w.support.count y := by
-  rw [shortCut]
-  conv_rhs =>
-    rw [← w.take_shortClosed_reverse_spec hx]
-  simp_rw [support_append, count_append]
-  gcongr
-  rw [List.count_tail (by simp), List.count_tail (by simp)]
-  by_cases hy : x = y
-  · subst y
-    simp
-  · simp only [support_reverse, List.count_reverse, head_reverse, getLast_support, beq_iff_eq, hy,
-    ↓reduceIte, tsub_zero, tail_reverse, count_append, ne_eq, reverse_eq_nil_iff, support_ne_nil,
-    not_false_eq_true, head_append_of_ne_nil]
-    rw [← List.reverse_reverse (w.reverse.takeUntil _ (by simp [hx])).support,
-      List.dropLast_reverse, List.reverse_reverse, List.count_reverse, List.count_tail (by simp)]
-    simp [hy]
+    (w.shortCut hx).support.count y ≤ w.support.count y :=
+  List.Sublist.count_le _ (w.shortCut_isSubWalk hx).support_sublist
 
 lemma Walk.not_mem_support_reverse_tail_takeUntil (w : G.Walk u v) (hx : x ∈ w.support) :
     x ∉ (w.takeUntil x hx).support.reverse.tail := by
@@ -506,7 +505,7 @@ lemma Walk.darts_cutVert_subset {u : α} (p : G.Walk u u) : p.cutVert.darts ⊆ 
 /-- A loop is any walk that starts and ends at the same vertex -/
 def Loop {V : Type*} (G : SimpleGraph V) := Σ v, G.Walk v v
 
-/-- The first vertex of the loop -/
+/-- The first (and last) vertex of a loop -/
 abbrev Loop.start (w : G.Loop) : α := w.1
 
 /-- The loop as a `G : Walk w.start w.start` -/
