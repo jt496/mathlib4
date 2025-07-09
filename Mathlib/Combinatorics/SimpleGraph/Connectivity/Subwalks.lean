@@ -4,7 +4,7 @@ namespace SimpleGraph.Walk
 
 #check List.sublist_append_iff
 
-/-! ## Subwalks -/
+/-! # Results about appending walks -/
 
 variable {V : Type*} {G : SimpleGraph V}
 
@@ -12,8 +12,64 @@ lemma append_cons_eq_concat_append {u v w z} {p : G.Walk u v} {q : G.Walk w z} {
     p.append (cons h q) = (p.concat h).append q := by
   induction p <;> simp_all [concat_nil]
 
+/--
+If `p₁ ++ p₂ = q₁ ++ q₂` and `p₁.length = q₁.length` then `p₁ = q₁` and `p₂ = q₂`.
+-/
+lemma append_inj {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁}
+    {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂) (hl : p₁.length = q₁.length) :
+    ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
+  have : u₁ = v₁ := by
+    have h1 := getVert_append p₁ p₂ p₁.length
+    have h2 := getVert_append q₁ q₂ q₁.length
+    simp only [lt_self_iff_false, ↓reduceIte, Nat.sub_self, getVert_zero] at h1 h2
+    rwa [← hp, ← hl, h1] at h2
+  use this
+  subst this
+  induction p₁ with
+  | nil =>
+    rw [length_nil] at hl
+    have hq1 := (nil_iff_length_eq.mpr hl.symm).eq_nil
+    rw [nil_append, copy_rfl_rfl, hp] at *
+    exact ⟨hq1.symm, by simp [hq1]⟩
+  | cons h p ih =>
+    cases q₁ with
+    | nil => simp at hl
+    | cons =>
+      simp only [cons_append, cons.injEq] at *
+      have := hp.1
+      subst this
+      obtain ⟨_, _, _⟩ := ih (by simpa using hp) (by simpa using hl)
+      simp_all
+
+/--
+If `p₁ ++ p₂ = q₁ ++ q₂` and `p₂.length = q₂.length` then `p₁ = q₁` and `p₂ = q₂`.
+-/
+lemma append_inj' {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁}
+    {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂) (hl : p₂.length = q₂.length) :
+    ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
+  apply append_inj hp
+  apply_fun length at hp
+  simp_rw [length_append] at hp
+  omega
+
+lemma append_left_inj {u v₁ v₂} {p₁ p₂: G.Walk u v₁} {q : G.Walk v₁ v₂} :
+    p₁.append q = p₂.append q ↔ p₁ = p₂ := by
+  constructor <;> intro heq
+  · obtain ⟨_, h1, h2⟩ := append_inj heq (by apply_fun length at heq; simpa using heq)
+    simp [← h1]
+  · subst heq; rfl
+
+lemma append_right_inj {u₁ u₂ v} {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
+    p.append q₁ = p.append q₂ ↔ q₁ = q₂ := by
+  constructor <;> intro heq
+  · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
+    simp [← h2]
+  · subst heq; rfl
+
+/-! ## Subwalks -/
+
 /-- `p.Subwalk q` if `p` is a not necessarily contiguous subwalk of `q`
-(This is modelled on `List.Sublist`.) -/
+(This definition is modelled on `List.Sublist`.) -/
 inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v → G.Walk x y → Prop
   /-- The nil walk `u` is a Subwalk of any `u - v` walk. -/
   | nil {u v: V} {q : G.Walk u v} : Subwalk (Walk.nil' u) q
@@ -174,16 +230,16 @@ lemma Subwalk.reverse {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     · subst ha
       cases p with
       | nil => simp_all
-      | @cons _ w _ h' p =>
+      | @cons _ w _ _ p =>
       rw [reverse_cons, append_cons_eq_concat_append, append_nil]
       by_cases hwb : w = b
       · subst hwb
         apply (ih <| hs.of_cons₂ h).concat₂
-      · apply (reverse_cons _ _ ▸ ih <| hs.of_cons₂_of_ne_snd  h' h  hwb).concat
+      · apply (reverse_cons _ _ ▸ ih <| hs.of_cons₂_of_ne_snd _ h hwb).concat
     · have : Subwalk p q := by
         cases p with
         | nil => simp_all
-        | cons h' _ => exact hs.of_cons₂_of_ne h' h ha
+        | cons => exact hs.of_cons₂_of_ne _ _ ha
       exact (ih this).concat _
 
 /-- If `p.concat h <+ q` then `p <+ q` -/
@@ -194,16 +250,18 @@ lemma Subwalk.of_concat {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
   simp only [reverse_concat] at this
   simpa using (this.of_cons h.symm).reverse
 
+
+/-- If `p.concat h <+ q.concat h` then `p <+ q` -/
 @[simp]
 lemma Subwalk.of_concat₂ {u v x y  : V} {p : G.Walk u v} {q : G.Walk x v}
-    (h : G.Adj v y) (hs : Subwalk (p.concat h) (q.concat h)) :
-    Subwalk p q := by
+    (h : G.Adj v y) (hs : Subwalk (p.concat h) (q.concat h)) : Subwalk p q := by
   have := hs.reverse
   simp only [reverse_concat] at this
   simpa using (this.of_cons₂ h.symm).reverse
 
 /--
-If `p.concat hp <+ q.concat hq` and the end of the darts hp and hq differ then `p.concat hp <+ q`
+If `p.concat hp <+ q.concat hq` and the end of the darts `hp` and `hq` differ then
+`p.concat hp <+ q`
 -/
 @[simp]
 lemma Subwalk.of_concat₂_of_ne {u v x y z t : V} {p : G.Walk u v} {q : G.Walk x y} (hp : G.Adj v z)
@@ -213,6 +271,10 @@ lemma Subwalk.of_concat₂_of_ne {u v x y z t : V} {p : G.Walk u v} {q : G.Walk 
   simp only [reverse_concat] at this
   simpa using (this.of_cons₂_of_ne hp.symm hq.symm hne).reverse
 
+/--
+If `p.concat hp <+ q.concat hq` and the start of the darts `hp` and `hq` differ then
+`p.concat hp <+ q`
+-/
 @[simp]
 lemma Subwalk.of_concat₂_of_ne_fst {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
     (hp : G.Adj v z) (hq : G.Adj y z) (hs : Subwalk (p.concat hp) (q.concat hq))
@@ -354,18 +416,15 @@ lemma infix_iff_exists_prefix_append {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁
 lemma infix_iff_exists_suffix_append {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
   p.Infix q ↔ ∃ s : G.Walk v₁ v₂, (p.append s).Suffix q := by
   constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
-  · use s, r
-    rw [hs, append_assoc]
+  · exact ⟨s, r, by rw [hs, append_assoc]⟩
 
 lemma Prefix.infix {u v₁ v₂} {p : G.Walk u v₁} {q : G.Walk u v₂} (h : p.Prefix q) : p.Infix q := by
   obtain ⟨r, hr⟩ := h
-  use  nil' _ , r
-  simpa
+  exact ⟨nil' _ ,r , by simpa⟩
 
 lemma Suffix.infix {u₁ u₂ v} {p : G.Walk u₁ v} {q : G.Walk u₂ v} (h : p.Suffix q) : p.Infix q := by
   obtain ⟨s, hr⟩ := h
-  use  s, nil' _
-  simpa
+  exact ⟨s, nil' _, by simpa⟩
 
 lemma infix_iff_support {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
     p.Infix q ↔ p.support <:+: q.support := by
@@ -454,61 +513,6 @@ lemma infix_antisymm_iff {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Wal
     simp
 
 alias ⟨Infix.antisymm, _⟩ := infix_antisymm_iff
-
-
-/--
-If `p₁ ++ p₂ = q₁ ++ q₂` and `p₁.length = q₁.length` then `p₁ = q₁` and `p₂ = q₂`.
--/
-lemma append_inj {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁}
-    {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂) (hl : p₁.length = q₁.length) :
-    ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
-  have : u₁ = v₁ := by
-    have h1 := getVert_append p₁ p₂ p₁.length
-    have h2 := getVert_append q₁ q₂ q₁.length
-    simp only [lt_self_iff_false, ↓reduceIte, Nat.sub_self, getVert_zero] at h1 h2
-    rwa [← hp, ← hl, h1] at h2
-  use this
-  subst this
-  induction p₁ with
-  | nil =>
-    rw [length_nil] at hl
-    have hq1 := (nil_iff_length_eq.mpr hl.symm).eq_nil
-    rw [nil_append, copy_rfl_rfl, hp] at *
-    exact ⟨hq1.symm, by simp [hq1]⟩
-  | cons h p ih =>
-    cases q₁ with
-    | nil => simp at hl
-    | cons =>
-      simp only [cons_append, cons.injEq] at *
-      have := hp.1
-      subst this
-      obtain ⟨_, _, _⟩ := ih (by simpa using hp) (by simpa using hl)
-      simp_all
-
-/--
-If `p₁ ++ p₂ = q₁ ++ q₂` and `p₂.length = q₂.length` then `p₁ = q₁` and `p₂ = q₂`.
--/
-lemma append_inj' {u u₁ v v₁} {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁}
-    {q₂ : G.Walk v₁ v} (hp : p₁.append p₂ = q₁.append q₂) (hl : p₂.length = q₂.length) :
-    ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
-  apply append_inj hp
-  apply_fun length at hp
-  simp_rw [length_append] at hp
-  omega
-
-lemma append_left_inj {u v₁ v₂} {p₁ p₂: G.Walk u v₁} {q : G.Walk v₁ v₂} :
-    p₁.append q = p₂.append q ↔ p₁ = p₂ := by
-  constructor <;> intro heq
-  · obtain ⟨_, h1, h2⟩ := append_inj heq (by apply_fun length at heq; simpa using heq)
-    simp [← h1]
-  · subst heq; rfl
-
-lemma append_right_inj {u₁ u₂ v} {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
-    p.append q₁ = p.append q₂ ↔ q₁ = q₂ := by
-  constructor <;> intro heq
-  · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
-    simp [← h2]
-  · subst heq; rfl
 
 lemma cons_eq_cons {u v₁ v₂ w} (p₁ : G.Walk v₁ w) (p₂ : G.Walk v₂ w) (h₁ : G.Adj u v₁)
     (h₂ : G.Adj u v₂) : cons h₁ p₁ = cons h₂ p₂ ↔ ∃ h', p₁.copy h' rfl = p₂ := by
