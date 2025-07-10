@@ -636,7 +636,11 @@ lemma Suffix.subwalk {u v w : V} {p : G.Walk u w} {q : G.Walk v w} (h : p.Suffix
 
 
 /-! ## Rotated Subwalks -/
-/-- `p` is a rotated subwalk of `q` if it is a rotation of a subwalk -/
+/--
+`p` is a rotated subwalk of `q` if it is a rotation of a subwalk
+
+Note this doesn't really work since the rotation of a RotatedSubwalk may not be a RotatedSubwalk
+-/
 def RotatedSubwalk [DecidableEq V] {u v w : V} (p : G.Walk u u) (q : G.Walk v w) : Prop :=
     ∃ (x : V) (r : G.Walk x x) (hu : u ∈ r.support), r.Subwalk q ∧ p = r.rotate hu
 

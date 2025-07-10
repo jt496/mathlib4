@@ -299,7 +299,7 @@ lemma Walk.length_shorterOdd_odd {p : G.Walk u u} {x : α} (hx : x ∈ p.support
 
 lemma Walk.length_shorterOdd_le {u : α} (p : G.Walk u u) {x : α} (hx : x ∈ p.support) :
     (p.shorterOdd hx).length ≤ p.length := (p.shorterOdd_rotatedSubwalk hx).length_le
-
+  
 lemma Walk.length_shorterOdd_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support) (hne : x ≠ u)
     (h2 : 1 < p.support.count x) : (p.shorterOdd hx).length < p.length := by
   rw [shorterOdd, ← p.length_shortCut_add_shortClosed hx]
@@ -320,7 +320,6 @@ lemma Walk.length_shorterOdd_lt_length' {p : G.Walk u u}
 shorterOdd' is useful to convert a closed walk `p : G.Walk u u` where `u` occurs more
 than twice but all other vertices occur once into an (odd) cycle (see `cutVert`).
 -/
-@[simp]
 private def Walk.shorterOdd' {u : α} (p : G.Walk u u) : G.Walk u u  :=
   match p with
   | .nil' u => nil' u
