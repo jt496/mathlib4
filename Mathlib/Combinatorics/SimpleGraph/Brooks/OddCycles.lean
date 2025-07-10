@@ -299,7 +299,7 @@ lemma Walk.length_shorterOdd_odd {p : G.Walk u u} {x : α} (hx : x ∈ p.support
 
 lemma Walk.length_shorterOdd_le {u : α} (p : G.Walk u u) {x : α} (hx : x ∈ p.support) :
     (p.shorterOdd hx).length ≤ p.length := (p.shorterOdd_rotatedSubwalk hx).length_le
-  
+
 lemma Walk.length_shorterOdd_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support) (hne : x ≠ u)
     (h2 : 1 < p.support.count x) : (p.shorterOdd hx).length < p.length := by
   rw [shorterOdd, ← p.length_shortCut_add_shortClosed hx]
@@ -328,6 +328,19 @@ private def Walk.shorterOdd' {u : α} (p : G.Walk u u) : G.Walk u u  :=
     have hu : u ∈ ((p.cons h).rotate hy).support :=
       (mem_support_rotate_iff hy).2 (p.cons h).start_mem_support
     exact ((p.cons h).rotate hy).shorterOdd hu
+
+/--
+`p.shorterOdd'` is a rotation of a subwalk of a rotation of `p`
+-/
+lemma Walk.shorterOdd'_rotatedSubwalk {u : α} (p : G.Walk u u) : ∃ (y : α) (hy : y ∈ p.support),
+    p.shorterOdd'.RotatedSubwalk (p.rotate hy) := by
+  cases p with
+  | nil => use u; simp [shorterOdd']
+  | cons h p =>
+    have hy : (p.cons h).snd ∈ (p.cons h).support := by simp
+    have hu : u ∈ ((p.cons h).rotate hy).support :=
+      (mem_support_rotate_iff hy).2 (p.cons h).start_mem_support
+    exact ⟨_, hy, shorterOdd_rotatedSubwalk hu⟩
 
 lemma Walk.length_shorterOdd' {u : α} (p : G.Walk u u) (hp : 2 < p.support.count u):
     p.shorterOdd'.length < p.length := by

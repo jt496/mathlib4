@@ -636,49 +636,69 @@ lemma Suffix.subwalk {u v w : V} {p : G.Walk u w} {q : G.Walk v w} (h : p.Suffix
 
 
 /-! ## Rotated Subwalks -/
+
+
+variable [DecidableEq V]
+
 /--
 `p` is a rotated subwalk of `q` if it is a rotation of a subwalk
 
-Note this doesn't really work since the rotation of a RotatedSubwalk may not be a RotatedSubwalk
-Perhaps need to define `rotate'` using `take` and `drop`
 -/
-def RotatedSubwalk [DecidableEq V] {u v w : V} (p : G.Walk u u) (q : G.Walk v w) : Prop :=
+def RotatedSubwalk {u v w : V} (p : G.Walk u u) (q : G.Walk v w) : Prop :=
     ∃ (x : V) (r : G.Walk x x) (hu : u ∈ r.support), r.Subwalk q ∧ p = r.rotate hu
 
 @[simp]
-lemma RotatedSubwalk.nil [DecidableEq V] (u : V) :
-    (nil' u : G.Walk u u).RotatedSubwalk (nil' u) := ⟨u, nil' u, by simp⟩
-
+lemma RotatedSubwalk.nil (u : V) : (nil' u : G.Walk u u).RotatedSubwalk (nil' u) :=
+  ⟨u, nil' u, by simp⟩
 
 /-- Any subwalk is trivial a rotated subwalk -/
-lemma Subwalk.rotated [DecidableEq V] {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
-    (h : p.Subwalk q) : p.RotatedSubwalk q := by
-  use u
-  simpa
+lemma Subwalk.rotated {u v w : V} {p : G.Walk u u} {q : G.Walk v w} (h : p.Subwalk q) :
+    p.RotatedSubwalk q := by use u; simpa
 
-#check Walk.rotate_darts
-lemma RotatedSubwalk.support_subset [DecidableEq V] {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
+lemma RotatedSubwalk.support_subset {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
     (h : p.RotatedSubwalk q) : p.support ⊆ q.support := by
   obtain ⟨_, _, _, hr1, rfl⟩ := h
   intro _ hy
   exact hr1.support_sublist.mem (by rwa [← mem_support_rotate_iff] )
 
-lemma RotatedSubwalk.darts_subset [DecidableEq V] {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
+lemma RotatedSubwalk.darts_subset {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
     (h : p.RotatedSubwalk q) : p.darts ⊆ q.darts := by
   obtain ⟨_, _, hx, hr1, rfl⟩ := h
   intro _ hy
   exact hr1.darts_sublist.mem <| (rotate_darts _ hx).symm.mem_iff.2 hy
 
-lemma RotatedSubwalk.edges_subset [DecidableEq V] {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
+lemma RotatedSubwalk.edges_subset {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
     (h : p.RotatedSubwalk q) : p.edges ⊆ q.edges := by
   obtain ⟨_, _, hx, hr1, rfl⟩ := h
   intro _ hy
   exact hr1.edges_sublist.mem <| (rotate_edges _ hx).symm.mem_iff.2 hy
 
-lemma RotatedSubwalk.length_le [DecidableEq V] {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
+lemma RotatedSubwalk.length_le {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
     (h : p.RotatedSubwalk q) : p.length ≤ q.length := by
   obtain ⟨x, r, hx, hr1, rfl⟩ := h
   exact length_rotate hx ▸ hr1.length_le
+
+
+/- We also sometimes care about rotated subwalks of rotated walks -/
+
+lemma RotatedSubwalk.support_subset_rotate {u v y : V} {p : G.Walk u u} {q : G.Walk v v}
+    (hy : y ∈ q.support ) (h : p.RotatedSubwalk (q.rotate hy)) : p.support ⊆ q.support :=
+  h.support_subset.trans (fun _ hz ↦ (mem_support_rotate_iff hy).mp hz)
+
+lemma RotatedSubwalk.darts_subset_rotate {u v y : V} {p : G.Walk u u} {q : G.Walk v v}
+    (hy : y ∈ q.support ) (h : p.RotatedSubwalk (q.rotate hy)) : p.darts ⊆ q.darts :=
+  h.darts_subset.trans (fun _ hz ↦ (rotate_darts _ hy).symm.mem_iff.2 hz)
+
+lemma RotatedSubwalk.edges_subset_rotate {u v y : V} {p : G.Walk u u} {q : G.Walk v v}
+    (hy : y ∈ q.support ) (h : p.RotatedSubwalk (q.rotate hy)) : p.edges ⊆ q.edges :=
+  h.edges_subset.trans (fun _ hz ↦ (rotate_edges _ hy).symm.mem_iff.2 hz)
+
+lemma RotatedSubwalk.length_le_rotate {u v y : V} {p : G.Walk u u} {q : G.Walk v v}
+    (hy : y ∈ q.support ) (h : p.RotatedSubwalk (q.rotate hy)): p.length ≤ q.length :=
+  length_rotate hy ▸ h.length_le
+
+
+
 
 
 end SimpleGraph.Walk
