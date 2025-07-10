@@ -6,6 +6,7 @@ Authors: John Talbot
 import Mathlib.Combinatorics.SimpleGraph.Finsubgraph
 import Mathlib.Combinatorics.SimpleGraph.Path
 import Mathlib.Combinatorics.SimpleGraph.ConcreteColorings
+import Mathlib.Combinatorics.SimpleGraph.Connectivity.Subwalks
 
 /-!
 We extend some of the walk decomposition API : we already have `Walk.takeUntil` and `Walk.dropUntil`
@@ -142,56 +143,26 @@ lemma Walk.take_shortClosed_reverse_spec (w : G.Walk u v) (hx : x ∈ w.support)
     rw [← take_spec w hx]
   rw [w.dropUntil_spec hx]
 
-lemma shortClosed_isInfix {u v x : α} (p : G.Walk u v) (hx : x ∈ p.support) :
-   IsInfixWalk (p.shortClosed hx) p := by
+lemma shortClosed_infix {u v x : α} {p : G.Walk u v} (hx : x ∈ p.support) :
+   Infix (p.shortClosed hx) p := by
   use p.takeUntil _ hx, (p.reverse.takeUntil _ (p.mem_support_reverse.2 hx)).reverse
   have := (take_shortClosed_reverse_spec p hx).symm
   rwa [← Walk.append_assoc]
-
-
-
 
 lemma Walk.count_reverse {y : α} (w : G.Walk u v) :
     w.reverse.support.count y = w.support.count y := by
   simp
 
 lemma Walk.takeUntil_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
-    (w.takeUntil _ hx).support.count y ≤ w.support.count y := by
-  conv_rhs =>
-    rw [← take_spec w hx]
-  rw [support_append, count_append]
-  omega
+  (w.takeUntil _ hx).support.count y ≤ w.support.count y := (takeUntil_prefix hx).subwalk.count_le _
 
 @[simp]
 lemma Walk.dropUntil_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
-    (w.dropUntil _ hx).support.count y ≤ w.support.count y := by
-  conv_rhs =>
-    rw [← take_spec w hx]
-  rw [support_append, count_append, count_tail (by simp)]
-  by_cases hy : x = y
-  · simp only [head_support, hy, beq_self_eq_true, ↓reduceIte]
-    subst y
-    rw [w.count_support_takeUntil_eq_one hx]
-    omega
-  · simp [hy]
+  (w.dropUntil _ hx).support.count y ≤ w.support.count y := (dropUntil_suffix hx).subwalk.count_le _
 
 lemma Walk.shortClosed_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
-    (w.shortClosed hx).support.count y ≤ w.support.count y := by
-  by_cases hu : x = u
-  · subst x; rw [shortClosed_start, support_reverse, ← w.count_reverse]
-    rw [List.count_reverse]
-    apply w.reverse.dropUntil_count_le
-  · conv_rhs =>
-      rw [← w.take_shortClosed_reverse_spec hx]
-    simp_rw [support_append, count_append]
-    by_cases hy : x = y
-    · rw [List.count_tail (by simp)]
-      subst y
-      rw [w.count_support_takeUntil_eq_one hx]
-      simp
-      omega
-    · rw [List.count_tail (by simp), add_comm]
-      simp [hy, add_assoc]
+    (w.shortClosed hx).support.count y ≤ w.support.count y :=
+  (shortClosed_infix hx).subwalk.count_le _
 
 /-- If `w.count u ≤ 2` and `x ≠ u` then `u ∉ w.shortClosed x` -/
 lemma Walk.shortClosed_count_le_two {u x : α} (w : G.Walk u u) (hx : x ∈ w.support) (hne : x ≠ u)
@@ -218,10 +189,10 @@ to `x` and then back to `v` without revisiting `x` -/
 abbrev Walk.shortCut (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk u v :=
   (w.takeUntil _ hx).append (w.reverse.takeUntil _ (w.mem_support_reverse.2 hx)).reverse
 
-lemma Walk.shortCut_isSubWalk {u v x : α} (p : G.Walk u v) (hx : x ∈ p.support) :
-   (p.shortCut hx).SubWalk p := by
+lemma Walk.shortCut_subwalk {u v x : α} {p : G.Walk u v} (hx : x ∈ p.support) :
+   (p.shortCut hx).Subwalk p := by
   have := (take_shortClosed_reverse_spec p hx).symm
-  convert SubWalk_of_prefix_append_suffix
+  convert Subwalk.of_prefix_append_suffix
 
 @[simp]
 lemma Walk.shortCut_start (w : G.Walk u v) : w.shortCut w.start_mem_support =
@@ -240,7 +211,7 @@ lemma Walk.shortCut_not_nil (w : G.Walk u v) (hx : x ∈ w.support) (hu : x ≠ 
 
 lemma Walk.shortCut_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortCut hx).support.count y ≤ w.support.count y :=
-  List.Sublist.count_le _ (w.shortCut_isSubWalk hx).support_sublist
+  List.Sublist.count_le _ (w.shortCut_subwalk hx).support_sublist
 
 lemma Walk.not_mem_support_reverse_tail_takeUntil (w : G.Walk u v) (hx : x ∈ w.support) :
     x ∉ (w.takeUntil x hx).support.reverse.tail := by
@@ -307,24 +278,15 @@ def Walk.shorterOdd {u : α} (p : G.Walk u u) {x : α} (hx : x ∈ p.support) : 
   -- In this case we rotate this walk to be able to return a `G.Walk x x` in both cases
     (p.shortCut hx).rotate (by simp)
 
+lemma Walk.shorterOdd_rotatedSubwalk {u x : α} {p : G.Walk u u} (hx : x ∈ p.support) :
+  (p.shorterOdd hx).RotatedSubwalk p := by
+  rw [shorterOdd]
+  split_ifs with h1
+  · exact (shortClosed_infix hx).subwalk.rotated
+  · exact ⟨u, (p.shortCut hx), by simp_all [shortCut_subwalk hx]⟩
+
 lemma Walk.darts_shorterOdd_subset {u : α} (p : G.Walk u u) {x : α} (hx : x ∈ p.support) :
-    (p.shorterOdd hx).darts ⊆ p.darts := by
-  intro d hd
-  rw [shorterOdd] at hd
-  split_ifs at hd with h1
-  · rw [shortClosed] at hd
-    apply darts_dropUntil_subset _ hx
-    rw [mem_darts_reverse] at hd
-    have := darts_dropUntil_subset _ _ hd
-    rwa [← mem_darts_reverse, reverse_reverse] at this
-  · have := rotate_darts (p.shortCut hx) (show x ∈ _ by simp [hx])
-    rw [this.mem_iff, shortCut, darts_append, mem_append] at hd
-    cases hd with
-    | inl hd => apply darts_takeUntil_subset _ _ hd
-    | inr hd =>
-      rw [mem_darts_reverse] at hd
-      have := darts_takeUntil_subset _ _ hd
-      rwa [mem_darts_reverse] at this
+    (p.shorterOdd hx).darts ⊆ p.darts := (p.shorterOdd_rotatedSubwalk hx).darts_subset
 
 lemma Walk.length_shorterOdd_odd {p : G.Walk u u} {x : α} (hx : x ∈ p.support)
     (ho : Odd p.length) : Odd (p.shorterOdd hx).length := by
@@ -336,14 +298,7 @@ lemma Walk.length_shorterOdd_odd {p : G.Walk u u} {x : α} (hx : x ∈ p.support
     exact (Nat.odd_add.1 ho).2 (Nat.not_odd_iff_even.1 h1)
 
 lemma Walk.length_shorterOdd_le {u : α} (p : G.Walk u u) {x : α} (hx : x ∈ p.support) :
-    (p.shorterOdd hx).length ≤ p.length := by
-  by_cases ho : Odd (p.shortClosed hx).length
-  · rw [shorterOdd, dif_pos ho]
-    rw [← p.length_shortCut_add_shortClosed hx]
-    omega
-  · rw [shorterOdd, dif_neg ho]
-    rw [← p.length_shortCut_add_shortClosed hx, length_rotate]
-    omega
+    (p.shorterOdd hx).length ≤ p.length := (p.shorterOdd_rotatedSubwalk hx).length_le
 
 lemma Walk.length_shorterOdd_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support) (hne : x ≠ u)
     (h2 : 1 < p.support.count x) : (p.shorterOdd hx).length < p.length := by
@@ -365,6 +320,7 @@ lemma Walk.length_shorterOdd_lt_length' {p : G.Walk u u}
 shorterOdd' is useful to convert a closed walk `p : G.Walk u u` where `u` occurs more
 than twice but all other vertices occur once into an (odd) cycle (see `cutVert`).
 -/
+@[simp]
 private def Walk.shorterOdd' {u : α} (p : G.Walk u u) : G.Walk u u  :=
   match p with
   | .nil' u => nil' u
