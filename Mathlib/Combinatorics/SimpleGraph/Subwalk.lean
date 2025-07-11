@@ -9,12 +9,6 @@ namespace SimpleGraph.Walk
 
 variable {G : SimpleGraph V}
 
-lemma take_append_drop {u v : V} (p : G.Walk u v) (n : ℕ) :
-    (p.take n).append (p.drop n) = p := by
-  cases p with
-  | nil => simp
-  | cons h p => sorry
-
 lemma append_cons_eq_concat_append {u v w z} {p : G.Walk u v} {q : G.Walk w z} {h : G.Adj v w} :
     p.append (cons h q) = (p.concat h).append q := by
   induction p <;> simp_all [concat_nil]

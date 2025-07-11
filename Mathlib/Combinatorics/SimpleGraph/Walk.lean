@@ -902,15 +902,28 @@ def drop {u v : V} (p : G.Walk u v) (n : ℕ) : G.Walk (p.getVert n) v :=
   | .cons _ q, (n + 1) => q.drop n
 
 @[simp]
+lemma drop_nil {u : V} {n : ℕ} : (nil : G.Walk u u).drop n = nil := by
+  cases n <;> rfl
+
+@[simp]
+lemma drop_zero {u v : V} {p : G.Walk u v} :
+    p.drop 0 = p.copy (getVert_zero p).symm rfl  := by
+  cases p <;> rfl
+
+@[simp]
+lemma drop_cons_succ {u v w : V} {h : G.Adj u v} {p : G.Walk v w} {n : ℕ} :
+  (cons h p).drop (n + 1) = (p.drop n) := rfl
+
+@[simp]
 lemma drop_length (p : G.Walk u v) (n : ℕ) : (p.drop n).length = p.length - n := by
   induction p generalizing n with
-  | nil => simp [drop]
+  | nil => simp
   | cons => cases n <;> simp_all [drop]
 
 @[simp]
 lemma drop_getVert (p : G.Walk u v) (n m : ℕ) : (p.drop n).getVert m = p.getVert (n + m) := by
   induction p generalizing n with
-  | nil => simp [drop]
+  | nil => simp
   | cons => cases n <;> simp_all [drop, Nat.add_right_comm]
 
 /-- The second vertex of a walk, or the only vertex in a nil walk. -/
@@ -931,15 +944,35 @@ def take {u v : V} (p : G.Walk u v) (n : ℕ) : G.Walk u (p.getVert n) :=
   | .cons h q, (n + 1) => .cons h (q.take n)
 
 @[simp]
+lemma take_nil {u : V} {n : ℕ} : (nil : G.Walk u u).take n = nil := by
+  cases n <;> rfl
+
+@[simp]
+lemma take_zero {u v : V} {p : G.Walk u v} :
+    p.take 0 = (nil : G.Walk u u).copy rfl (getVert_zero p).symm := by
+  cases p <;> rfl
+
+@[simp]
+lemma take_cons_succ {u v w : V} {h : G.Adj u v} {p : G.Walk v w} {n : ℕ} :
+  (cons h p).take (n + 1) = cons h (p.take n) := rfl
+
+@[simp]
+theorem take_append_drop {u v : V} (p : G.Walk u v) (n : ℕ)  :
+    (p.take n).append (p.drop n) = p := by
+  induction p generalizing n with
+  | nil => cases n <;> rfl
+  | cons h p ih => cases n <;> simp [ih]
+
+@[simp]
 lemma take_length (p : G.Walk u v) (n : ℕ) : (p.take n).length = n ⊓ p.length := by
   induction p generalizing n with
-  | nil => simp [take]
+  | nil => simp
   | cons => cases n <;> simp_all [take]
 
 @[simp]
 lemma take_getVert (p : G.Walk u v) (n m : ℕ) : (p.take n).getVert m = p.getVert (n ⊓ m) := by
   induction p generalizing n m with
-  | nil => simp [take]
+  | nil => simp
   | cons => cases n <;> cases m <;> simp_all [take]
 
 /-- The penultimate vertex of a walk, or the only vertex in a nil walk. -/
