@@ -400,7 +400,7 @@ lemma Infix.subwalk {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u�
   rw [← append_assoc] at h
   exact h ▸ ((Subwalk.refl p).append_right s).append_left r
 
-@[simp]
+@[simp,refl]
 lemma Infix.refl {u₁ v₁} (p : G.Walk u₁ v₁) : p.Infix p := ⟨nil' u₁, nil' v₁, by simp⟩
 
 @[simp]
@@ -420,6 +420,9 @@ def Prefix {u v₁ v₂} (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
 def Suffix {u₁ u₂ v} (p : G.Walk u₂ v) (q : G.Walk u₁ v) : Prop :=
   ∃ (r : G.Walk u₁ u₂), q = r.append p
 
+@[simp,refl]
+lemma Prefix.refl {u₁ v₁} (p : G.Walk u₁ v₁) : p.Prefix p := ⟨nil' v₁, by simp⟩
+
 lemma Prefix.infix {u v₁ v₂} {p : G.Walk u v₁} {q : G.Walk u v₂} (h : p.Prefix q) : p.Infix q := by
   obtain ⟨r, hr⟩ := h
   exact ⟨nil' _ ,r , by simpa⟩
@@ -427,6 +430,9 @@ lemma Prefix.infix {u v₁ v₂} {p : G.Walk u v₁} {q : G.Walk u v₂} (h : p.
 lemma Suffix.infix {u₁ u₂ v} {p : G.Walk u₁ v} {q : G.Walk u₂ v} (h : p.Suffix q) : p.Infix q := by
   obtain ⟨s, hr⟩ := h
   exact ⟨s, nil' _, by simpa⟩
+
+@[simp,refl]
+lemma Suffix.refl {u₁ v₁} (p : G.Walk u₁ v₁) : p.Suffix p := ⟨nil' u₁, by simp⟩
 
 lemma Prefix.subwalk {u v w : V} {p : G.Walk u v} {q : G.Walk u w} (h : p.Prefix q) :
     p.Subwalk q := h.infix.subwalk
@@ -561,9 +567,18 @@ lemma take_prefix {u v : V} {p : G.Walk u v} (n : ℕ) : (p.take n).Prefix p :=
 lemma drop_suffix {u v : V} {p : G.Walk u v} (n : ℕ) : (p.drop n).Suffix p :=
   ⟨_, (take_append_drop p n).symm⟩
 
-lemma tail_suffix {u v : V} {p : G.Walk u v} : p.tail.Suffix p := p.drop_suffix _
+lemma tail_suffix {u v : V} (p : G.Walk u v) : p.tail.Suffix p := p.drop_suffix _
 
-lemma dropLast_prefix {u v : V} {p : G.Walk u v} : p.dropLast.Prefix p := p.take_prefix _
+lemma dropLast_prefix {u v : V} (p : G.Walk u v) : p.dropLast.Prefix p := p.take_prefix _
+
+lemma bypass_subwalk [DecidableEq V] {u v : V} (p : G.Walk u v) : p.bypass.Subwalk p := by
+  induction p with
+  | nil => rfl
+  | cons _root_ p ih =>
+    rw [bypass]
+    split_ifs with h1
+    · exact (p.bypass.dropUntil_suffix h1).subwalk.trans (ih.cons _)
+    · exact ih.cons₂ _
 
 /-- `p ++ r <+ p ++ q ++ r` i.e. removing a loop from a walk yields a subwalk. -/
 lemma Subwalk.of_prefix_append_suffix {u₁ u₂ u₃} {p : G.Walk u₁ u₂} {q : G.Walk u₂ u₂}
