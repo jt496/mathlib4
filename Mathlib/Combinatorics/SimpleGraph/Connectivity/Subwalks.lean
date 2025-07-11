@@ -30,12 +30,12 @@ lemma sublist_rotate {l k : List V} (hs : l <+ k) (n : ℕ) :
     | inr h => exact ⟨m + 1, by omega, by simpa [rotate_rotate] using h⟩
 
 
-lemma rotate_sublist_rotate_cons_succ {a : V} {l : List V} {n : ℕ} (hn : n ≤ l.length):
+lemma rotate_rotate_cons_succ {a : V} {l : List V} {n : ℕ} (hn : n ≤ l.length):
     l.rotate n <+ (a :: l).rotate (n + 1) := by
   rw [List.rotate_eq_drop_append_take hn, List.rotate_eq_drop_append_take (by simpa)]
   simp
 
-lemma rotate_sublist_one {l k : List V} (hs : l <+ k) :
+lemma rotate_one {l k : List V} (hs : l <+ k) :
     ∃ n, n ≤ k.length ∧ (l.rotate 1) <+ (k.rotate n) := by
     cases l with
     | nil => use 0; simp
@@ -50,7 +50,7 @@ lemma rotate_sublist_one {l k : List V} (hs : l <+ k) :
           cases j with
           | zero => use 0; simp_all
           | succ j =>
-            exact ⟨j+2, by simpa using hs.1, hs.2.trans <| rotate_sublist_rotate_cons_succ hs.1⟩
+            exact ⟨j+2, by simpa using hs.1, hs.2.trans <| rotate_rotate_cons_succ hs.1⟩
 
 /--
 If `l <+ k` then any rotation of `l` is a sublist of some rotation of `k`
@@ -63,11 +63,11 @@ lemma Sublist.rotate {l k : List V} (hs : l <+ k) (m : ℕ) : ∃ n, (l.rotate m
     cases l with
     | nil => use 0; simp
     | cons a l =>
-      obtain ⟨n, hn⟩ := rotate_sublist_one hs
+      obtain ⟨n, hn⟩ := rotate_one hs
       simp_rw [rotate_rotate] at hn
       exact ⟨j + n, hn.2⟩
 
-lemma rotate_sublist_subset {l k : List V} (hs : l <+ k) (m : ℕ) : l.rotate m ⊆ k := by
+lemma rotate_subset {l k : List V} (hs : l <+ k) (m : ℕ) : l.rotate m ⊆ k := by
   intro _ hx
   obtain ⟨n, hs⟩ := hs.rotate m
   exact hs.subset.trans (fun _ h ↦ mem_rotate.mp h) hx
@@ -156,17 +156,17 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v �
 @[inherit_doc] scoped infixl:50 " <+ " => List.Sublist
 
 /-- The support of a Subwalk is a Sublist of the support -/
-lemma Subwalk.support_sublist {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
+lemma Subwalk.support {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.support <+ q.support :=
   Subwalk.rec (by simp) (by simp_all) (by simp) hs
 
 /-- The darts of a Subwalk are a Sublist of the darts -/
-lemma Subwalk.darts_sublist {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
+lemma Subwalk.darts {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.darts <+ q.darts :=
   Subwalk.rec (by simp) (by simp_all) (by simp) hs
 
 /-- The edges of a Subwalk are a Sublist of the edges -/
-lemma Subwalk.edges_sublist {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
+lemma Subwalk.edges {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.edges <+ q.edges :=
   Subwalk.rec (by simp) (by simp_all) (by simp) hs
 
@@ -174,15 +174,15 @@ lemma Subwalk.length_le  {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.length ≤ q.length := by
   apply Nat.add_one_le_add_one_iff.1
   simp_rw [← length_support]
-  exact hs.support_sublist.length_le
+  exact hs.support.length_le
 
 lemma Subwalk.count_le [DecidableEq V] {u v x y : V} {p : G.Walk u v} {q : G.Walk x y} (z : V)
     (hs : p.Subwalk q) : p.support.count z ≤ q.support.count z :=
-  (hs.support_sublist).count_le _
+  (hs.support).count_le _
 
 /-- Any Subwalk of a trail is a trail -/
 lemma IsTrail.of_subwalk {u v x y : V} {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q)
-    (ht : q.IsTrail) : p.IsTrail := IsTrail.mk <| h.edges_sublist.nodup ht.edges_nodup
+    (ht : q.IsTrail) : p.IsTrail := IsTrail.mk <| h.edges.nodup ht.edges_nodup
 
 /-- Any non-nil closed Subwalk of a trail is a circuit -/
 lemma IsCircuit.of_subwalk {u x y : V} {p : G.Walk u u} {q : G.Walk x y} (h : p.Subwalk q)
@@ -191,7 +191,7 @@ lemma IsCircuit.of_subwalk {u x y : V} {p : G.Walk u u} {q : G.Walk x y} (h : p.
 
 /-- Any Subwalk of a path is a path -/
 lemma IsPath.of_subwalk {u v x y : V} {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q)
-    (ht : q.IsPath) : p.IsPath := IsPath.mk' <| h.support_sublist.nodup ht.support_nodup
+    (ht : q.IsPath) : p.IsPath := IsPath.mk' <| h.support.nodup ht.support_nodup
 
 /-- `p <+ p` -/
 @[refl, simp]
@@ -404,7 +404,7 @@ If `p <+ q` and `q <+ p` then `p.support = q.support`
 -/
 lemma Subwalk.antisymm_support {u v x y : V} {p : G.Walk u v} {q : G.Walk x y} (h1 : p.Subwalk q)
     (h2 : q.Subwalk p) : p.support = q.support :=
-  List.Sublist.antisymm h1.support_sublist h2.support_sublist
+  List.Sublist.antisymm h1.support h2.support
 
 /-- If `p <+ q` then `r ++ p <+ q` -/
 @[simp]
@@ -620,16 +620,26 @@ alias ⟨Infix.reverse, _⟩ := infix_iff_reverse
 lemma Infix.antisymm {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.Infix q)
     (h2 : q.Infix p) : ∃ hu hv, p = q.copy hu hv := Subwalk.antisymm h1.subwalk h2.subwalk
 
-/-- `p ++ r <+ p ++ q ++ r` i.e. removing a loop from a walk yields a subwalk. -/
-lemma Subwalk.of_prefix_append_suffix {u₁ u₂ u₃} {p : G.Walk u₁ u₂} {q : G.Walk u₂ u₂}
-    {r : G.Walk u₂ u₃} : (p.append r).Subwalk (p.append (q.append r)) :=
-  ((Subwalk.refl r).append_left  q).append_left_left p
-
 lemma takeUntil_prefix [DecidableEq V] {u v x : V} {p : G.Walk u v} (hx : x ∈ p.support) :
   (p.takeUntil _ hx).Prefix p := ⟨_, (take_spec p hx).symm⟩
 
 lemma dropUntil_suffix [DecidableEq V] {u v x : V} {p : G.Walk u v} (hx : x ∈ p.support) :
   (p.dropUntil _ hx).Suffix p := ⟨_, (take_spec p hx).symm⟩
+
+lemma take_prefix {u v : V} {p : G.Walk u v} (n : ℕ) : (p.take n).Prefix p :=
+  ⟨_, (take_append_drop p n).symm⟩
+
+lemma drop_suffix {u v : V} {p : G.Walk u v} (n : ℕ) : (p.drop n).Suffix p :=
+  ⟨_, (take_append_drop p n).symm⟩
+
+lemma tail_suffix {u v : V} {p : G.Walk u v} : p.tail.Suffix p := p.drop_suffix _
+
+lemma dropLast_prefix {u v : V} {p : G.Walk u v} : p.dropLast.Prefix p := p.take_prefix _
+
+/-- `p ++ r <+ p ++ q ++ r` i.e. removing a loop from a walk yields a subwalk. -/
+lemma Subwalk.of_prefix_append_suffix {u₁ u₂ u₃} {p : G.Walk u₁ u₂} {q : G.Walk u₂ u₂}
+    {r : G.Walk u₂ u₃} : (p.append r).Subwalk (p.append (q.append r)) :=
+  ((Subwalk.refl r).append_left  q).append_left_left p
 
 /-! ## Rotated Subwalks -/
 variable [DecidableEq V]
@@ -651,19 +661,19 @@ lemma RotatedSubwalk.support_subset {u v w : V} {p : G.Walk u u} {q : G.Walk v w
     (h : p.RotatedSubwalk q) : p.support ⊆ q.support := by
   obtain ⟨_, _, _, hr1, rfl⟩ := h
   intro _ hy
-  exact hr1.support_sublist.mem (by rwa [← mem_support_rotate_iff] )
+  exact hr1.support.mem (by rwa [← mem_support_rotate_iff] )
 
 lemma RotatedSubwalk.darts_subset {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
     (h : p.RotatedSubwalk q) : p.darts ⊆ q.darts := by
   obtain ⟨_, _, hx, hr1, rfl⟩ := h
   intro _ hy
-  exact hr1.darts_sublist.mem <| (rotate_darts _ hx).symm.mem_iff.2 hy
+  exact hr1.darts.mem <| (rotate_darts _ hx).symm.mem_iff.2 hy
 
 lemma RotatedSubwalk.edges_subset {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
     (h : p.RotatedSubwalk q) : p.edges ⊆ q.edges := by
   obtain ⟨_, _, hx, hr1, rfl⟩ := h
   intro _ hy
-  exact hr1.edges_sublist.mem <| (rotate_edges _ hx).symm.mem_iff.2 hy
+  exact hr1.edges.mem <| (rotate_edges _ hx).symm.mem_iff.2 hy
 
 lemma RotatedSubwalk.length_le {u v w : V} {p : G.Walk u u} {q : G.Walk v w}
     (h : p.RotatedSubwalk q) : p.length ≤ q.length := by
