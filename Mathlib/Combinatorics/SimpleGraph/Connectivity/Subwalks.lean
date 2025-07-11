@@ -248,7 +248,6 @@ lemma Subwalk.of_cons {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
     (h : G.Adj z u) (hs :  (p.cons h).Subwalk q) : p.Subwalk q := by
   induction q <;> cases hs <;> simp_all
 
-
 /--
 If `p <+ q.cons h` where `p: G.Walk u v`, `h : G.Adj a x` and `u ≠ a` then `p <+ q`
 -/
@@ -293,7 +292,7 @@ lemma Subwalk.concat {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
 lemma Subwalk.concat₂ {u v x z : V} {p : G.Walk u v} {q : G.Walk x v}
     (hs : p.Subwalk q) (h : G.Adj v z) : (p.concat h).Subwalk (q.concat h) := by
   induction q generalizing u with
-  | nil => cases hs ; simp_all [concat_eq_append]
+  | nil => cases hs; simp_all [concat_eq_append]
   | cons h' _ ih =>
     cases hs with
     | nil => exact (ih (by simp) h).cons h'
@@ -346,8 +345,7 @@ lemma Subwalk.of_concat₂ {u v x y  : V} {p : G.Walk u v} {q : G.Walk x v}
   simpa using (this.of_cons₂ h.symm).reverse
 
 /--
-If `p <+ q.concat hq` and the end of the darts `hp` and `hq` differ then
-`p.concat hp <+ q`
+If `p <+ q.concat hq` and `p : G.Walk u v` and `hq : G.Adj y t` with `v ≠ t` differ then `p <+ q`
 -/
 @[simp]
 lemma Subwalk.of_concat_of_ne {u v x y t : V} {p : G.Walk u v} {q : G.Walk x y} (hq : G.Adj y t)
@@ -377,7 +375,7 @@ lemma Subwalk.of_append_right {x u v y : V} {p : G.Walk u v} {q : G.Walk x v}
   simp only [reverse_append] at this
   simpa using (this.of_append_left r.reverse).reverse
 
-/-- *Tranisitivity of Subwalks* -/
+/-- *Transitivity of Subwalks* -/
 @[trans, simp]
 theorem Subwalk.trans {u₁ v₁ u₂ v₂ u₃ v₃ : V} {p₁ : G.Walk u₁ v₁} {p₂ : G.Walk u₂ v₂}
     {p₃ : G.Walk u₃ v₃} (h₁ : p₁.Subwalk p₂) (h₂ : p₂.Subwalk p₃) : p₁.Subwalk p₃ := by
@@ -402,7 +400,7 @@ theorem Subwalk.trans {u₁ v₁ u₂ v₂ u₃ v₃ : V} {p₁ : G.Walk u₁ v�
     | cons h' p => exact (ih <| h₁.of_cons_of_ne _ hud).cons _
 
 /--
-If p <+ q and q <+ p then p = q, but we state this as equality of supports to avoid complications.
+If `p <+ q` and `q <+ p` then `p.support = q.support`
 -/
 lemma Subwalk.antisymm_support {u v x y : V} {p : G.Walk u v} {q : G.Walk x y} (h1 : p.Subwalk q)
     (h2 : q.Subwalk p) : p.support = q.support :=
@@ -434,11 +432,11 @@ theorem SubWalk.append {u₁ u₂ v₁ v₂ x : V} {p₁ : G.Walk u₁ x} {p₂ 
 /-- If `p <+ q` and `q <+ p` then `p = q` (mod casting endpoints) -/
 theorem Subwalk.antisymm {u₁ u₂ v₁ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.Subwalk q)
     (h2 : q.Subwalk p) :  ∃ hu hv, p = q.copy hu hv := by
-  induction p generalizing u₂ v₂ q with
+  induction p generalizing u₂ with
   | nil =>
     rw [nil_subwalk_iff] at h1
     rw [subwalk_nil_iff] at h2;
-    obtain ⟨h2, rfl,rfl⟩ := h2
+    obtain ⟨h2, rfl, rfl⟩ := h2
     simp [h2.eq_nil]
   | @cons a b _ hp _ ih =>
     cases q with
@@ -450,7 +448,7 @@ theorem Subwalk.antisymm {u₁ u₂ v₁ v₂} {p : G.Walk u₁ v₁} {q : G.Wal
         · subst hbe
           obtain ⟨_, rfl, rfl⟩ := ih h1.of_cons₂ h2.of_cons₂
           simp
-        · have h1 := (h1.of_cons₂_of_ne hp hq hbe).length_le
+        · have h1 := (h1.of_cons₂_of_ne _ _ hbe).length_le
           have h2 := h2.length_le
           simp only [length_cons, Nat.add_le_add_iff_right] at h1 h2
           omega
@@ -581,7 +579,7 @@ lemma Infix.support {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u�
   rw [support_append, support_append']
 
 /--
-Note the analagous result is false for Subwalk : `[a, b] <+ [a, x, b]` as lists of vertices,
+Note the analogous result is false for Subwalks : `[a, b] <+ [a, x, b]` as lists of vertices,
 but the single edge walk from `a` to `b` is not a subwalk of the two edge walk from
 `a` to `b` via `x`.
 -/
@@ -688,9 +686,5 @@ lemma RotatedSubwalk.edges_subset_rotate {u v y : V} {p : G.Walk u u} {q : G.Wal
 lemma RotatedSubwalk.length_le_rotate {u v y : V} {p : G.Walk u u} {q : G.Walk v v}
     (hy : y ∈ q.support ) (h : p.RotatedSubwalk (q.rotate hy)): p.length ≤ q.length :=
   length_rotate hy ▸ h.length_le
-
-
-
-
 
 end SimpleGraph.Walk
