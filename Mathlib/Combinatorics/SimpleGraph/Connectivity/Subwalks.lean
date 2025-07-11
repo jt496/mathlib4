@@ -1,78 +1,7 @@
 import Mathlib.Combinatorics.SimpleGraph.Connectivity.WalkDecomp
 import Mathlib.Combinatorics.SimpleGraph.Path
+
 variable {V : Type*}
-
-namespace List
-
-lemma sublist_rotate_one {l k : List V} (hs : l <+ k) :
-  l <+ k.rotate 1 ∨ l.rotate 1 <+ k.rotate 1 := by
-  induction k with
-  | nil => simp_all
-  | cons b =>
-    cases l with
-    | nil => simp
-    | cons a =>
-      by_cases hab : a = b
-      · simp_all [hab]
-      · simp_all [hs.of_cons_of_ne hab]
-
-/--
-If `l <+ k` then any rotation of `k` contains a rotation of `l` as a sublist
--/
-lemma sublist_rotate {l k : List V} (hs : l <+ k) (n : ℕ) :
-    ∃ m ≤ n, (l.rotate m) <+ (k.rotate n) := by
-  induction n with
-  | zero => simpa
-  | succ _ ih =>
-    obtain ⟨m, hm, hs⟩ := ih
-    cases sublist_rotate_one hs with
-    | inl h =>  exact ⟨m, by omega, by simpa [rotate_rotate] using h⟩
-    | inr h => exact ⟨m + 1, by omega, by simpa [rotate_rotate] using h⟩
-
-
-lemma rotate_rotate_cons_succ {a : V} {l : List V} {n : ℕ} (hn : n ≤ l.length):
-    l.rotate n <+ (a :: l).rotate (n + 1) := by
-  rw [List.rotate_eq_drop_append_take hn, List.rotate_eq_drop_append_take (by simpa)]
-  simp
-
-lemma rotate_one {l k : List V} (hs : l <+ k) :
-    ∃ n, n ≤ k.length ∧ (l.rotate 1) <+ (k.rotate n) := by
-    cases l with
-    | nil => use 0; simp
-    | cons a l =>
-      simp only [rotate_cons_succ, rotate_zero]
-      induction k with
-      | nil => simp_all
-      | cons b k ih =>
-        by_cases hab : a = b
-        · exact ⟨1, by simp_all [hab]⟩
-        · obtain ⟨j, hs⟩:= ih <| hs.of_cons_of_ne hab
-          cases j with
-          | zero => use 0; simp_all
-          | succ j =>
-            exact ⟨j+2, by simpa using hs.1, hs.2.trans <| rotate_rotate_cons_succ hs.1⟩
-
-/--
-If `l <+ k` then any rotation of `l` is a sublist of some rotation of `k`
--/
-lemma Sublist.rotate {l k : List V} (hs : l <+ k) (m : ℕ) : ∃ n, (l.rotate m) <+ (k.rotate n) := by
-  induction m with
-  | zero => use 0; simpa
-  | succ m ih =>
-    obtain ⟨j, hs⟩ := ih
-    cases l with
-    | nil => use 0; simp
-    | cons a l =>
-      obtain ⟨n, hn⟩ := rotate_one hs
-      simp_rw [rotate_rotate] at hn
-      exact ⟨j + n, hn.2⟩
-
-lemma rotate_subset {l k : List V} (hs : l <+ k) (m : ℕ) : l.rotate m ⊆ k := by
-  intro _ hx
-  obtain ⟨n, hs⟩ := hs.rotate m
-  exact hs.subset.trans (fun _ h ↦ mem_rotate.mp h) hx
-
-end List
 
 namespace SimpleGraph.Walk
 
@@ -698,3 +627,78 @@ lemma RotatedSubwalk.length_le_rotate {u v y : V} {p : G.Walk u u} {q : G.Walk v
   length_rotate hy ▸ h.length_le
 
 end SimpleGraph.Walk
+
+
+
+-- namespace List
+--
+-- lemma sublist_rotate_one {l k : List V} (hs : l <+ k) :
+--   l <+ k.rotate 1 ∨ l.rotate 1 <+ k.rotate 1 := by
+--   induction k with
+--   | nil => simp_all
+--   | cons b =>
+--     cases l with
+--     | nil => simp
+--     | cons a =>
+--       by_cases hab : a = b
+--       · simp_all [hab]
+--       · simp_all [hs.of_cons_of_ne hab]
+
+-- /--
+-- If `l <+ k` then any rotation of `k` contains a rotation of `l` as a sublist
+-- -/
+-- lemma sublist_rotate {l k : List V} (hs : l <+ k) (n : ℕ) :
+--     ∃ m ≤ n, (l.rotate m) <+ (k.rotate n) := by
+--   induction n with
+--   | zero => simpa
+--   | succ _ ih =>
+--     obtain ⟨m, hm, hs⟩ := ih
+--     cases sublist_rotate_one hs with
+--     | inl h =>  exact ⟨m, by omega, by simpa [rotate_rotate] using h⟩
+--     | inr h => exact ⟨m + 1, by omega, by simpa [rotate_rotate] using h⟩
+
+
+-- lemma rotate_rotate_cons_succ {a : V} {l : List V} {n : ℕ} (hn : n ≤ l.length):
+--     l.rotate n <+ (a :: l).rotate (n + 1) := by
+--   rw [List.rotate_eq_drop_append_take hn, List.rotate_eq_drop_append_take (by simpa)]
+--   simp
+
+-- lemma rotate_one {l k : List V} (hs : l <+ k) :
+--     ∃ n, n ≤ k.length ∧ (l.rotate 1) <+ (k.rotate n) := by
+--     cases l with
+--     | nil => use 0; simp
+--     | cons a l =>
+--       simp only [rotate_cons_succ, rotate_zero]
+--       induction k with
+--       | nil => simp_all
+--       | cons b k ih =>
+--         by_cases hab : a = b
+--         · exact ⟨1, by simp_all [hab]⟩
+--         · obtain ⟨j, hs⟩:= ih <| hs.of_cons_of_ne hab
+--           cases j with
+--           | zero => use 0; simp_all
+--           | succ j =>
+--             exact ⟨j+2, by simpa using hs.1, hs.2.trans <| rotate_rotate_cons_succ hs.1⟩
+
+-- /--
+-- If `l <+ k` then any rotation of `l` is a sublist of some rotation of `k`
+-- -/
+-- lemma Sublist.rotate {l k : List V} (hs : l <+ k) (m : ℕ) :
+--    ∃ n, (l.rotate m) <+ (k.rotate n) := by
+--   induction m with
+--   | zero => use 0; simpa
+--   | succ m ih =>
+--     obtain ⟨j, hs⟩ := ih
+--     cases l with
+--     | nil => use 0; simp
+--     | cons a l =>
+--       obtain ⟨n, hn⟩ := rotate_one hs
+--       simp_rw [rotate_rotate] at hn
+--       exact ⟨j + n, hn.2⟩
+
+-- lemma rotate_subset {l k : List V} (hs : l <+ k) (m : ℕ) : l.rotate m ⊆ k := by
+--   intro _ hx
+--   obtain ⟨n, hs⟩ := hs.rotate m
+--   exact hs.subset.trans (fun _ h ↦ mem_rotate.mp h) hx
+
+-- end List
