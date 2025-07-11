@@ -281,6 +281,28 @@ theorem rotate_edges {u v : V} (c : G.Walk v v) (h : u ∈ c.support) :
     (c.rotate h).edges ~r c.edges :=
   (rotate_darts c h).map _
 
+@[simp]
+lemma length_rotate {v : V} {c : G.Walk u u} (h : v ∈ c.support) :
+    (c.rotate h).length = c.length := by
+  have := c.take_spec h
+  apply_fun Walk.length at this
+  rw [rotate, length_append] at *
+  rwa [add_comm]
+
+lemma mem_support_rotate_iff  {u v x} {c : G.Walk u u} (h : v ∈ c.support) :
+    x ∈ (c.rotate h).support ↔ x ∈ c.support := by
+  constructor <;> intro h' <;> rw [support_eq_cons] at h'
+  · cases h' with
+    | head _ => exact h
+    | tail _ hb => exact List.mem_of_mem_tail <| (support_rotate c h).mem_iff.1 hb
+  · cases h' with
+    | head _ =>
+      rw [rotate, support_append]
+      exact List.mem_append_left _ <| end_mem_support ..
+    | tail _ hb => exact List.mem_of_mem_tail <| (support_rotate c h).mem_iff.2 hb
+
+
+
 end WalkDecomp
 
 /-- Given a walk `w` and a node in the support, there exists a natural `n`, such that given node
