@@ -346,7 +346,6 @@ lemma Subwalk.append_left_left {u v x y : V} {p : G.Walk u v} {q : G.Walk u y}
 lemma Subwalk.append_right_right {u v x y : V} {p : G.Walk u v} {q : G.Walk x v}
     (hs : p.Subwalk q) (r : G.Walk v y) : (p.append r).Subwalk (q.append r) := by
   have := hs.reverse
-  simp only [reverse_append] at this
   simpa using (this.append_left_left r.reverse).reverse
 
 /--
@@ -593,7 +592,6 @@ variable [DecidableEq V]
 def RotatedSubwalk {u v w : V} (p : G.Walk u u) (q : G.Walk v w) : Prop :=
     ∃ (x : V) (r : G.Walk x x) (hu : u ∈ r.support), r.Subwalk q ∧ p = r.rotate hu
 
-@[simp]
 lemma RotatedSubwalk.nil (u : V) : (nil' u : G.Walk u u).RotatedSubwalk (nil' u) :=
   ⟨u, nil' u, by simp⟩
 

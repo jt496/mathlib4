@@ -957,7 +957,7 @@ lemma take_cons_succ {u v w : V} {h : G.Adj u v} {p : G.Walk v w} {n : ℕ} :
   (cons h p).take (n + 1) = cons h (p.take n) := rfl
 
 @[simp]
-theorem take_append_drop {u v : V} (p : G.Walk u v) (n : ℕ)  :
+theorem take_append_drop {u v : V} (p : G.Walk u v) (n : ℕ) :
     (p.take n).append (p.drop n) = p := by
   induction p generalizing n with
   | nil => cases n <;> rfl

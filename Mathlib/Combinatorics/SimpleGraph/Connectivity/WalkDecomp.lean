@@ -265,6 +265,12 @@ def rotate {u v : V} (c : G.Walk v v) (h : u ∈ c.support) : G.Walk u u :=
   (c.dropUntil u h).append (c.takeUntil u h)
 
 @[simp]
+theorem rotate_start {v} (p : G.Walk v v) : p.rotate (start_mem_support ..) = p := by
+  cases p with
+  | nil => rfl
+  | cons h p => simp [rotate, dropUntil]
+
+@[simp]
 theorem support_rotate {u v : V} (c : G.Walk v v) (h : u ∈ c.support) :
     (c.rotate h).support.tail ~r c.support.tail := by
   simp only [rotate, tail_support_append]
