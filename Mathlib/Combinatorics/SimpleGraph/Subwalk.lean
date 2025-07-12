@@ -390,10 +390,22 @@ and `r₁ <+ q₁` and `r₂ <+ q₂`
 theorem Subwalk_of_append {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
     (hs : p.Subwalk (q₁.append q₂)) : p.Subwalk q₁ ∨ p.Subwalk q₂ ∨ ∃ (y : V) (r₁ : G.Walk u y)
     (r₂ : G.Walk y v), p = r₁.append r₂ ∧ r₁.Subwalk q₁ ∧ r₂.Subwalk q₂ := by
-  induction q₁ generalizing v with
+  induction q₁ generalizing p u v with
   | @nil z => right; left; simpa
-  | cons h p ih =>
-    sorry
+  | @cons _ b _ h q₁ ih =>
+    cases hs with
+    | nil => simp
+    | cons h hs =>
+      obtain (h1 | h2 | ⟨z, s₁, s₂, rfl, h3, h4⟩):= ih hs
+      · exact Or.inl <| h1.cons _
+      · exact Or.inr <| Or.inl h2
+      · exact Or.inr <| Or.inr ⟨z, s₁, s₂, rfl, h3.cons _, h4⟩
+    | @cons₂ _ _ _ _ p _ h' hs =>
+      obtain (h1 | h2 | ⟨z, s₁, s₂, rfl, h3, h4⟩):= ih  hs
+      · exact Or.inl <| h1.cons₂ h
+      · exact Or.inr <| Or.inr ⟨b, (nil' b).cons h', p, by simp_all⟩
+      · exact Or.inr <| Or.inr ⟨z, s₁.cons h', s₂, by simp_all⟩
+
 
 
 ---------------- Infix / Prefix / Suffix walks
