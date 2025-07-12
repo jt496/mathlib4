@@ -482,7 +482,47 @@ and `r₁ <+ q₁` and `r₂ <+ q₂`
 theorem append_subwalk {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
     (hs : (q₁.append q₂).Subwalk p) : ∃ (y : V) (r₁ : G.Walk u y)
     (r₂ : G.Walk y v), p = r₁.append r₂ ∧ q₁.Subwalk r₁ ∧ q₂.Subwalk r₂ := by
-  sorry
+  classical
+  induction p generalizing q₁ q₂ v₁ x with
+  | @nil u =>
+    simp_all
+    obtain ⟨⟨h1, h2⟩, rfl, rfl⟩ := hs
+    have := h1.eq
+    subst this
+    use v₂, nil, nil
+    simp_all
+  | @cons a b c h p ih =>
+    by_cases hav₁ : a = v₁
+    · subst hav₁
+      cases q₁ with
+      | nil =>
+        simp_all
+        cases hs with
+        | nil =>
+          use v₂, nil, p.cons h
+          simp_all
+        | cons h' hs =>
+          use a, nil, p.cons h
+          simp_all
+        | cons₂ h' hs =>
+          use a, nil, p.cons h
+          simp_all
+      | @cons d e f hq q₁ =>
+        rw [cons_append] at hs
+        by_cases hbe : b = e
+        · subst hbe
+          obtain ⟨y, s₁, s₂, h1, h2, h3⟩ := ih <| hs.of_cons₂
+          use y, s₁.cons h, s₂
+          simp_all
+        · have := hs.of_cons₂_of_ne _ _ (Ne.symm hbe)
+          rw [←cons_append] at this
+          obtain ⟨y, s₁, s₂, h1, h2, h3⟩ := ih this
+          use y, s₁.cons h, s₂
+          simp_all
+    · obtain ⟨y, r₁, r₂, rfl, h2, h3⟩ := ih <| hs.of_cons_of_ne _ (Ne.symm hav₁)
+      use y, r₁.cons h, r₂
+      simp_all
+
 ---------------- Infix / Prefix / Suffix walks
 
 /-- `p.Infix q` means that the walk `p` is a contiguous Subwalk of the walk `q`. -/
