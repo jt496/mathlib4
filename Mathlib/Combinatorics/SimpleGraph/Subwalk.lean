@@ -77,9 +77,11 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v �
   /-- If `p` is a Subwalk of `q`, then it is also a Subwalk of `q.cons h`. -/
   | cons {u v x y z : V} {p :  G.Walk u v} {q : G.Walk x y} (h : G.Adj z x) :
       p.Subwalk q → p.Subwalk (q.cons h)
-  /-- If `p` is a Subwalk of `q`, then `p.cons hp` is a Subwalk of `q.cons hp`. -/
+  /-- If `p` is a Subwalk of `q`, then `p.cons h` is a Subwalk of `q.cons h`. -/
   | cons₂ {u v y z : V} {p :  G.Walk u v} {q : G.Walk u y} (h : G.Adj z u) :
       p.Subwalk q → (p.cons h).Subwalk (q.cons h)
+
+attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
 
 /- ?? How do I open this notation rather than reintroducing it -/
 @[inherit_doc] scoped infixl:50 " <+ " => List.Sublist
@@ -155,16 +157,6 @@ lemma nil_subwalk_iff {u v x : V} {q : G.Walk u v} :
   · induction q <;> cases h <;> simp_all
   · simp [nil_subwalk, h]
 
-/-- If `p <+ q` then `p <+ q.cons h` -/
-@[simp]
-lemma Subwalk.cons' {u v x y z : V} {p : G.Walk u v} {q : G.Walk x y}
-    (hs : p.Subwalk q) (h : G.Adj z x) : p.Subwalk (q.cons h) := hs.cons h
-
-/-- If `p <+ q` then `p.cons h <+ q.cons h` -/
-@[simp]
-lemma Subwalk.cons₂' {u v y z : V} {p : G.Walk u v} {q : G.Walk u y}
-    (hs : p.Subwalk q) (h : G.Adj z u) : (p.cons h).Subwalk (q.cons h) := hs.cons₂ h
-
 /-- If `p <+ q` then `r ++ p <+ q` -/
 @[simp]
 lemma Subwalk.append_left {u v x y s : V} {p : G.Walk u v} {q : G.Walk x y}
@@ -184,6 +176,7 @@ If `p <+ q.cons h` where `p: G.Walk u v`, `h : G.Adj a x` and `u ≠ a` then `p 
 lemma Subwalk.of_cons_of_ne {u v x y a : V} {p : G.Walk u v} {q : G.Walk x y} (hq : G.Adj a x)
     (hs : p.Subwalk (q.cons hq)) (hne : u ≠ a) : p.Subwalk q := by
   induction q <;> cases hs <;> simp_all
+
 /--
 If `p.cons hp <+ q.cons hq` and `hp, hq` are darts to distinct vertices then `p.cons h <+ q`
 -/
@@ -305,7 +298,7 @@ lemma Subwalk.of_append_right {x u v y : V} {p : G.Walk u v} {q : G.Walk x v}
   simpa using (this.of_append_left r.reverse).reverse
 
 /-- *Transitivity of Subwalks* -/
-@[trans, simp]
+@[trans]
 theorem Subwalk.trans {u₁ v₁ u₂ v₂ u₃ v₃ : V} {p₁ : G.Walk u₁ v₁} {p₂ : G.Walk u₂ v₂}
     {p₃ : G.Walk u₃ v₃} (h₁ : p₁.Subwalk p₂) (h₂ : p₂.Subwalk p₃) : p₁.Subwalk p₃ := by
   induction h₂ generalizing u₁ with
@@ -349,23 +342,25 @@ lemma Subwalk.append_right_right {u v x y : V} {p : G.Walk u v} {q : G.Walk x v}
   simpa using (this.append_left_left r.reverse).reverse
 
 /--
-If `p₁ <+ q₁` and `p₂ <+ q₂` then `p₁ ++ p₂ <+ q₁ ++ q₂` (if these are well-defined and the `++`
-in both cases happens at a common vertex `x`.)
+If `p₁ <+ q₁` and `p₂ <+ q₂` then `p₁ ++ p₂ <+ q₁ ++ q₂` (if these are well-defined)
 -/
-theorem SubWalk.append {u₁ u₂ v₁ v₂ x : V} {p₁ : G.Walk u₁ x} {p₂ : G.Walk x u₂}
-    {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂} (h1 : p₁.Subwalk q₁) (h2 : p₂.Subwalk q₂) :
-    (p₁.append p₂).Subwalk (q₁.append q₂) :=
-  (h1.append_right_right p₂).trans <| h2.append_left_left q₁
+theorem Subwalk_append {u₁ u₂ v₁ v₂ x y} {p₁ : G.Walk u₁ x} {p₂ : G.Walk x u₂}
+    {q₁ : G.Walk v₁ y} {q₂ : G.Walk y v₂} (h1 : p₁.Subwalk q₁) (h2 : p₂.Subwalk q₂) :
+    (p₁.append p₂).Subwalk (q₁.append q₂) := by
+  induction h1 <;> simp_all
 
-/-- If `p <+ q` and `q <+ p` then `p = q` (mod casting endpoints) -/
-theorem Subwalk.antisymm {u₁ u₂ v₁ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.Subwalk q)
-    (h2 : q.Subwalk p) :  ∃ hu hv, p = q.copy hu hv := by
+
+/-- If `p <+ q` and `q.length ≤ p.length` then `p = q` (mod casting endpoints) -/
+theorem Subwalk.eq_of_length_le {u₁ u₂ v₁ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂}
+    (h1 : p.Subwalk q) (h2 : q.length ≤ p.length) :  ∃ hu hv, p = q.copy hu hv := by
   induction p generalizing u₂ with
   | nil =>
-    rw [nil_subwalk_iff] at h1
-    rw [subwalk_nil_iff] at h2;
-    obtain ⟨h2, rfl, rfl⟩ := h2
-    simp [h2.eq_nil]
+    cases q with
+    | nil =>
+      simp only [subwalk_nil_iff, nil_nil, and_self, true_and, length_nil, le_refl, copy_nil,
+      exists_prop, and_true] at *
+      exact h1.symm
+    | cons h p => simp at h2
   | @cons a b _ hp _ ih =>
     cases q with
     | nil => simp at h1
@@ -374,16 +369,31 @@ theorem Subwalk.antisymm {u₁ u₂ v₁ v₂} {p : G.Walk u₁ v₁} {q : G.Wal
       · subst hau
         by_cases hbe : b = e
         · subst hbe
-          obtain ⟨_, rfl, rfl⟩ := ih h1.of_cons₂ h2.of_cons₂
+          obtain ⟨_, rfl, rfl⟩ := ih h1.of_cons₂ (by simpa using h2)
           simp
         · have h1 := (h1.of_cons₂_of_ne _ _ hbe).length_le
-          have h2 := h2.length_le
           simp only [length_cons, Nat.add_le_add_iff_right] at h1 h2
           omega
       · have h1 := (h1.of_cons_of_ne _ hau).length_le
-        have h2 := h2.length_le
         simp only [length_cons, Nat.add_le_add_iff_right] at h1 h2
         omega
+
+/-- If `p <+ q` and `q <+ p` then `p = q` (mod casting endpoints) -/
+theorem Subwalk.antisymm {u₁ u₂ v₁ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.Subwalk q)
+    (h2 : q.Subwalk p) :  ∃ hu hv, p = q.copy hu hv := h1.eq_of_length_le h2.length_le
+
+
+/--
+If `p <+ q₁ ++ q₂` then either `p <+ q₁` or `p <+ q₂` or `∃ y, r₁, r₂` such that `p = r₁ ++ r₂`
+and `r₁ <+ q₁` and `r₂ <+ q₂`
+-/
+theorem Subwalk_of_append {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
+    (hs : p.Subwalk (q₁.append q₂)) : p.Subwalk q₁ ∨ p.Subwalk q₂ ∨ ∃ (y : V) (r₁ : G.Walk u y)
+    (r₂ : G.Walk y v), p = r₁.append r₂ ∧ r₁.Subwalk q₁ ∧ r₂.Subwalk q₂ := by
+  induction q₁ generalizing v with
+  | @nil z => right; left; simpa
+  | cons h p ih =>
+    sorry
 
 
 ---------------- Infix / Prefix / Suffix walks
@@ -393,8 +403,8 @@ def Infix {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : 
   ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
 
 /-- If `p <:+: q` then `p <+ q` -/
-lemma Infix.subwalk {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂}
-    (h : p.Infix q) : p.Subwalk q := by
+lemma Infix.subwalk {u₁ v₁ u₂ v₂} {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.Infix q) :
+    p.Subwalk q := by
   obtain ⟨r, s, h⟩ := h
   rw [← append_assoc] at h
   exact h ▸ ((Subwalk.refl p).append_right s).append_left r
