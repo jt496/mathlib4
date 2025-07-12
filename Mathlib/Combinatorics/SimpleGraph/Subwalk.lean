@@ -387,7 +387,7 @@ theorem Subwalk.antisymm {u₁ u₂ v₁ v₂} {p : G.Walk u₁ v₁} {q : G.Wal
 If `p <+ q₁ ++ q₂` then either `p <+ q₁` or `p <+ q₂` or `∃ y, r₁, r₂` such that `p = r₁ ++ r₂`
 and `r₁ <+ q₁` and `r₂ <+ q₂`
 -/
-theorem Subwalk_of_append {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
+theorem Subwalk.of_append {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
     (hs : p.Subwalk (q₁.append q₂)) : p.Subwalk q₁ ∨ p.Subwalk q₂ ∨ ∃ (y : V) (r₁ : G.Walk u y)
     (r₂ : G.Walk y v), p = r₁.append r₂ ∧ r₁.Subwalk q₁ ∧ r₂.Subwalk q₂ := by
   induction q₁ generalizing p u v with
@@ -407,7 +407,82 @@ theorem Subwalk_of_append {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁
       · exact Or.inr <| Or.inr ⟨z, s₁.cons h', s₂, by simp_all⟩
 
 
+/--
+If `p <+ q₁ ++ q₂` and `p.end ∉ q₂`  then `p <+ q₁` (can weaken this to `p.end ∉ q₂.support.tail`)
+-/
+theorem Subwalk.of_append_not_mem_right {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x}
+    {q₂ : G.Walk x v₂} (hs : p.Subwalk (q₁.append q₂)) (hv : v ∉ q₂.support) :
+    p.Subwalk q₁ := by
+  obtain (hs | hs | ⟨_,_,r,_,_, hs⟩) := hs.of_append
+  · exact hs
+  · exact (hv <| hs.support.mem p.end_mem_support).elim
+  · exact (hv <| hs.support.mem r.end_mem_support).elim
 
+
+/--
+If `p <+ q₁ ++ q₂` and `p.end ∉ q₂.support.tail`  then `p <+ q₁`
+-/
+theorem Subwalk.of_append_not_mem_right' {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x}
+    {q₂ : G.Walk x v₂} (hs : p.Subwalk (q₁.append q₂)) (hv : v ∉ q₂.support.tail) :
+    p.Subwalk q₁ := by
+  by_cases hvx : v = x
+  · subst hvx
+    obtain (hs | hs | ⟨_,_,r,_,_, hs⟩) := hs.of_append
+    · exact hs
+    · cases hs with
+    | nil => simp
+    | cons h hs =>
+      simp_all
+      exact (hv (hs.support.mem p.end_mem_support)).elim
+    | cons₂ h hs =>
+      simp_all
+      exact (hv (hs.support.mem (end_mem_support _))).elim
+    · cases hs with
+    | nil => simp_all
+    | cons h hs =>
+      simp_all
+      exfalso
+      apply hv
+      rename_i hs'
+      exact (hv (hs'.support.mem (end_mem_support _))).elim
+    | cons₂ h hs =>
+      simp_all
+      exfalso
+      apply hv
+      rename_i h1 h2
+      exact (hv (h1.support.mem (end_mem_support _))).elim
+  · apply hs.of_append_not_mem_right
+    intro h
+    rw [support_eq_cons] at h
+    cases h <;> trivial
+
+
+/--
+If `p <+ q₁ ++ q₂` and `p.start ∉ q₁`  then `p <+ q₂`
+  (can weaken this to `p.end ∉ q₁.support.dropLast`)
+-/
+theorem Subwalk.of_append_not_mem_left {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x}
+    {q₂ : G.Walk x v₂} (hs : p.Subwalk (q₁.append q₂)) (hu : u ∉ q₁.support) :
+    p.Subwalk q₂ := by
+  obtain (hs | hs | ⟨_,r ,_ ,_ ,hs , _⟩) := hs.of_append
+  · exact (hu <| hs.support.mem p.start_mem_support).elim
+  · exact hs
+  · exact (hu <| hs.support.mem r.start_mem_support).elim
+
+theorem Subwalk.of_append_not_mem_left' {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x}
+    {q₂ : G.Walk x v₂} (hs : p.Subwalk (q₁.append q₂)) (hu : u ∉ q₁.support.dropLast) :
+    p.Subwalk q₂ := by
+  have hs := hs.reverse
+  rw [reverse_append] at hs
+  simpa using (hs.of_append_not_mem_right' (by simp_all)).reverse
+
+/-- If  `q₁ ++ q₂ <+ p` then `∃ y, r₁, r₂` such that `p = r₁ ++ r₂`
+and `r₁ <+ q₁` and `r₂ <+ q₂`
+-/
+theorem append_subwalk {u v v₁ v₂ x} {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
+    (hs : (q₁.append q₂).Subwalk p) : ∃ (y : V) (r₁ : G.Walk u y)
+    (r₂ : G.Walk y v), p = r₁.append r₂ ∧ q₁.Subwalk r₁ ∧ q₂.Subwalk r₂ := by
+  sorry
 ---------------- Infix / Prefix / Suffix walks
 
 /-- `p.Infix q` means that the walk `p` is a contiguous Subwalk of the walk `q`. -/
