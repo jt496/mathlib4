@@ -63,7 +63,7 @@ lemma Subwalk.refl (p : G.Walk u v) : p.Subwalk p  := by
   induction p with
   | nil => exact .nil
   | cons h _ ih => exact ih.cons₂ h
---TODO change to have u = v also/instead
+
 lemma subwalk_nil_iff {q : G.Walk u v} : q.Subwalk (nil' x) ↔ q.Nil ∧ u = x ∧ v = x := by
   constructor
   · intro h
@@ -216,8 +216,7 @@ theorem Subwalk.trans {p₁ : G.Walk u₁ v₁} {p₂ : G.Walk u₂ v₂} {p₃ 
     (h₁ : p₁.Subwalk p₂) (h₂ : p₂.Subwalk p₃) : p₁.Subwalk p₃ := by
   induction h₂ generalizing u₁ with
   | nil =>
-    rw [subwalk_nil_iff] at *
-    obtain ⟨hp, rfl, rfl⟩ := h₁
+    obtain ⟨hp, rfl, rfl⟩ := subwalk_nil_iff.1 h₁
     simp [nil_iff_eq_nil.1 hp]
   | cons h' p₂ ih => simp_all
   | @cons₂ a _ _ d _ _ h' _ ih =>
@@ -264,7 +263,7 @@ theorem Subwalk.eq_of_length_le {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h
   | nil =>
     cases q with
     | nil =>
-      obtain ⟨_, rfl, _⟩:=subwalk_nil_iff.1 h1
+      obtain ⟨_, rfl, _⟩ := subwalk_nil_iff.1 h1
       simp
     | cons h p => simp at h2
   | @cons a b _ hp _ ih =>
@@ -341,18 +340,8 @@ theorem Subwalk.of_append_not_mem_right' {p : G.Walk u v} {q₁ : G.Walk v₁ x}
       exact (hv (hs.support.mem (end_mem_support _))).elim
     · cases hs with
     | nil => simp_all
-    | cons h hs =>
-      simp_all only [support_cons, List.tail_cons]
-      exfalso
-      apply hv
-      rename_i hs'
-      exact (hv (hs'.support.mem (end_mem_support _))).elim
-    | cons₂ h hs =>
-      simp_all only [support_cons, List.tail_cons]
-      exfalso
-      apply hv
-      rename_i h1 h2
-      exact (hv (h1.support.mem (end_mem_support _))).elim
+    | cons h hs' => exfalso; simp_all [(hs'.support.mem (end_mem_support _))]
+    | cons₂ h hs' => exfalso; simp_all [(hs'.support.mem (end_mem_support _))]
   · apply hs.of_append_not_mem_right
     intro h
     rw [support_eq_cons] at h
@@ -414,7 +403,7 @@ theorem append_subwalk {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x 
           use y, s₁.cons h, s₂
           simp_all
         · have := hs.of_cons₂_of_ne _ _ (Ne.symm hbe)
-          rw [←cons_append] at this
+          rw [ ← cons_append] at this
           obtain ⟨y, s₁, s₂, h1, h2, h3⟩ := ih this
           use y, s₁.cons h, s₂
           simp_all
