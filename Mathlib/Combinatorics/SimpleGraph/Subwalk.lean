@@ -71,6 +71,9 @@ lemma subwalk_nil_iff {q : G.Walk u v} : q.Subwalk (nil' x) ↔ q.Nil ∧ u = x 
   · rintro ⟨hn, rfl, rfl⟩
     simp_all [nil_iff_eq_nil.1 hn]
 
+lemma not_cons_subwalk_nil {p : G.Walk u v} {h : G.Adj x u} : ¬ (p.cons h).Subwalk (nil' y) := by
+  simp [subwalk_nil_iff]
+
 lemma nil_subwalk {q : G.Walk u v} (hx : x ∈ q.support) : (nil' x).Subwalk q := by
   induction q with
   | nil => simp_all [subwalk_nil_iff]
@@ -363,7 +366,7 @@ theorem Subwalk.of_append_not_mem_left' {p : G.Walk u v} {q₁ : G.Walk v₁ x} 
   have hs := hs.reverse
   rw [reverse_append] at hs
   simpa using (hs.of_append_not_mem_right' (by simp_all)).reverse
-#check append_nil
+
 /-- If  `q₁ ++ q₂ <+ p` then `∃ y, r₁, r₂` such that `p = r₁ ++ r₂`
 and `r₁ <+ q₁` and `r₂ <+ q₂`
 -/
@@ -410,6 +413,12 @@ theorem append_subwalk {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x 
     · obtain ⟨y, r₁, r₂, rfl, h2, h3⟩ := ih <| hs.of_cons_of_ne _ (Ne.symm hav₁)
       use y, r₁.cons h, r₂
       simp_all
+
+variable {W : Type*} {G' : SimpleGraph W}
+
+lemma Subwalk.map {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hs : p.Subwalk q) (f : G →g G') :
+    (p.map f).Subwalk (q.map f) := by
+  induction hs <;> simp_all
 
 ---------------- Infix / Prefix / Suffix walks
 
