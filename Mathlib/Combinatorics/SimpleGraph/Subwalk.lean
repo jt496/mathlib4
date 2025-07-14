@@ -39,7 +39,8 @@ lemma Subwalk.edges_sublist {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q)
     p.edges <+ q.edges := by induction hs <;> simp_all
 
 lemma Subwalk.length_le {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
-    p.length ≤ q.length := Nat.le_of_succ_le_succ <| by induction hs <;> simp_all
+    p.length ≤ q.length := Nat.le_of_succ_le_succ <|
+    Subwalk.rec (by simp) (by intros; rw [length_cons]; omega) (by simp) hs
 
 lemma Subwalk.count_le [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (z : V)
     (hs : p.Subwalk q) : p.support.count z ≤ q.support.count z := hs.support_sublist.count_le _
@@ -412,6 +413,26 @@ theorem append_subwalk {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x 
       simp_all
 
 
+lemma isPath_of_subwalk  {p : G.Walk u v} {q : G.Walk x x} (hc : q.IsCycle) (hs : p.Subwalk q)
+    (hn : ¬ q.Subwalk p) : p.IsPath := by
+  induction p with
+  | nil => simp
+  | @cons a b c hp p ih =>
+    by_cases hax : a = x
+    · subst hax
+      cases q with
+      | nil => simp_all
+      | @cons d e f hq q =>
+        by_cases hbe : b = e
+        · subst hbe
+          have := hs.of_cons₂
+          have := hc.support_nodup
+
+          sorry
+        · sorry
+    · sorry
+
+
 variable {W : Type*} {G' : SimpleGraph W}
 
 lemma Subwalk.map {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hs : p.Subwalk q) (f : G →g G') :
@@ -576,16 +597,17 @@ lemma infix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.supp
       use (cons h' r), s
       simpa
 
-/-- Sanity check that in K₃, one edge is not a subwalk of the complement -/
+/--
+Sanity check that in a triangle `x y z`, one edge is not a subwalk of the path formed by the other
+two edges
+-/
 lemma not_xz_subwalk_xyz (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 : G.Adj x z):
     ¬ ((nil' z).cons h3).Subwalk (((nil' z).cons h2).cons h1) := by
   intro hs
   cases hs with
   | cons h hs =>
-    cases hs <;> simp_all
+    cases hs <;> simp_all[subwalk_nil_iff]
   | cons₂ h _ => aesop
-
-
 
 lemma infix_iff_support (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
     p.Infix q ↔ p.support <:+: q.support := Iff.intro Infix.support infix_of_support
