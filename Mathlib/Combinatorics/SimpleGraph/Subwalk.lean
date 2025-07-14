@@ -28,19 +28,18 @@ attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
 
 /-- The support of a Subwalk is a Sublist of the support -/
 lemma Subwalk.support_sublist {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
-    p.support <+ q.support := Subwalk.rec (by simp) (by simp_all) (by simp) hs
+    p.support <+ q.support := by induction hs <;> simp_all
 
 /-- The darts of a Subwalk are a Sublist of the darts -/
 lemma Subwalk.darts_sublist {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
-    p.darts <+ q.darts := Subwalk.rec (by simp) (by simp_all) (by simp) hs
+    p.darts <+ q.darts := by induction hs <;> simp_all
 
 /-- The edges of a Subwalk are a Sublist of the edges -/
 lemma Subwalk.edges_sublist {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
-    p.edges <+ q.edges := Subwalk.rec (by simp) (by simp_all) (by simp) hs
+    p.edges <+ q.edges := by induction hs <;> simp_all
 
 lemma Subwalk.length_le {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
-    p.length ≤ q.length := Nat.le_of_succ_le_succ <|
-      Subwalk.rec (by simp) (fun _ _ _ ↦ Nat.le_succ_of_le (by simp_all)) (by simp) hs
+    p.length ≤ q.length := Nat.le_of_succ_le_succ <| by induction hs <;> simp_all
 
 lemma Subwalk.count_le [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (z : V)
     (hs : p.Subwalk q) : p.support.count z ≤ q.support.count z := hs.support_sublist.count_le _
