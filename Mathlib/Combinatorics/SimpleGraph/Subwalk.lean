@@ -40,7 +40,7 @@ lemma Subwalk.edges_sublist {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q)
 
 lemma Subwalk.length_le {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
     p.length ≤ q.length := Nat.le_of_succ_le_succ <|
-    Subwalk.rec (by simp) (by intros; rw [length_cons]; omega) (by simp) hs
+  Subwalk.rec (by simp) (by intros; rw [length_cons]; omega) (by simp) hs
 
 lemma Subwalk.count_le [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (z : V)
     (hs : p.Subwalk q) : p.support.count z ≤ q.support.count z := hs.support_sublist.count_le _
@@ -412,26 +412,11 @@ theorem append_subwalk {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x 
       use y, r₁.cons h, r₂
       simp_all
 
-
-lemma isPath_of_subwalk  {p : G.Walk u v} {q : G.Walk x x} (hc : q.IsCycle) (hs : p.Subwalk q)
-    (hn : ¬ q.Subwalk p) : p.IsPath := by
-  induction p with
-  | nil => simp
-  | @cons a b c hp p ih =>
-    by_cases hax : a = x
-    · subst hax
-      cases q with
-      | nil => simp_all
-      | @cons d e f hq q =>
-        by_cases hbe : b = e
-        · subst hbe
-          have := hs.of_cons₂
-          have := hc.support_nodup
-
-          sorry
-        · sorry
-    · sorry
-
+lemma length_lt_of_subwalk_not_subwalk {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q)
+    (hn : ¬ q.Subwalk p) : p.length < q.length := by
+  contrapose! hn
+  obtain ⟨rfl, rfl, rfl⟩ := hs.eq_of_length_le hn
+  simp
 
 variable {W : Type*} {G' : SimpleGraph W}
 
