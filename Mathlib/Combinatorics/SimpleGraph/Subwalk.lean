@@ -424,58 +424,6 @@ lemma _root_.List.cons_tail_nodup_iff_concat_dropLast_nodup {a : V} {l : List V}
   rw [List.nodup_cons, List.nodup_append]
   aesop
 
-
-lemma support_reverse_dropLast (p : G.Walk u v) :
-    p.reverse.support.dropLast = p.support.tail.reverse := by
-  cases p with
-  | nil => simp
-  | cons h p =>
-    rw [support_reverse, support_cons]
-    simp
-
-
-lemma IsCircuit.reverse {c : G.Walk x x} (hc : c.IsCircuit) : c.reverse.IsCircuit := by
-  apply IsCircuit.mk hc.toIsTrail.reverse
-  intro hf
-  rw [← nil_iff_eq_nil, nil_reverse] at hf
-  exact hc.not_nil hf
-
-lemma isCycle_support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCircuit)
-    (hd : c.support.dropLast.Nodup) : c.IsCycle := by
-  rw [← isCycle_reverse]
-  have := support_reverse_dropLast c.reverse
-  rw [reverse_reverse] at this
-  rw [this] at hd
-  apply IsCycle.mk hc.reverse <| List.nodup_reverse.1 hd
-
-lemma IsCycle.support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCycle) :
-    c.support.dropLast.Nodup := by
-  have := hc.reverse.support_nodup
-  have := c.reverse.support_reverse_dropLast
-  rw [reverse_reverse] at this
-  rwa [this, List.nodup_reverse]
-
-
-
-lemma isPath_of_subwalk  {p : G.Walk u v} {q : G.Walk x x} (hc : q.IsCycle) (hs : p.Subwalk q)
-    (hn : ¬ q.Subwalk p) : p.IsPath := by
-  classical
-  induction p with
-  | nil => simp
-  | @cons a b c h p ih =>
-    apply (cons_isPath_iff _ _).2 ⟨(ih <| hs.of_cons _) (fun hf ↦ hn (hf.cons _)), ?_⟩
-    intro hf
-    have := hs.support_sublist
-    by_cases hax : a = x
-    · subst hax
-
-      sorry
-
-    · rw [support_cons] at this
-      have : (a :: p.support).count a ≤ q.support.count a := this.count_le a
-      simp at this
-      sorry
-
 variable {W : Type*} {G' : SimpleGraph W}
 
 lemma Subwalk.map {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hs : p.Subwalk q) (f : G →g G') :
@@ -840,5 +788,38 @@ lemma append_right_inj {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
   · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
     simp [← h2]
   · subst heq; rfl
+
+lemma support_reverse_dropLast (p : G.Walk u v) :
+    p.reverse.support.dropLast = p.support.tail.reverse := by
+  cases p with
+  | nil => simp
+  | cons h p =>
+    rw [support_reverse, support_cons]
+    simp
+
+
+lemma IsCircuit.reverse {c : G.Walk x x} (hc : c.IsCircuit) : c.reverse.IsCircuit := by
+  apply IsCircuit.mk hc.toIsTrail.reverse
+  intro hf
+  rw [← nil_iff_eq_nil, nil_reverse] at hf
+  exact hc.not_nil hf
+
+lemma isCycle_support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCircuit)
+    (hd : c.support.dropLast.Nodup) : c.IsCycle := by
+  rw [← isCycle_reverse]
+  have := support_reverse_dropLast c.reverse
+  rw [reverse_reverse] at this
+  rw [this] at hd
+  apply IsCycle.mk hc.reverse <| List.nodup_reverse.1 hd
+
+lemma IsCycle.support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCycle) :
+    c.support.dropLast.Nodup := by
+  have := hc.reverse.support_nodup
+  have := c.reverse.support_reverse_dropLast
+  rw [reverse_reverse] at this
+  rwa [this, List.nodup_reverse]
+
+
+
 
 end SimpleGraph.Walk
