@@ -18,10 +18,9 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} :
   | cons₂ {u v y z : V} {p : G.Walk u v} {q : G.Walk u y} (h : G.Adj z u) :
       p.Subwalk q → (p.cons h).Subwalk (q.cons h)
 
-variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
-
 @[reducible]
-def IsSubwalk [DecidableEq V] {u v x y} : G.Walk u v → G.Walk x y → Bool
+def IsSubwalk {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
+    G.Walk u v → G.Walk x y → Bool
   | (nil' u), q => u ∈ q.support
   | (Walk.cons h p), (nil' x) => false
   | (Walk.cons' u w v h p), (Walk.cons' x z y h' q) =>
