@@ -18,7 +18,7 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} :
   | cons₂ {u v y z : V} {p : G.Walk u v} {q : G.Walk u y} (h : G.Adj z u) :
       p.Subwalk q → (p.cons h).Subwalk (q.cons h)
 
-variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}(p : G.Walk u v)
+variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
 
 attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
 
@@ -435,7 +435,7 @@ lemma Subwalk.transfer  {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q) (hp)
         · have := ih (h.of_cons₂_of_ne _ _ hbe) (by simp_all) (by simp_all)
           have hH : H.Adj u b := by
             simp_rw [edges_cons] at hq
-          
+
             sorry
           exact this.cons hH
       ·
