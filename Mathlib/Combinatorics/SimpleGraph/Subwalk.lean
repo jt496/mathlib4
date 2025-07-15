@@ -20,6 +20,18 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} :
 
 variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
 
+@[reducible]
+def IsSubwalk [DecidableEq V] {u v x y} : G.Walk u v → G.Walk x y → Bool
+  | (nil' u), q => u ∈ q.support
+  | (Walk.cons h p), (nil' x) => false
+  | (Walk.cons' u w v h p), (Walk.cons' x z y h' q) =>
+    if u ≠ x
+      then (Walk.cons h p).IsSubwalk q else
+        if w ≠ z then (Walk.cons h p).IsSubwalk q
+                 else p.IsSubwalk q
+
+variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
+
 attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
 
 open scoped List
@@ -81,7 +93,7 @@ lemma nil_subwalk {q : G.Walk u v} (hx : x ∈ q.support) : (nil' x).Subwalk q :
     · exact .nil
     · exact (ih hx).cons _
 
-@[simp]
+--@[simp]
 lemma nil_subwalk_iff {q : G.Walk u v} : (nil' x).Subwalk  q ↔ x ∈ q.support := by
   constructor <;> intro h
   · induction q <;> cases h <;> simp_all
@@ -144,7 +156,7 @@ lemma Subwalk.concat₂ {p : G.Walk u v} {q : G.Walk x v} (hs : p.Subwalk q) (h 
   | nil => cases hs; simp_all [concat_eq_append]
   | cons h' _ ih =>
     cases hs with
-    | nil => exact (ih (by simp) h).cons h'
+    | nil => exact (ih (by simp [nil_subwalk_iff]) h).cons h'
     | cons _ _ => simp_all [concat_eq_append]
     | cons₂ _ _ => simp_all [concat_eq_append]
 
@@ -162,7 +174,7 @@ lemma Subwalk.reverse {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
     by_cases ha : u = a
     · subst ha
       cases p with
-      | nil => simp
+      | nil => simp [nil_subwalk_iff]
       | @cons _ w _ _ p =>
       rw [reverse_cons, ← concat_append, append_nil]
       by_cases hwb : w = b
@@ -231,6 +243,49 @@ theorem Subwalk.trans {p₁ : G.Walk u₁ v₁} {p₂ : G.Walk u₂ v₂} {p₃ 
           exact (ih <| h₁.of_cons₂ _).cons₂ _
         · exact (ih <| h₁.of_cons₂_of_ne _ _ hea).cons h'
     · exact (ih <| h₁.of_cons_of_ne _ hud).cons _
+
+lemma Subwalk.isSubwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
+    p.IsSubwalk q := by
+  induction q generalizing p u v with
+  | nil =>
+    cases p with
+    |nil => rw [nil_subwalk_iff] at hs; simp_all
+    | cons h p => simp at hs
+  | @cons x z y hq q ih =>
+    cases p with
+    | nil => rw [nil_subwalk_iff] at hs; simp_all
+    | @cons _ d _ h' p =>
+      rw [IsSubwalk]
+      split_ifs with h1 h2
+      · exact ih <| hs.of_cons_of_ne _ h1
+      · rw [ne_eq, not_not] at h1
+        subst h1
+        exact ih <| hs.of_cons₂_of_ne _ _ h2
+      · rw [ne_eq, not_not] at *
+        subst h1 h2
+        exact ih (hs.of_cons₂ _)
+
+lemma IsSubwalk.subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsSubwalk q) :
+    p.Subwalk q := by
+  induction q generalizing p u v with
+  | nil =>
+    cases p with
+    |nil =>
+      rw [IsSubwalk] at hs
+      simp_all [nil_subwalk_iff]
+    | cons h p => simp at hs
+  | @cons x z y hq q ih =>
+    cases p with
+    | nil => rw [IsSubwalk] at hs;  simp_all [nil_subwalk_iff]
+    | @cons _ d _ h' p =>
+    rw [IsSubwalk] at hs
+    split_ifs at hs with h1 h2
+    · exact (ih hs).cons _
+    · have := ih hs
+      exact (ih hs).cons _
+    · rw [ne_eq, not_not] at *
+      subst h1 h2
+      exact (ih hs).cons₂ _
 
 /--
 If `p <+ q` and `q <+ p` then `p.support = q.support`
@@ -330,7 +385,7 @@ theorem Subwalk.of_append_not_mem_right' {p : G.Walk u v} {q₁ : G.Walk v₁ x}
     obtain (hs | hs | ⟨_,_,r,_,_, hs⟩) := hs.of_append
     · exact hs
     · cases hs with
-    | nil => simp
+    | nil => simp [nil_subwalk_iff]
     | cons h hs =>
       simp_all only [cons, append_left, support_cons, List.tail_cons]
       exact (hv (hs.support_sublist.mem p.end_mem_support)).elim
@@ -349,7 +404,7 @@ theorem Subwalk.of_append_not_mem_right' {p : G.Walk u v} {q₁ : G.Walk v₁ x}
 
 /--
 If `p <+ q₁ ++ q₂` and `p.start ∉ q₁`  then `p <+ q₂`
-  (can weaken this to `p.end ∉ q₁.support.dropLast`)
+(can weaken this to `p.end ∉ q₁.support.dropLast`)
 -/
 theorem Subwalk.of_append_not_mem_left {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
     (hs : p.Subwalk (q₁.append q₂)) (hu : u ∉ q₁.support) : p.Subwalk q₂ := by
@@ -401,7 +456,7 @@ lemma length_lt_of_subwalk_not_subwalk {p : G.Walk u v} {q : G.Walk x y} (hs : p
   simp
 
 @[simp]
-lemma Subwalk.copy_copy {x' y' u' v'} {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q)
+lemma copy_subwalk_copy_iff {x' y' u' v'} {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q)
     {hu : u = u'} {hv : v = v'} {hx : x = x'} {hy : y = y'} :
     (p.copy hu hv).Subwalk (q.copy hx hy) ↔ p.Subwalk q := by
   subst_vars; simp
@@ -422,30 +477,18 @@ lemma Subwalk.transfer  {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q) (hp)
     have := hn.eq_nil
     subst this
     simp
-  | @cons a b c h' q ih =>
+  | @cons a b _ h' q ih =>
+    have hH : H.Adj a b := by simp_all [edges_cons]
     cases p with
-    | nil => simp_all
-    | @cons d e f h'' p =>
+    | nil => simp_all [nil_subwalk_iff]
+    | @cons _ e _ _ _ =>
       by_cases hua : u = a
       · subst hua
         by_cases hbe : e = b
         · subst hbe
-          have hH : H.Adj u e := by simp_all [edges_cons]
           exact (ih (h.of_cons₂ h') (by simp_all) (by simp_all)).cons₂ hH
-        · have := ih (h.of_cons₂_of_ne _ _ hbe) (by simp_all) (by simp_all)
-          have hH : H.Adj u b := by
-            simp_rw [edges_cons, List.mem_cons] at hq
-            specialize hq s(u, b)
-            apply hq
-            left; rfl
-          exact this.cons hH
-      · have := ih (h.of_cons_of_ne _ hua) (by simp_all) (by simp_all)
-        have hH : H.Adj a b := by
-            simp_rw [edges_cons, List.mem_cons] at hq
-            specialize hq s(a, b)
-            apply hq
-            left; rfl
-        exact this.cons hH
+        · exact (ih (h.of_cons₂_of_ne _ _ hbe) (by simp_all) (by simp_all)).cons hH
+      · exact (ih (h.of_cons_of_ne _ hua) (by simp_all) (by simp_all)).cons hH
 
 
 
@@ -612,13 +655,13 @@ lemma isInfix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.su
 Sanity check that in a triangle `x y z`, one edge is not a subwalk of the path formed by the other
 two edges
 -/
-lemma not_xz_subwalk_xyz (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 : G.Adj x z):
+lemma not_xz_subwalk_xyz [DecidableEq V] (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 : G.Adj x z):
     ¬ ((nil' z).cons h3).Subwalk (((nil' z).cons h2).cons h1) := by
-  intro hs
-  cases hs with
-  | cons h hs =>
-    cases hs <;> simp_all [subwalk_nil_iff]
-  | cons₂ h _ => aesop
+  intro hf
+  have := h1.ne
+  have := h2.ne
+  have := hf.isSubwalk
+  aesop
 
 lemma isInfix_iff_support (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
     p.IsInfix q ↔ p.support <:+: q.support := Iff.intro IsInfix.support isInfix_of_support
@@ -647,7 +690,7 @@ lemma Subwalk.isInfix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h
     rw [h.eq_nil]
   | @cons a b c hq q ih =>
     cases p with
-    | nil => simp_all
+    | nil => simp_all [nil_subwalk_iff]
     | @cons d e f hp' p =>
       rw [cons_isPath_iff] at hp
       by_cases hua : u₁ = a
