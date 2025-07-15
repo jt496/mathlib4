@@ -434,12 +434,18 @@ lemma Subwalk.transfer  {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q) (hp)
           exact (ih (h.of_cons₂ h') (by simp_all) (by simp_all)).cons₂ hH
         · have := ih (h.of_cons₂_of_ne _ _ hbe) (by simp_all) (by simp_all)
           have hH : H.Adj u b := by
-            simp_rw [edges_cons] at hq
-
-            sorry
+            simp_rw [edges_cons, List.mem_cons] at hq
+            specialize hq s(u, b)
+            apply hq
+            left; rfl
           exact this.cons hH
-      ·
-        sorry
+      · have := ih (h.of_cons_of_ne _ hua) (by simp_all) (by simp_all)
+        have hH : H.Adj a b := by
+            simp_rw [edges_cons, List.mem_cons] at hq
+            specialize hq s(a, b)
+            apply hq
+            left; rfl
+        exact this.cons hH
 
 
 
