@@ -287,6 +287,9 @@ lemma IsSubwalk.subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : 
       subst h1 h2
       exact (ih hs).cons₂ _
 
+lemma isSubwalk_iff_subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
+    p.IsSubwalk q ↔ p.Subwalk q := Iff.intro (IsSubwalk.subwalk) (Subwalk.isSubwalk)
+
 /--
 If `p <+ q` and `q <+ p` then `p.support = q.support`
 -/
@@ -651,6 +654,9 @@ lemma isInfix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.su
       use (cons h' r), s
       simpa
 
+instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} : Decidable (p.Subwalk q) :=
+  decidable_of_iff (p.IsSubwalk q) isSubwalk_iff_subwalk
+
 /--
 Sanity check that in a triangle `x y z`, one edge is not a subwalk of the path formed by the other
 two edges
@@ -661,7 +667,7 @@ lemma not_xz_subwalk_xyz [DecidableEq V] (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 :
   have := h1.ne
   have := h2.ne
   have := hf.isSubwalk
-  aesop
+  simp_all
 
 lemma isInfix_iff_support (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
     p.IsInfix q ↔ p.support <:+: q.support := Iff.intro IsInfix.support isInfix_of_support
