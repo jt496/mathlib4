@@ -98,7 +98,7 @@ lemma Subwalk.of_cons {p : G.Walk u v} {q : G.Walk x y} (h : G.Adj z u)
     (hs : (p.cons h).Subwalk q) : p.Subwalk q := by induction q <;> cases hs <;> simp_all
 
 /--
-If `p <+ q.cons h` where `p: G.Walk u v`, `h : G.Adj a x` and `u ≠ a` then `p <+ q`
+If `p <+ q.cons h` where `p : G.Walk u v`, `h : G.Adj a x` and `u ≠ a` then `p <+ q`
 -/
 @[simp]
 lemma Subwalk.of_cons_of_ne {p : G.Walk u v} {q : G.Walk x y} (hq : G.Adj a x)
@@ -187,7 +187,7 @@ lemma Subwalk.of_concat₂ {p : G.Walk u v} {q : G.Walk x v} (h : G.Adj v y)
   simpa using (this.of_cons₂ h.symm).reverse
 
 /--
-If `p <+ q.concat hq` and `p : G.Walk u v` and `hq : G.Adj y t` with `v ≠ t` differ then `p <+ q`
+If `p <+ q.concat hq` and `p : G.Walk u v` and `hq : G.Adj y t` with `v ≠ t` then `p <+ q`
 -/
 lemma Subwalk.of_concat_of_ne {p : G.Walk u v} {q : G.Walk x y} (hq : G.Adj y z)
      (h : p.Subwalk (q.concat hq)) (hne : v ≠ z) : p.Subwalk q := by
@@ -400,12 +400,6 @@ lemma length_lt_of_subwalk_not_subwalk {p : G.Walk u v} {q : G.Walk x y} (hs : p
   contrapose! hn
   obtain ⟨rfl, rfl, rfl⟩ := hs.eq_of_length_le hn
   simp
-
-
-lemma _root_.List.cons_tail_nodup_iff_concat_dropLast_nodup {a : V} {l : List V} :
-  (a :: l).Nodup ↔ (l ++ [a]).Nodup := by
-  rw [List.nodup_cons, List.nodup_append]
-  aesop
 
 variable {W : Type*} {G' : SimpleGraph W}
 
@@ -802,7 +796,9 @@ lemma IsCycle.support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCycle) :
   rw [reverse_reverse] at this
   rwa [this, List.nodup_reverse]
 
-
+lemma IsCircuit.isCycle_iff_support_dropLast {c : G.Walk x x} (hc : c.IsCircuit) :
+  c.IsCycle ↔ c.support.dropLast.Nodup := Iff.intro
+    (fun h ↦ h.support_dropLast_nodup) (fun h ↦ isCycle_support_dropLast_nodup hc h)
 
 
 end SimpleGraph.Walk
