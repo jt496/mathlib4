@@ -23,8 +23,7 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v �
 
 attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
 
-/- ?? How do I open this notation rather than reintroducing it -/
-@[inherit_doc] scoped infixl:50 " <+ " => List.Sublist
+open scoped List
 
 /-- The support of a Subwalk is a Sublist of the support -/
 lemma Subwalk.support_sublist {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
@@ -71,8 +70,8 @@ lemma subwalk_nil_iff {q : G.Walk u v} : q.Subwalk (nil' x) ↔ q.Nil ∧ u = x 
   · rintro ⟨hn, rfl, rfl⟩
     simp_all [nil_iff_eq_nil.1 hn]
 
-lemma not_cons_subwalk_nil {p : G.Walk u v} {h : G.Adj x u} : ¬ (p.cons h).Subwalk (nil' y) := by
-  intro hf; cases hf
+@[simp]
+lemma not_cons_subwalk_nil {p : G.Walk u v} {h : G.Adj x u} : ¬ (p.cons h).Subwalk (nil' y) := nofun
 
 lemma nil_subwalk {q : G.Walk u v} (hx : x ∈ q.support) : (nil' x).Subwalk q := by
   induction q with
@@ -371,46 +370,30 @@ and `r₁ <+ q₁` and `r₂ <+ q₂`
 theorem append_subwalk {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
     (hs : (q₁.append q₂).Subwalk p) : ∃ (y : V) (r₁ : G.Walk u y) (r₂ : G.Walk y v),
     p = r₁.append r₂ ∧ q₁.Subwalk r₁ ∧ q₂.Subwalk r₂ := by
-  classical
   induction p generalizing q₁ q₂ v₁ x with
   | nil =>
     rw [subwalk_nil_iff, nil_append_iff] at hs
     obtain ⟨⟨h1, h2⟩, rfl, rfl⟩ := hs
     have := h1.eq
     subst this
-    use v₂, nil, nil
-    simp_all [subwalk_nil_iff]
+    exact ⟨v₂, nil, nil, by simp_all [subwalk_nil_iff]⟩
   | @cons a b c h p ih =>
-    by_cases hav₁ : a = v₁
+    by_cases hav₁ : v₁ = a
     · subst hav₁
       cases q₁ with
-      | nil =>
-        simp_all only [nil_append, Subwalk.nil, true_and]
-        cases hs with
-        | nil =>
-          use v₂, nil, p.cons h
-          simp_all
-        | cons h' hs =>
-          use a, nil, p.cons h
-          simp_all
-        | cons₂ h' hs =>
-          use a, nil, p.cons h
-          simp_all
+      | nil => cases hs <;> exact ⟨_, nil, p.cons h, by simp_all⟩
       | @cons d e f hq q₁ =>
         rw [cons_append] at hs
-        by_cases hbe : b = e
+        by_cases hbe : e = b
         · subst hbe
           obtain ⟨y, s₁, s₂, h1, h2, h3⟩ := ih <| hs.of_cons₂
-          use y, s₁.cons h, s₂
-          simp_all
-        · have := hs.of_cons₂_of_ne _ _ (Ne.symm hbe)
-          rw [ ← cons_append] at this
+          exact ⟨y, s₁.cons h, s₂, by simp_all⟩
+        · have := hs.of_cons₂_of_ne _ _ hbe
+          rw [← cons_append] at this
           obtain ⟨y, s₁, s₂, h1, h2, h3⟩ := ih this
-          use y, s₁.cons h, s₂
-          simp_all
-    · obtain ⟨y, r₁, r₂, rfl, h2, h3⟩ := ih <| hs.of_cons_of_ne _ (Ne.symm hav₁)
-      use y, r₁.cons h, r₂
-      simp_all
+          exact ⟨y, s₁.cons h, s₂, by simp_all⟩
+    · obtain ⟨y, r₁, r₂, rfl, h2, h3⟩ := ih <| hs.of_cons_of_ne _ hav₁
+      exact ⟨y, r₁.cons h, r₂, by simp_all⟩
 
 lemma length_lt_of_subwalk_not_subwalk {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q)
     (hn : ¬ q.Subwalk p) : p.length < q.length := by
@@ -597,7 +580,7 @@ lemma not_xz_subwalk_xyz (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 : G.Adj x z):
   intro hs
   cases hs with
   | cons h hs =>
-    cases hs <;> simp_all[subwalk_nil_iff]
+    cases hs <;> simp_all [subwalk_nil_iff]
   | cons₂ h _ => aesop
 
 lemma infix_iff_support (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
@@ -620,7 +603,7 @@ lemma Infix.antisymm {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.Infix
 lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp : q.IsPath)
   (hs : p.Subwalk q) :
     p.Infix q := by
-  induction q generalizing p u₁ v₁ with
+  induction q generalizing u₁ with
   | nil =>
     rw [subwalk_nil_iff] at hs
     obtain ⟨h, rfl, rfl⟩ := hs
