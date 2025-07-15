@@ -7,7 +7,8 @@ namespace SimpleGraph.Walk
 
 /-- `p.Subwalk q` if `p` is a (not necessarily contiguous) subwalk of `q`
 (This definition is modelled on `List.Sublist`.) -/
-inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v → G.Walk x y → Prop
+inductive Subwalk {V : Type*} {G : SimpleGraph V} :
+    ∀ {u v x y}, G.Walk u v → G.Walk x y → Prop
   /-- The nil walk `u` is a Subwalk of any `u - v` walk. -/
   | nil {u v : V} {q : G.Walk u v} : (Walk.nil' u).Subwalk q
   /-- If `p` is a Subwalk of `q`, then it is also a Subwalk of `q.cons h`. -/
@@ -17,7 +18,7 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v �
   | cons₂ {u v y z : V} {p : G.Walk u v} {q : G.Walk u y} (h : G.Adj z u) :
       p.Subwalk q → (p.cons h).Subwalk (q.cons h)
 
-variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
+variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}(p : G.Walk u v)
 
 attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
 
@@ -399,11 +400,48 @@ lemma length_lt_of_subwalk_not_subwalk {p : G.Walk u v} {q : G.Walk x y} (hs : p
   obtain ⟨rfl, rfl, rfl⟩ := hs.eq_of_length_le hn
   simp
 
+@[simp]
+lemma Subwalk.copy_copy {x' y' u' v'} {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q)
+    {hu : u = u'} {hv : v = v'} {hx : x = x'} {hy : y = y'} :
+    (p.copy hu hv).Subwalk (q.copy hx hy) ↔ p.Subwalk q := by
+  subst_vars; simp
+
 variable {W : Type*} {G' : SimpleGraph W}
 
 lemma Subwalk.map {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hs : p.Subwalk q) (f : G →g G') :
     (p.map f).Subwalk (q.map f) := by
   induction hs <;> simp_all
+
+variable {H : SimpleGraph V}
+lemma Subwalk.transfer  {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q) (hp) (hq) :
+    (p.transfer H hp).Subwalk (q.transfer H hq) := by
+  induction q generalizing p u v with
+  | nil =>
+    rw [subwalk_nil_iff] at h
+    obtain ⟨hn, rfl, rfl⟩ := h
+    have := hn.eq_nil
+    subst this
+    simp
+  | @cons a b c h' q ih =>
+    cases p with
+    | nil => simp_all
+    | @cons d e f h'' p =>
+      by_cases hua : u = a
+      · subst hua
+        by_cases hbe : e = b
+        · subst hbe
+          have hH : H.Adj u e := by simp_all [edges_cons]
+          exact (ih (h.of_cons₂ h') (by simp_all) (by simp_all)).cons₂ hH
+        · have := ih (h.of_cons₂_of_ne _ _ hbe) (by simp_all) (by simp_all)
+          have hH : H.Adj u b := by
+            simp_rw [edges_cons] at hq
+          
+            sorry
+          exact this.cons hH
+      ·
+        sorry
+
+
 
 ---------------- IsInfix / IsPrefix / IsSuffix walks
 
