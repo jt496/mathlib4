@@ -837,7 +837,7 @@ lemma IsInfix.infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Is
         simpa using hs
 
 
-lemma Infix.isIsInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Infix q) :
+lemma Infix.isInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Infix q) :
      p.IsInfix q := by
   induction q with
   | nil =>
@@ -860,11 +860,11 @@ lemma Infix.isIsInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.
     · simp only [IsInfix, Bool.or_eq_true]
       left; exact ih hs
 
-lemma isIsInfix_iff_infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
-    p.IsInfix q ↔ p.Infix q := Iff.intro IsInfix.infix Infix.isIsInfix
+lemma isInfix_iff_infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
+    p.IsInfix q ↔ p.Infix q := Iff.intro IsInfix.infix Infix.isInfix
 
 instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} : Decidable (p.Infix q) :=
-  decidable_of_iff _ isIsInfix_iff_infix
+  decidable_of_iff _ isInfix_iff_infix
 
 /- Tests -/
 
