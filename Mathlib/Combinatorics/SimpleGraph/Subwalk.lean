@@ -663,7 +663,7 @@ lemma Infix.support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.Infix q
 /--
 Note the analogous result is false for Subwalks : `[x, z] <+ [x, y, z]` as lists of vertices,
 but the single edge walk from `x` to `z` is not a subwalk of the two edge walk from
-`x` to `z` via `y`.
+`x` to `z` via `y`. (See subwalk_of_darts for a version with sublists of darts)
 -/
 lemma infix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.support <:+: q.support) :
     p.Infix q := by
@@ -685,6 +685,50 @@ lemma infix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.supp
       obtain ⟨r, s, hr⟩ := ih h
       use (cons h' r), s
       simpa
+
+lemma darts_eq_nil_iff {p : G.Walk u₁ v₁} : p.darts = [] ↔ p.Nil := by
+  constructor <;> intro h <;> cases p <;> simp_all
+
+/-- If p.darts <+ q.darts then p <+ q -/
+lemma subwalk_of_darts {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (he : p.darts <+ q.darts)
+    (hs : u₁ ∈ q.support) : p.Subwalk q := by
+  induction q generalizing u₁ v₁ p with
+  | nil =>
+    simp_all [subwalk_nil_iff]
+    subst hs
+    rw [darts_eq_nil_iff] at he
+    exact ⟨he, he.eq.symm⟩
+  | @cons a b c h' q ih =>
+    rw [support_cons, darts_cons] at *
+    cases p with
+    | nil => simp_all
+    | @cons d e f hp p =>
+    by_cases h1 : u₁ = a ∧ e = b
+    · obtain ⟨rfl, rfl⟩ := h1
+      cases he with
+      | cons a he =>
+        exact Subwalk.cons₂ _ <| ih (List.sublist_of_cons_sublist he) (start_mem_support _)
+      | cons₂ a he =>
+        apply Subwalk.cons₂ _ <| ih he (start_mem_support _)
+    · push_neg at h1
+      by_cases h2 : u₁ = a
+      · have h3 := h1 h2
+        subst h2
+        cases he with
+        | cons a he =>
+          apply (ih he _).cons
+          rw [darts_cons] at he
+          exact dart_fst_mem_support_of_mem_darts _ (he.mem List.mem_cons_self)
+        | cons₂ a he => trivial
+      · cases he with
+        | cons a he =>
+          exact (ih he (by simp_all)).cons _
+        | cons₂ a he => trivial
+
+
+
+
+
 
 
 /--
