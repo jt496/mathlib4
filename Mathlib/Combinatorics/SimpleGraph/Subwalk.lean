@@ -724,8 +724,7 @@ lemma Infix.antisymm {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.Infix
 
 /-- Any Subwalk of a path is an Infix walk -/
 lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp : q.IsPath)
-  (hs : p.Subwalk q) :
-    p.Infix q := by
+  (hs : p.Subwalk q) : p.Infix q := by
   induction q generalizing u₁ with
   | nil =>
     rw [subwalk_nil_iff] at hs
@@ -752,8 +751,6 @@ lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp 
       · obtain ⟨r, s, rfl⟩ := ih hp.1 (hs.of_cons_of_ne _ hua)
         use r.cons hq, s
         simp
-
-
 
 @[reducible]
 def IsPrefix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
