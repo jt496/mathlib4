@@ -503,84 +503,84 @@ lemma Subwalk.transfer  {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q) (hp)
 
 
 
----------------- IsInfix / IsPrefix / IsSuffix walks
+---------------- Infix / Prefix / Suffix walks
 
-/-- `p.IsInfix q` means that the walk `p` is a contiguous Subwalk of the walk `q`. -/
-def IsInfix (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
+/-- `p.Infix q` means that the walk `p` is a contiguous Subwalk of the walk `q`. -/
+def Infix (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
   ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
 
 /-- If `p <:+: q` then `p <+ q` -/
-lemma IsInfix.subwalk {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.IsInfix q) : p.Subwalk q := by
+lemma Infix.subwalk {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.Infix q) : p.Subwalk q := by
   obtain ⟨r, s, h⟩ := h
   rw [← append_assoc] at h
   exact h ▸ ((Subwalk.refl p).append_right s).append_left r
 
 @[simp,refl]
-lemma IsInfix.refl (p : G.Walk u₁ v₁) : p.IsInfix p := ⟨nil' u₁, nil' v₁, by simp⟩
+lemma Infix.refl (p : G.Walk u₁ v₁) : p.Infix p := ⟨nil' u₁, nil' v₁, by simp⟩
 
 @[simp]
-lemma IsInfix.nil {q : G.Walk u v} (hx : x ∈ q.support) : (nil' x).IsInfix q := by
+lemma Infix.nil {q : G.Walk u v} (hx : x ∈ q.support) : (nil' x).Infix q := by
   classical
   use q.takeUntil _ hx, q.dropUntil _ hx
   simp [(take_spec _ hx)]
 
-lemma IsInfix.of_nil {q : G.Walk u v} (h : q.IsInfix (nil' x)) : q.Nil ∧ u = x ∧ v = x := by
+lemma Infix.of_nil {q : G.Walk u v} (h : q.Infix (nil' x)) : q.Nil ∧ u = x ∧ v = x := by
   simpa using subwalk_nil_iff.1 h.subwalk
 
-lemma isInfix_nil_iff {q : G.Walk u v} : q.IsInfix (nil' x) ↔ q.Nil ∧ u = x ∧ v = x := by
+lemma infix_nil_iff {q : G.Walk u v} : q.Infix (nil' x) ↔ q.Nil ∧ u = x ∧ v = x := by
   constructor
   · intro h; exact h.of_nil
   · rintro ⟨hq, rfl, rfl⟩
     have := hq.eq_nil
     subst this; rfl
 
-/-- `p.IsPrefix q` means that the walk `q` starts with the walk `p`. -/
-def IsPrefix (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
+/-- `p.Prefix q` means that the walk `q` starts with the walk `p`. -/
+def Prefix (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
   ∃ (r : G.Walk v₁ v₂), q = p.append r
 
 
-/-- `p.IsSuffix q` means that the walk `q` ends with the walk `p`. -/
-def IsSuffix (p : G.Walk u₂ v) (q : G.Walk u₁ v) : Prop :=
+/-- `p.Suffix q` means that the walk `q` ends with the walk `p`. -/
+def Suffix (p : G.Walk u₂ v) (q : G.Walk u₁ v) : Prop :=
   ∃ (r : G.Walk u₁ u₂), q = r.append p
 
 @[simp,refl]
-lemma IsPrefix.refl (p : G.Walk u₁ v₁) : p.IsPrefix p := ⟨nil' v₁, by simp⟩
+lemma Prefix.refl (p : G.Walk u₁ v₁) : p.Prefix p := ⟨nil' v₁, by simp⟩
 
-lemma IsPrefix.infix {p : G.Walk u v₁} {q : G.Walk u v₂} (h : p.IsPrefix q) : p.IsInfix q := by
+lemma Prefix.infix {p : G.Walk u v₁} {q : G.Walk u v₂} (h : p.Prefix q) : p.Infix q := by
   obtain ⟨r, hr⟩ := h
   exact ⟨nil' _ ,r , by simpa⟩
 
-lemma IsSuffix.infix {p : G.Walk u₁ v} {q : G.Walk u₂ v} (h : p.IsSuffix q) : p.IsInfix q := by
+lemma Suffix.infix {p : G.Walk u₁ v} {q : G.Walk u₂ v} (h : p.Suffix q) : p.Infix q := by
   obtain ⟨s, hr⟩ := h
   exact ⟨s, nil' _, by simpa⟩
 
 @[simp,refl]
-lemma IsSuffix.refl (p : G.Walk u₁ v₁) : p.IsSuffix p := ⟨nil' u₁, by simp⟩
+lemma Suffix.refl (p : G.Walk u₁ v₁) : p.Suffix p := ⟨nil' u₁, by simp⟩
 
-lemma IsPrefix.subwalk {p : G.Walk u v} {q : G.Walk u w} (h : p.IsPrefix q) :
+lemma Prefix.subwalk {p : G.Walk u v} {q : G.Walk u w} (h : p.Prefix q) :
     p.Subwalk q := h.infix.subwalk
 
-lemma IsSuffix.subwalk {p : G.Walk u w} {q : G.Walk v w} (h : p.IsSuffix q) : p.Subwalk q :=
+lemma Suffix.subwalk {p : G.Walk u w} {q : G.Walk v w} (h : p.Suffix q) : p.Subwalk q :=
   h.infix.subwalk
 
-lemma IsPrefix.nil (q : G.Walk u v) : (nil' u).IsPrefix q := ⟨q, rfl⟩
+lemma Prefix.nil (q : G.Walk u v) : (nil' u).Prefix q := ⟨q, rfl⟩
 
-lemma IsPrefix.of_nil {q : G.Walk u v} (h : q.IsPrefix (nil' u)) : q.Nil ∧ v = u := by
+lemma Prefix.of_nil {q : G.Walk u v} (h : q.Prefix (nil' u)) : q.Nil ∧ v = u := by
   simpa using subwalk_nil_iff.1 h.subwalk
 
-lemma IsSuffix.nil (q : G.Walk u v) : (nil' v).IsSuffix q := ⟨q, by simp⟩
+lemma Suffix.nil (q : G.Walk u v) : (nil' v).Suffix q := ⟨q, by simp⟩
 
-lemma IsSuffix.of_nil {q : G.Walk u v} (h : q.IsSuffix (nil' v)) : q.Nil ∧ u = v := by
+lemma Suffix.of_nil {q : G.Walk u v} (h : q.Suffix (nil' v)) : q.Nil ∧ u = v := by
   simpa using subwalk_nil_iff.1 h.subwalk
 
 /-- `p.cons h <+: q.cons h` iff `p <+: q` -/
 lemma isPrefix_cons_iff {p : G.Walk u₂ v₁} {q : G.Walk u₂ v₂} (h : G.Adj u₁ u₂) :
-    (cons h p).IsPrefix (cons h q) ↔ p.IsPrefix q := by
+    (cons h p).Prefix (cons h q) ↔ p.Prefix q := by
   constructor <;> intro ⟨r, hr⟩ <;> exact ⟨r, by simp_all⟩
 
 /-- `p <:+: q.cons h` iff `p <:+ q.cons h` or `p <:+: q` -/
-lemma isInfix_cons_iff (p : G.Walk u v) (q : G.Walk x y) (h : G.Adj z x) :
-    p.IsInfix (q.cons h) ↔ (∃ (h' : u = z), (p.copy h' rfl).IsPrefix (q.cons h)) ∨ p.IsInfix q := by
+lemma infix_cons_iff (p : G.Walk u v) (q : G.Walk x y) (h : G.Adj z x) :
+    p.Infix (q.cons h) ↔ (∃ (h' : u = z), (p.copy h' rfl).Prefix (q.cons h)) ∨ p.Infix q := by
   constructor
   · rintro ⟨r, s, hrs⟩
     cases r with
@@ -598,16 +598,16 @@ lemma isInfix_cons_iff (p : G.Walk u v) (q : G.Walk x y) (h : G.Adj z x) :
     · use r.cons h, s
       simp
 
-lemma IsPrefix.support {p : G.Walk u v₁} {q : G.Walk u v₂} (h: p.IsPrefix q) :
+lemma Prefix.support {p : G.Walk u v₁} {q : G.Walk u v₂} (h: p.Prefix q) :
     p.support <+: q.support := by
   obtain ⟨r, rfl⟩ := h
   use r.support.tail
   simp [support_append]
 
 lemma isPrefix_of_support {p : G.Walk u v₁} {q : G.Walk u v₂}
-    (h : p.support <+: q.support) : p.IsPrefix q := by
+    (h : p.support <+: q.support) : p.Prefix q := by
   induction p with
-  | nil => exact IsPrefix.nil _
+  | nil => exact Prefix.nil _
   | @cons _ y _ _ _ ih =>
     cases q with
     | nil => simp at h
@@ -620,27 +620,27 @@ lemma isPrefix_of_support {p : G.Walk u v₁} {q : G.Walk u v₂}
       apply (isPrefix_cons_iff _).2 (ih h)
 
 lemma isPrefix_iff_support {p : G.Walk u v₁} {q : G.Walk u v₂} :
-    p.IsPrefix q ↔ p.support <+: q.support:= Iff.intro IsPrefix.support isPrefix_of_support
+    p.Prefix q ↔ p.support <+: q.support:= Iff.intro Prefix.support isPrefix_of_support
 
-lemma isSuffix_iff_reverse_isPrefix (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
-    p.IsSuffix q ↔ p.reverse.IsPrefix q.reverse := by
+lemma suffix_iff_reverse_isPrefix (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
+    p.Suffix q ↔ p.reverse.Prefix q.reverse := by
   constructor <;> intro ⟨r, hr⟩ <;>
   · apply_fun Walk.reverse at hr
     use r.reverse
     simpa using hr
 
-lemma isSuffix_iff_support (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
-    p.IsSuffix q ↔ p.support <:+ q.support := by
-  simp_rw [isSuffix_iff_reverse_isPrefix, isPrefix_iff_support, support_reverse,
+lemma suffix_iff_support (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
+    p.Suffix q ↔ p.support <:+ q.support := by
+  simp_rw [suffix_iff_reverse_isPrefix, isPrefix_iff_support, support_reverse,
             List.reverse_prefix]
 
-lemma isInfix_iff_exists_isPrefix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
-    p.IsInfix q ↔ ∃ r : G.Walk u₂ u₁, (r.append p).IsPrefix q := by
+lemma infix_iff_exists_isPrefix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
+    p.Infix q ↔ ∃ r : G.Walk u₂ u₁, (r.append p).Prefix q := by
   constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
   · use r, s
 
-lemma isInfix_iff_exists_isSuffix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
-  p.IsInfix q ↔ ∃ s : G.Walk v₁ v₂, (p.append s).IsSuffix q := by
+lemma infix_iff_exists_suffix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
+  p.Infix q ↔ ∃ s : G.Walk v₁ v₂, (p.append s).Suffix q := by
   constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
   · exact ⟨s, r, by rw [hs, append_assoc]⟩
 
@@ -651,7 +651,7 @@ lemma support_append' {p : G.Walk u v} {q : G.Walk v w} :
   apply (List.append_right_inj _).2
   rw [support_reverse, support_eq_cons, List.tail_reverse]
 
-lemma IsInfix.support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.IsInfix q) :
+lemma Infix.support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.Infix q) :
     p.support <:+: q.support := by
   obtain ⟨r , s, rfl⟩ := h
   use r.support.dropLast, s.support.tail
@@ -662,8 +662,8 @@ Note the analogous result is false for Subwalks : `[x, z] <+ [x, y, z]` as lists
 but the single edge walk from `x` to `z` is not a subwalk of the two edge walk from
 `x` to `z` via `y`.
 -/
-lemma isInfix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.support <:+: q.support) :
-    p.IsInfix q := by
+lemma infix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.support <:+: q.support) :
+    p.Infix q := by
   induction q with
   | nil =>
     rw [support_eq_cons, support_nil, List.infix_cons_iff] at h
@@ -695,26 +695,26 @@ lemma not_xz_subwalk_xyz [DecidableEq V] (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 :
   have := hf.isSubwalk
   simp_all
 
-lemma isInfix_iff_support (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
-    p.IsInfix q ↔ p.support <:+: q.support := Iff.intro IsInfix.support isInfix_of_support
+lemma infix_iff_support (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
+    p.Infix q ↔ p.support <:+: q.support := Iff.intro Infix.support infix_of_support
 
-lemma isInfix_iff_reverse {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} :
-    p.IsInfix q ↔ p.reverse.IsInfix q.reverse := by
+lemma infix_iff_reverse {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} :
+    p.Infix q ↔ p.reverse.Infix q.reverse := by
   constructor <;> intro ⟨r, s, h⟩ <;> use s.reverse, r.reverse
   · rw [h]
     simp [append_assoc]
   · apply_fun Walk.reverse at h
     simpa [append_assoc] using h
 
-alias ⟨IsInfix.reverse, _⟩ := isInfix_iff_reverse
+alias ⟨Infix.reverse, _⟩ := infix_iff_reverse
 
-lemma IsInfix.antisymm {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.IsInfix q)
-    (h2 : q.IsInfix p) : ∃ hu hv, p.copy hu hv = q := Subwalk.antisymm h1.subwalk h2.subwalk
+lemma Infix.antisymm {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p.Infix q)
+    (h2 : q.Infix p) : ∃ hu hv, p.copy hu hv = q := Subwalk.antisymm h1.subwalk h2.subwalk
 
-/-- Any Subwalk of a path is an IsInfix walk -/
-lemma Subwalk.isInfix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp : q.IsPath)
+/-- Any Subwalk of a path is an Infix walk -/
+lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp : q.IsPath)
   (hs : p.Subwalk q) :
-    p.IsInfix q := by
+    p.Infix q := by
   induction q generalizing u₁ with
   | nil =>
     rw [subwalk_nil_iff] at hs
@@ -743,90 +743,152 @@ lemma Subwalk.isInfix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h
         simp
 
 
+
 @[reducible]
-def IsInfix' {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
+def IsPrefix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
+    G.Walk u v → G.Walk x y → Bool
+  | (nil' u), q => u = x
+  | (Walk.cons h p), nil => false
+  | (cons' u a v _ p), (cons' x z y _ q) => u = x && a = z && p.IsPrefix q
+
+lemma Prefix.isIsPrefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.Prefix q) :
+    p.IsPrefix q := by
+  induction q with
+  | nil =>
+    cases p with
+    | nil =>  simp_all
+    | cons h p => have := hs.subwalk ; simp at this
+  | @cons d e f h q ih =>
+    cases p with
+    | nil =>  simp_all
+    | @cons a b c h p =>
+    rw [IsPrefix]
+    obtain ⟨r, hr⟩ := hs
+    rw [cons_append] at hr
+    have : e = b := by simp_all
+    subst this
+    have : q = p.append r := by simp_all
+    simpa using ih ⟨r, this⟩
+
+lemma IsPrefix.isPrefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.IsPrefix q) :
+    p.Prefix q := by
+  induction q with
+  | nil =>
+    cases p <;> simp_all
+  | @cons d e f h q ih =>
+    cases p with
+    | nil => use q.cons h; simp
+    | @cons a b c h p =>
+    rw [IsPrefix] at hs
+    simp only [decide_true, Bool.true_and, Bool.and_eq_true, decide_eq_true_eq] at hs
+    obtain ⟨rfl, hs⟩ := hs
+    obtain ⟨r, hr⟩ := ih hs
+    use r
+    simpa
+
+lemma isPrefix_iff_prefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} :
+    p.IsPrefix q ↔ p.Prefix q := Iff.intro IsPrefix.isPrefix Prefix.isIsPrefix
+
+instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} : Decidable (p.Prefix q) :=
+  decidable_of_iff _ isPrefix_iff_prefix
+
+instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x v} : Decidable (p.Suffix q) := by
+  rw [suffix_iff_reverse_isPrefix]
+  infer_instance
+
+@[reducible]
+def IsInfix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
     G.Walk u v → G.Walk x y → Bool
   | (nil' u), q => u ∈ q.support
   | (Walk.cons h p), nil => false
   | (Walk.cons h p), (Walk.cons h' q) =>
-      (p.cons h).IsInfix' q ∨
+      (p.cons h).IsInfix q ||
         if hux : u = x
           then (((p.cons h).copy (by simpa using hux) rfl).IsPrefix (q.cons h'))
         else false
 
-lemma IsInfix'.isInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsInfix' q) :
-     p.IsInfix q := by
+lemma IsInfix.infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsInfix q) :
+     p.Infix q := by
   induction q with
   | nil =>
     cases p with
     | nil =>
-      rw [IsInfix'] at hs
+      rw [IsInfix] at hs
       simp at hs
       subst hs; simp
     | cons h p => simp at hs
   | @cons x z y hq q ih =>
     cases p with
     | nil =>
-      rw [IsInfix'] at hs
+      rw [IsInfix] at hs
       simp at hs
       obtain (rfl | hu) := hs
       · simp
       · use (q.takeUntil _ hu).cons hq, q.dropUntil _ hu
         simp [take_spec _ hu]
     | cons h p =>
-    rw [IsInfix'] at hs
+    rw [IsInfix] at hs
     simp at hs
-    rw [isInfix_cons_iff]
-    obtain (hs | ⟨rfl, hs⟩) := hs
+    rw [infix_cons_iff]
+    obtain (hs | hs) := hs
     · right; exact ih hs
-    · left; simpa using hs
+    · left;
+      split_ifs at hs with h'
+      · subst h'
+        rw [isPrefix_iff_prefix] at hs
+        simpa using hs
 
 
-lemma IsInfix.isInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsInfix q) :
-     p.IsInfix' q := by
+lemma Infix.isIsInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Infix q) :
+     p.IsInfix q := by
   induction q with
   | nil =>
     have := hs.subwalk
     simp [subwalk_nil_iff] at this
     obtain ⟨hn, rfl, rfl⟩ := this
     rw [hn.eq_nil]
-    rw [IsInfix']
+    rw [IsInfix]
     simp
   | @cons x z y hq q ih =>
     cases p with
     | nil =>
       have := nil_subwalk_iff.1 hs.subwalk
-      rw [IsInfix']
+      rw [IsInfix]
       simpa using this
     | cons h p =>
-    rw [isInfix_cons_iff] at hs
+    rw [infix_cons_iff] at hs
     obtain (⟨hux, hs⟩ | hs) := hs
     · subst hux
-      rw [IsInfix']
+      rw [IsInfix]
       simp
       right;
+      rw [← isPrefix_iff_prefix] at hs
       simpa using hs
-    · rw [IsInfix']
+    · rw [IsInfix]
       simp
       left; exact ih hs
 
+lemma isIsInfix_iff_infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
+    p.IsInfix q ↔ p.Infix q := Iff.intro IsInfix.infix Infix.isIsInfix
 
+instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} : Decidable (p.Infix q) :=
+  decidable_of_iff _ isIsInfix_iff_infix
 
 lemma takeUntil_isPrefix [DecidableEq V] {p : G.Walk u v} (hx : x ∈ p.support) :
-    (p.takeUntil _ hx).IsPrefix p := ⟨_, (take_spec p hx).symm⟩
+    (p.takeUntil _ hx).Prefix p := ⟨_, (take_spec p hx).symm⟩
 
-lemma dropUntil_isSuffix [DecidableEq V] {p : G.Walk u v} (hx : x ∈ p.support) :
-    (p.dropUntil _ hx).IsSuffix p := ⟨_, (take_spec p hx).symm⟩
+lemma dropUntil_suffix [DecidableEq V] {p : G.Walk u v} (hx : x ∈ p.support) :
+    (p.dropUntil _ hx).Suffix p := ⟨_, (take_spec p hx).symm⟩
 
 lemma take_isPrefix {p : G.Walk u v} (n : ℕ) :
-    (p.take n).IsPrefix p := ⟨_, (take_append_drop p n).symm⟩
+    (p.take n).Prefix p := ⟨_, (take_append_drop p n).symm⟩
 
-lemma drop_isSuffix {p : G.Walk u v} (n : ℕ) :
-    (p.drop n).IsSuffix p := ⟨_, (take_append_drop p n).symm⟩
+lemma drop_suffix {p : G.Walk u v} (n : ℕ) :
+    (p.drop n).Suffix p := ⟨_, (take_append_drop p n).symm⟩
 
-lemma tail_isSuffix (p : G.Walk u v) : p.tail.IsSuffix p := p.drop_isSuffix _
+lemma tail_suffix (p : G.Walk u v) : p.tail.Suffix p := p.drop_suffix _
 
-lemma dropLast_isPrefix (p : G.Walk u v) : p.dropLast.IsPrefix p := p.take_isPrefix _
+lemma dropLast_isPrefix (p : G.Walk u v) : p.dropLast.Prefix p := p.take_isPrefix _
 
 lemma bypass_subwalk [DecidableEq V] (p : G.Walk u v) : p.bypass.Subwalk p := by
   induction p with
@@ -834,11 +896,11 @@ lemma bypass_subwalk [DecidableEq V] (p : G.Walk u v) : p.bypass.Subwalk p := by
   | cons _ p ih =>
     rw [bypass]
     split_ifs with h1
-    · exact (p.bypass.dropUntil_isSuffix h1).subwalk.trans (ih.cons _)
+    · exact (p.bypass.dropUntil_suffix h1).subwalk.trans (ih.cons _)
     · exact ih.cons₂ _
 
 /-- `p ++ r <+ p ++ q ++ r` i.e. removing a loop from a walk yields a subwalk. -/
-lemma Subwalk.of_isPrefix_append_isSuffix {p : G.Walk u₁ u₂} {q : G.Walk u₂ u₂}
+lemma Subwalk.of_isPrefix_append_suffix {p : G.Walk u₁ u₂} {q : G.Walk u₂ u₂}
     {r : G.Walk u₂ u₃} : (p.append r).Subwalk (p.append (q.append r)) :=
   ((Subwalk.refl r).append_left  q).append_left_left p
 
