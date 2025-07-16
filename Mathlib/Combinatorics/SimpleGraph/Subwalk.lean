@@ -1,13 +1,13 @@
 import Mathlib.Combinatorics.SimpleGraph.Connectivity.WalkDecomp
 import Mathlib.Combinatorics.SimpleGraph.Paths
+import Mathlib.Combinatorics.SimpleGraph.Hasse
 
 
 /-! ## Subwalks
 
 We introduce `Subwalk` with `Prefix, Suffix, Infix` as special cases
 
-In terms of naming conventions and definitions this file mimics the analogous
-parts of the `List` API.
+Names and definitions in this file mimics the analogous parts of the `List` API.
 
 For example we have `Walk.Subwalk` as the logical model of not-necessarily contiguous subwalks and
 `Walk.IsSubwalk` as the `Bool` valued computable version.
@@ -29,18 +29,13 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} :
   | cons₂ {u v y z : V} {p : G.Walk u v} {q : G.Walk u y} (h : G.Adj z u) :
       p.Subwalk q → (p.cons h).Subwalk (q.cons h)
 
-
 /-- See isSubwalk_iff_subwalk for equivalence with Subwalk -/
-@[reducible]
 def IsSubwalk {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
     G.Walk u v → G.Walk x y → Bool
-  | (nil' u), q => u ∈ q.support
-  | (Walk.cons h p), (nil' x) => false
-  | (Walk.cons' u w v h p), (Walk.cons' x z y h' q) =>
-    if u ≠ x
-      then (Walk.cons h p).IsSubwalk q else
-        if w ≠ z then (Walk.cons h p).IsSubwalk q
-                 else p.IsSubwalk q
+  | nil, q => u ∈ q.support
+  | cons h p, nil => false
+  | cons' u w _ h p, cons' x z _ _ q =>
+      if u ≠ x ∨ (u = x ∧ w ≠ z) then (cons h p).IsSubwalk q else p.IsSubwalk q
 
 variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
 
@@ -271,36 +266,33 @@ theorem Subwalk.trans {p₁ : G.Walk u₁ v₁} {p₂ : G.Walk u₂ v₂} {p₃ 
 lemma Subwalk.isSubwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Subwalk q) :
     p.IsSubwalk q := by
   induction q generalizing p u v with
-  | nil => cases p <;> simp_all
+  | nil => cases p <;> simp_all [IsSubwalk]
   | @cons x z y hq q ih =>
     cases p with
-    | nil => simp_all
+    | nil => simp_all [IsSubwalk]
     | @cons _ d _ h' p =>
       rw [IsSubwalk]
-      split_ifs with h1 h2
-      · exact ih <| hs.of_cons_of_ne _ h1
-      · rw [ne_eq, not_not] at h1
-        subst h1
-        exact ih <| hs.of_cons₂_of_ne _ _ h2
-      · rw [ne_eq, not_not] at *
-        subst h1 h2
+      split_ifs with h1
+      · obtain (h1 | ⟨rfl, h1⟩) := h1
+        · exact ih <| hs.of_cons_of_ne _ h1
+        · exact ih <| hs.of_cons₂_of_ne _ _ h1
+      · obtain ⟨rfl, rfl⟩ : u = x ∧ d = z := by simp_all
         exact ih (hs.of_cons₂ _)
 
 lemma IsSubwalk.subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsSubwalk q) :
     p.Subwalk q := by
   induction q generalizing p u v with
-  | nil => cases p <;> simp_all
+  | nil => cases p <;> simp_all [IsSubwalk]
   | @cons x z y hq q ih =>
     cases p with
-    | nil => simp_all
+    | nil => simp_all [IsSubwalk]
     | @cons _ d _ h' p =>
     rw [IsSubwalk] at hs
-    split_ifs at hs with h1 h2
-    · exact (ih hs).cons _
-    · have := ih hs
-      exact (ih hs).cons _
-    · rw [ne_eq, not_not] at *
-      subst h1 h2
+    split_ifs at hs with h1
+    · obtain (h1 | ⟨rfl, h1⟩) := h1
+      · exact (ih hs).cons _
+      · exact (ih hs).cons _
+    · obtain ⟨rfl, rfl⟩ : u = x ∧ d = z := by simp_all
       exact (ih hs).cons₂ _
 
 lemma isSubwalk_iff_subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
@@ -694,6 +686,7 @@ lemma infix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.supp
       use (cons h' r), s
       simpa
 
+
 /--
 Sanity check that in a triangle `x y z`, one edge is not a subwalk of the path formed by the other
 two edges
@@ -704,7 +697,7 @@ lemma not_xz_subwalk_xyz [DecidableEq V] (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 :
   have := h1.ne
   have := h2.ne
   have := hf.isSubwalk
-  simp_all
+  simp_all [IsSubwalk]
 
 lemma infix_iff_support (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
     p.Infix q ↔ p.support <:+: q.support := Iff.intro Infix.support infix_of_support
@@ -752,23 +745,22 @@ lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp 
         use r.cons hq, s
         simp
 
-@[reducible]
 def IsPrefix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
     G.Walk u v → G.Walk x y → Bool
-  | (nil' u), q => u = x
-  | (Walk.cons h p), nil => false
-  | (cons' u a v _ p), (cons' x z y _ q) => u = x && a = z && p.IsPrefix q
+  | nil, q => u = x
+  | cons h p, nil => false
+  | cons' u a _ _ p, cons' x z _ _ q => u = x && a = z && p.IsPrefix q
 
 lemma Prefix.isPrefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.Prefix q) :
     p.IsPrefix q := by
   induction q with
   | nil =>
     cases p with
-    | nil =>  simp_all
+    | nil =>  simp_all [IsPrefix]
     | cons h p => have := hs.subwalk ; simp at this
   | @cons d e f h q ih =>
     cases p with
-    | nil =>  simp_all
+    | nil =>  simp_all [IsPrefix]
     | @cons a b c h p =>
     rw [IsPrefix]
     obtain ⟨r, hr⟩ := hs
@@ -782,7 +774,7 @@ lemma IsPrefix.prefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.
     p.Prefix q := by
   induction q with
   | nil =>
-    cases p <;> simp_all
+    cases p <;> simp_all [IsPrefix]
   | @cons d e f h q ih =>
     cases p with
     | nil => use q.cons h; simp
@@ -804,15 +796,14 @@ instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x v} : Decidable (p.Suffix
   rw [suffix_iff_reverse_prefix]
   infer_instance
 
-@[reducible]
 def IsInfix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
     G.Walk u v → G.Walk x y → Bool
-  | (nil' u), q => u ∈ q.support
-  | (Walk.cons h p), nil => false
-  | (Walk.cons h p), (Walk.cons h' q) =>
-      (p.cons h).IsInfix q ||
+  | nil, q => u ∈ q.support
+  | cons h p, nil => false
+  | cons h p, cons h' q =>
+      (cons h p).IsInfix q ||
         if hux : u = x
-          then (((p.cons h).copy (by simpa using hux) rfl).IsPrefix (q.cons h'))
+          then (((cons h p).copy (by simpa using hux) rfl).IsPrefix (cons h' q))
         else false
 
 lemma IsInfix.infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsInfix q) :
@@ -821,19 +812,18 @@ lemma IsInfix.infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Is
   | nil =>
     cases p with
     | nil =>
-      rw [IsInfix] at hs
-      simp at hs
+      simp only [IsInfix, support_nil, List.mem_cons, List.not_mem_nil,
+        or_false, decide_eq_true_eq] at hs
       subst hs; simp
-    | cons h p => simp at hs
+    | cons h p => simp [IsInfix] at hs
   | @cons x z y hq q ih =>
     cases p with
     | nil =>
-      rw [IsInfix] at hs
-      simp at hs
+      simp only [IsInfix, support_cons, List.mem_cons, Bool.decide_or, Bool.or_eq_true,
+        decide_eq_true_eq] at hs
       obtain (rfl | hu) := hs
       · simp
-      · use (q.takeUntil _ hu).cons hq, q.dropUntil _ hu
-        simp [take_spec _ hu]
+      · exact .nil (by simp [hu])
     | cons h p =>
     rw [IsInfix] at hs
     simp at hs
@@ -852,28 +842,22 @@ lemma Infix.isIsInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.
   induction q with
   | nil =>
     have := hs.subwalk
-    simp [subwalk_nil_iff] at this
+    rw [subwalk_nil_iff] at this
     obtain ⟨hn, rfl, rfl⟩ := this
-    rw [hn.eq_nil]
-    rw [IsInfix]
-    simp
+    simp [hn.eq_nil, IsInfix]
   | @cons x z y hq q ih =>
     cases p with
     | nil =>
       have := nil_subwalk_iff.1 hs.subwalk
-      rw [IsInfix]
-      simpa using this
+      simpa [IsInfix] using this
     | cons h p =>
     rw [infix_cons_iff] at hs
     obtain (⟨hux, hs⟩ | hs) := hs
     · subst hux
-      rw [IsInfix]
-      simp
-      right;
-      rw [← isPrefix_iff_prefix] at hs
-      simpa using hs
-    · rw [IsInfix]
-      simp
+      simp only [IsInfix, ↓reduceDIte, copy_rfl_rfl, Bool.or_eq_true]
+      right
+      simpa [← isPrefix_iff_prefix] using hs
+    · simp only [IsInfix, Bool.or_eq_true]
       left; exact ih hs
 
 lemma isIsInfix_iff_infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
@@ -881,6 +865,23 @@ lemma isIsInfix_iff_infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
 
 instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} : Decidable (p.Infix q) :=
   decidable_of_iff _ isIsInfix_iff_infix
+
+/- Tests -/
+
+def top_walk {n : ℕ} (l : List (Fin n)) (u v : Fin n) (h : (u :: l ++ [v]).Chain' (· ≠ ·)) :
+    (⊤ : SimpleGraph (Fin n)).Walk u v :=
+  match l with
+  | [] => nil.cons (by aesop)
+  | a :: l => by
+    have h : (a :: l ++ [v]).Chain' (· ≠ ·) := by aesop
+    have : (⊤ : SimpleGraph (Fin n)).Adj u a := by aesop
+    exact (top_walk _ _ _ h).cons this
+
+-- [0, 2, 3, 5, 6] <+ [0, 1, "0, 2, 3", 4, 6, "3, 5",1, "5, 6"]
+#eval (top_walk ([2, 3, 5] : List (Fin 7)) 0 6 (by aesop)).Subwalk
+  (top_walk ([1, 0, 2, 3, 4, 6, 3, 5,1, 5] : List (Fin 7)) 0 6 (by aesop))
+
+/-   -/
 
 lemma takeUntil_prefix [DecidableEq V] {p : G.Walk u v} (hx : x ∈ p.support) :
     (p.takeUntil _ hx).Prefix p := ⟨_, (take_spec p hx).symm⟩
