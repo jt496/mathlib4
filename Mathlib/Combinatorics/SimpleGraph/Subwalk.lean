@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 John Talbot. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: John Talbot
+-/
 import Mathlib.Combinatorics.SimpleGraph.Connectivity.WalkDecomp
 import Mathlib.Combinatorics.SimpleGraph.Paths
 import Mathlib.Combinatorics.SimpleGraph.Hasse
@@ -568,13 +573,13 @@ lemma Suffix.subwalk {p : G.Walk u w} {q : G.Walk v w} (h : p.Suffix q) : p.Subw
 
 lemma Prefix.nil (q : G.Walk u v) : (nil' u).Prefix q := ⟨q, rfl⟩
 
-lemma Prefix.of_nil {q : G.Walk u v} (h : q.Prefix (nil' u)) : q.Nil ∧ v = u := by
-  simpa using subwalk_nil_iff.1 h.subwalk
+lemma Prefix.of_nil {q : G.Walk u v} (h : q.Prefix (nil' u)) : q.Nil  := by
+  simpa using (subwalk_nil_iff.1 h.subwalk).1
 
 lemma Suffix.nil (q : G.Walk u v) : (nil' v).Suffix q := ⟨q, by simp⟩
 
-lemma Suffix.of_nil {q : G.Walk u v} (h : q.Suffix (nil' v)) : q.Nil ∧ u = v := by
-  simpa using subwalk_nil_iff.1 h.subwalk
+lemma Suffix.of_nil {q : G.Walk u v} (h : q.Suffix (nil' v)) : q.Nil := by
+  simpa using (subwalk_nil_iff.1 h.subwalk).1
 
 /-- `p.cons h <+: q.cons h` iff `p <+: q` -/
 lemma prefix_cons_iff {p : G.Walk u₂ v₁} {q : G.Walk u₂ v₂} (h : G.Adj u₁ u₂) :
@@ -593,7 +598,7 @@ lemma infix_cons_iff (p : G.Walk u v) (q : G.Walk x y) (h : G.Adj z x) :
       have : x = w := by simp_all
       subst this
       use r, s
-      simp_all
+      simpa using hrs
   · rintro (⟨rfl, ⟨s, hs⟩⟩ | ⟨r, s, rfl⟩)
     · rw [hs]
       use (nil' u), s
@@ -663,7 +668,7 @@ lemma Infix.support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.Infix q
 /--
 Note the analogous result is false for Subwalks : `[x, z] <+ [x, y, z]` as lists of vertices,
 but the single edge walk from `x` to `z` is not a subwalk of the two edge walk from
-`x` to `z` via `y`. (See subwalk_of_darts for a version with sublists of darts)
+`x` to `z` via `y`. (See `subwalk_of_darts` for a version with sublists of darts)
 -/
 lemma infix_of_support {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.support <:+: q.support) :
     p.Infix q := by
@@ -694,10 +699,11 @@ lemma subwalk_of_darts {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (he : p.dar
     (hs : u₁ ∈ q.support) : p.Subwalk q := by
   induction q generalizing u₁ v₁ p with
   | nil =>
-    simp_all [subwalk_nil_iff]
+    simp_all only [darts_nil, List.sublist_nil, support, List.mem_cons, List.not_mem_nil, or_false,
+      subwalk_nil_iff]
     subst hs
     rw [darts_eq_nil_iff] at he
-    exact ⟨he, he.eq.symm⟩
+    exact ⟨he, trivial, he.eq.symm⟩
   | @cons a b c h' q ih =>
     rw [support_cons, darts_cons] at *
     cases p with
@@ -725,11 +731,19 @@ lemma subwalk_of_darts {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (he : p.dar
           exact (ih he (by simp_all)).cons _
         | cons₂ a he => trivial
 
+lemma subwalk_of_darts_of_not_nil {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂}(hs : ¬ p.Nil)
+    (he : p.darts <+ q.darts) : p.Subwalk q := by
+  cases p with
+  | nil => simp at hs
+  | cons h p =>
+    apply subwalk_of_darts he
+    rw [darts_cons] at he
+    exact dart_fst_mem_support_of_mem_darts _ (he.mem List.mem_cons_self)
 
 
-
-
-
+lemma subwalk_iff_darts_sublist {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hn : ¬ p.Nil) :
+  p.darts <+ q.darts ↔ p.Subwalk q :=
+    Iff.intro (subwalk_of_darts_of_not_nil hn) Subwalk.darts_sublist
 
 /--
 Sanity check that in a triangle `x y z`, one edge is not a subwalk of the path formed by the other
@@ -779,9 +793,7 @@ lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp 
           obtain ⟨r, s, hr⟩ := ih hp.1 hs.of_cons₂
           have : q = p.append s := by
             have := (hr ▸ hp.1).of_append_left.of_append_left
-            simp at this
-            rw [this] at hr
-            simpa
+            simp_all
           use nil' u₁, s
           simp [this]
         · exact (hp.2 <| (hs.of_cons₂_of_ne _ _ hbe).support_sublist.mem (start_mem_support _)).elim
@@ -817,8 +829,7 @@ lemma Prefix.isPrefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.
 lemma IsPrefix.prefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.IsPrefix q) :
     p.Prefix q := by
   induction q with
-  | nil =>
-    cases p <;> simp_all [IsPrefix]
+  | nil => cases p <;> simp_all [IsPrefix]
   | @cons d e f h q ih =>
     cases p with
     | nil => use q.cons h; simp
