@@ -1026,7 +1026,9 @@ lemma IsRotatedSubwalk.length_le_rotate {p : G.Walk u u} {q : G.Walk v v} (hy : 
 
 end DecEq
 
-/-! # Results about injectivity of appending walks -/
+
+
+/-! # Results about injectivity of appending walks (not related to subwalks) -/
 
 /--
 If `p₁ ++ p₂ = q₁ ++ q₂` and `p₁.length = q₁.length` then `p₁ = q₁` and `p₂ = q₂`.
@@ -1090,7 +1092,6 @@ lemma support_reverse_dropLast (p : G.Walk u v) :
     rw [support_reverse, support_cons]
     simp
 
-#check PartialOrder
 lemma IsCircuit.reverse {c : G.Walk x x} (hc : c.IsCircuit) : c.reverse.IsCircuit := by
   apply IsCircuit.mk hc.toIsTrail.reverse
   intro hf
