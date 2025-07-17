@@ -82,6 +82,8 @@ def IsInfix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
           then (((cons h p).copy (by simpa using hux) rfl).IsPrefix (cons h' q))
         else false
 
+local infixl:80 " ::: " => Walk.cons
+
 @[inherit_doc] infixl:50 " <+ " => Walk.Subwalk
 
 @[inherit_doc] infixl:50 " <:+: " => Walk.Infix
@@ -376,15 +378,10 @@ theorem Subwalk_append {p₁ : G.Walk u₁ x} {p₂ : G.Walk x u₂} {q₁ : G.W
 theorem Subwalk.eq_of_length_le {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p <+ q)
     (h2 : q.length ≤ p.length) :  ∃ hu hv, p.copy hu hv = q := by
   induction p generalizing u₂ with
-  | nil =>
-    cases q with
-    | nil =>
-      obtain ⟨_, rfl, _⟩ := subwalk_nil_iff.1 h1
-      simp
-    | cons h p => simp at h2
+  | nil => cases q <;> simp_all
   | @cons a b _ hp _ ih =>
     cases q with
-    | nil => simp [subwalk_nil_iff] at h1
+    | nil => cases h1
     | @cons _ e _ hq _ =>
       by_cases hau : a = u₂
       · subst hau
@@ -394,10 +391,10 @@ theorem Subwalk.eq_of_length_le {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h
           simp
         · have h1 := (h1.of_cons₂_of_ne _ _ hbe).length_le
           simp only [length_cons, Nat.add_le_add_iff_right] at h1 h2
-          omega
+          exact (h2.not_gt h1).elim
       · have h1 := (h1.of_cons_of_ne _ hau).length_le
         simp only [length_cons, Nat.add_le_add_iff_right] at h1 h2
-        omega
+        exact (h2.not_gt h1).elim
 
 /-- If `p <+ q` and `q <+ p` then `p = q` (mod casting endpoints) -/
 theorem Subwalk.antisymm {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h1 : p <+ q)
@@ -461,7 +458,6 @@ theorem Subwalk.of_append_not_mem_right' {p : G.Walk u v} {q₁ : G.Walk v₁ x}
     intro h
     rw [support_eq_cons] at h
     cases h <;> trivial
-
 
 /--
 If `p <+ q₁ ++ q₂` and `p.start ∉ q₁`  then `p <+ q₂`
