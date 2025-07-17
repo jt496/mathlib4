@@ -147,12 +147,12 @@ theorem reverse_isTrail_iff {u v : V} (p : G.Walk u v) : p.reverse.IsTrail ↔ p
       try rw [reverse_reverse]
 
 theorem IsTrail.of_append_left {u v w : V} {p : G.Walk u v} {q : G.Walk v w}
-    (h : (p.append q).IsTrail) : p.IsTrail := by
+    (h : (p ++ q).IsTrail) : p.IsTrail := by
   rw [isTrail_def, edges_append, List.nodup_append] at h
   exact ⟨h.1⟩
 
 theorem IsTrail.of_append_right {u v w : V} {p : G.Walk u v} {q : G.Walk v w}
-    (h : (p.append q).IsTrail) : q.IsTrail := by
+    (h : (p ++ q).IsTrail) : q.IsTrail := by
   rw [isTrail_def, edges_append, List.nodup_append] at h
   exact ⟨h.2.1⟩
 
@@ -203,12 +203,12 @@ theorem isPath_reverse_iff {u v : V} (p : G.Walk u v) : p.reverse.IsPath ↔ p.I
   constructor <;> intro h <;> convert h.reverse; simp
 
 theorem IsPath.of_append_left {u v w : V} {p : G.Walk u v} {q : G.Walk v w} :
-    (p.append q).IsPath → p.IsPath := by
+    (p ++ q).IsPath → p.IsPath := by
   simp only [isPath_def, support_append]
   exact List.Nodup.of_append_left
 
 theorem IsPath.of_append_right {u v w : V} {p : G.Walk u v} {q : G.Walk v w}
-    (h : (p.append q).IsPath) : q.IsPath := by
+    (h : (p ++ q).IsPath) : q.IsPath := by
   rw [← isPath_reverse_iff] at h ⊢
   rw [reverse_append] at h
   apply h.of_append_left
@@ -254,14 +254,14 @@ lemma isCycle_reverse {p : G.Walk u u} : p.reverse.IsCycle ↔ p.IsCycle where
   mpr := .reverse
 
 lemma IsCycle.isPath_of_append_right {p : G.Walk u v} {q : G.Walk v u} (h : ¬ p.Nil)
-    (hcyc : (p.append q).IsCycle) : q.IsPath := by
+    (hcyc : (p ++ q).IsCycle) : q.IsPath := by
   have := hcyc.2
   rw [tail_support_append, List.nodup_append'] at this
   rw [isPath_def, support_eq_cons, List.nodup_cons]
   exact ⟨this.2.2 (p.end_mem_tail_support h), this.2.1⟩
 
 lemma IsCycle.isPath_of_append_left {p : G.Walk u v} {q : G.Walk v u} (h : ¬ q.Nil)
-    (hcyc : (p.append q).IsCycle) : p.IsPath :=
+    (hcyc : (p ++ q).IsCycle) : p.IsPath :=
   p.isPath_reverse_iff.mp ((reverse_append _ _ ▸ hcyc.reverse).isPath_of_append_right (by simpa))
 
 lemma IsPath.tail {p : G.Walk u v} (hp : p.IsPath) : p.tail.IsPath := by

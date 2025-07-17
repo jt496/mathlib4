@@ -81,7 +81,7 @@ def dropUntil {v w : V} : ∀ (p : G.Walk v w) (u : V), u ∈ p.support → G.Wa
 The lemma `SimpleGraph.Walk.count_support_takeUntil_eq_one` specifies where this split occurs. -/
 @[simp]
 theorem take_spec {u v w : V} (p : G.Walk v w) (h : u ∈ p.support) :
-    (p.takeUntil u h).append (p.dropUntil u h) = p := by
+    (p.takeUntil u h) ++ (p.dropUntil u h) = p := by
   induction p
   · rw [mem_support_nil_iff] at h
     subst u
@@ -92,7 +92,7 @@ theorem take_spec {u v w : V} (p : G.Walk v w) (h : u ∈ p.support) :
       split_ifs with h' <;> subst_vars <;> simp [*]
 
 theorem mem_support_iff_exists_append {V : Type u} {G : SimpleGraph V} {u v w : V}
-    {p : G.Walk u v} : w ∈ p.support ↔ ∃ (q : G.Walk u w) (r : G.Walk w v), p = q.append r := by
+    {p : G.Walk u v} : w ∈ p.support ↔ ∃ (q : G.Walk u w) (r : G.Walk w v), p = q ++ r := by
   classical
   constructor
   · exact fun h => ⟨_, _, (p.take_spec h).symm⟩
@@ -262,7 +262,7 @@ alias not_mem_support_takeUntil_support_takeUntil_subset :=
 
 /-- Rotate a loop walk such that it is centered at the given vertex. -/
 def rotate {u v : V} (c : G.Walk v v) (h : u ∈ c.support) : G.Walk u u :=
-  (c.dropUntil u h).append (c.takeUntil u h)
+  (c.dropUntil u h) ++ (c.takeUntil u h)
 
 @[simp]
 theorem rotate_start {v} (p : G.Walk v v) : p.rotate (start_mem_support ..) = p := by

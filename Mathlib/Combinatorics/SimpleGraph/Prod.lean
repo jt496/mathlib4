@@ -172,7 +172,7 @@ protected theorem Preconnected.boxProd (hG : G.Preconnected) (hH : H.Preconnecte
   rintro x y
   obtain ⟨w₁⟩ := hG x.1 y.1
   obtain ⟨w₂⟩ := hH x.2 y.2
-  exact ⟨(w₁.boxProdLeft _ _).append (w₂.boxProdRight _ _)⟩
+  exact ⟨(w₁.boxProdLeft H x.2) ++ (w₂.boxProdRight G y.1)⟩
 
 protected theorem Preconnected.ofBoxProdLeft [Nonempty β] (h : (G □ H).Preconnected) :
     G.Preconnected := by
@@ -247,7 +247,7 @@ lemma reachable_boxProd {x y : α × β} :
   · intro ⟨w⟩
     exact ⟨⟨w.ofBoxProdLeft⟩, ⟨w.ofBoxProdRight⟩⟩
   · intro ⟨⟨w₁⟩, ⟨w₂⟩⟩
-    exact ⟨(w₁.boxProdLeft _ _).append (w₂.boxProdRight _ _)⟩
+    exact ⟨(w₁.boxProdLeft H x.2) ++ (w₂.boxProdRight G y.1)⟩
 
 @[deprecated (since := "2025-05-08")] alias boxProd_reachable := reachable_boxProd
 
@@ -264,7 +264,7 @@ lemma edist_boxProd (x y : α × β) :
   · have rGH : G.edist x.1 y.1 ≠ ⊤ ∧ H.edist x.2 y.2 ≠ ⊤ := by rw [top_case] at h; aesop
     have ⟨wG, hwG⟩ := exists_walk_of_edist_ne_top rGH.1
     have ⟨wH, hwH⟩ := exists_walk_of_edist_ne_top rGH.2
-    let w_app := (wG.boxProdLeft _ _).append (wH.boxProdRight _ _)
+    let w_app := (wG.boxProdLeft H x.2) ++ (wH.boxProdRight G y.1)
     have w_len : w_app.length = wG.length + wH.length := by
       unfold w_app Walk.boxProdLeft Walk.boxProdRight; simp
     refine le_antisymm ?_ ?_

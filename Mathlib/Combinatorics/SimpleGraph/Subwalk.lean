@@ -53,7 +53,7 @@ def IsSubwalk {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
 
 /-- `p.Prefix q` means that the walk `q` starts with the walk `p`, denoted `p <+: q` -/
 def Prefix (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
-  ∃ (r : G.Walk v₁ v₂), q = p.append r
+  ∃ (r : G.Walk v₁ v₂), q = p ++ r
 
 /-- See `isPrefix_iff_prefix` for equivalence with `Prefix` -/
 def IsPrefix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
@@ -64,12 +64,12 @@ def IsPrefix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
 
 /-- `p.Suffix q` means that the walk `q` ends with the walk `p`, denoted `p <:+ q` -/
 def Suffix (p : G.Walk u₂ v) (q : G.Walk u₁ v) : Prop :=
-  ∃ (r : G.Walk u₁ u₂), q = r.append p
+  ∃ (r : G.Walk u₁ u₂), q = r ++ p
 
 /-- `p.Infix q` means that the walk `p` is a contiguous subwalk of the walk `q`,
 denoted  `p <:+: q` -/
 def Infix (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
-  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
+  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru ++ p) ++ rv
 
 /-- See `isInfix_iff_infix` for equivalence with `Infix` -/
 def IsInfix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
@@ -169,7 +169,7 @@ lemma nil_subwalk_iff {q : G.Walk u v} : (nil' x) <+ q ↔ x ∈ q.support := by
 
 /-- If `p <+ q` then `r ++ p <+ q` -/
 lemma Subwalk.append_left {p : G.Walk u v} {q : G.Walk x y} (hs : p <+ q)
-    (r : G.Walk z x) : p <+ (r.append q) := by induction r <;> simp_all
+    (r : G.Walk z x) : p <+ (r ++ q) := by induction r <;> simp_all
 
 /-- If `p.cons h <+ q` then `p <+ q` -/
 @[simp]
@@ -205,7 +205,7 @@ lemma Subwalk.of_cons₂ {p : G.Walk u v} {q : G.Walk u y} (hz : G.Adj z u)
 /-- If `r ++ p <+ r ++ q` then `p <+ q` -/
 @[simp]
 lemma Subwalk.of_append_left {p : G.Walk u v} {q : G.Walk u y} (r : G.Walk x u)
-    (hs : (r.append p) <+ (r.append q)) : p <+ q := by
+    (hs : (r ++ p) <+ (r ++ q)) : p <+ q := by
   induction r with
   | nil => simpa
   | cons h p ih => exact ih <| hs.of_cons₂ _
@@ -230,7 +230,7 @@ lemma Subwalk.concat₂ {p : G.Walk u v} {q : G.Walk x v} (hs : p <+ q) (h : G.A
 
 /-- If `p <+ q` then `p <+ q ++ r` -/
 lemma Subwalk.append_right {p : G.Walk u v} {q : G.Walk x y} (hs : p <+ q) (r : G.Walk y z) :
-     p <+ (q.append r) := by induction r <;> simp_all [← concat_append]
+     p <+ (q ++ r) := by induction r <;> simp_all [← concat_append]
 
 /-- If `p <+ q` then `p.reverse <+ q.reverse` -/
 lemma Subwalk.reverse {p : G.Walk u v} {q : G.Walk x y} (hs : p <+ q) :
@@ -286,7 +286,7 @@ lemma Subwalk.of_concat₂_of_ne {p : G.Walk u v} {q : G.Walk x y} (hp : G.Adj v
 
 /-- If `p ++ r <+ q ++ r` then `p <+ q` -/
 lemma Subwalk.of_append_right {p : G.Walk u v} {q : G.Walk x v} (r : G.Walk v y)
-    (hs : (p.append r) <+ (q.append r)) : p <+ q := by
+    (hs : (p ++ r) <+ (q ++ r)) : p <+ q := by
   have := hs.reverse
   simp only [reverse_append] at this
   simpa using (this.of_append_left r.reverse).reverse
@@ -357,11 +357,11 @@ lemma Subwalk.antisymm_support {p : G.Walk u v} {q : G.Walk x y} (h1 : p <+ q)
 
 /-- If `p <+ q` then `r ++ p <+ q` -/
 lemma Subwalk.append_left_left {p : G.Walk u v} {q : G.Walk u y} (hs : p <+ q)
-    (r : G.Walk x u) : (r.append p) <+ (r.append q) := by induction r <;> simp_all
+    (r : G.Walk x u) : (r ++ p) <+ (r ++ q) := by induction r <;> simp_all
 
 /-- If `p <+ q` then `p ++ r <+ q ++ r` -/
 lemma Subwalk.append_right_right {p : G.Walk u v} {q : G.Walk x v} (hs : p <+ q)
-    (r : G.Walk v y) : (p.append r) <+ (q.append r) := by
+    (r : G.Walk v y) : (p ++ r) <+ (q ++ r) := by
   have := hs.reverse
   simpa using (this.append_left_left r.reverse).reverse
 
@@ -369,7 +369,7 @@ lemma Subwalk.append_right_right {p : G.Walk u v} {q : G.Walk x v} (hs : p <+ q)
 If `p₁ <+ q₁` and `p₂ <+ q₂` then `p₁ ++ p₂ <+ q₁ ++ q₂` (if these are well-defined)
 -/
 theorem Subwalk_append {p₁ : G.Walk u₁ x} {p₂ : G.Walk x u₂} {q₁ : G.Walk v₁ y} {q₂ : G.Walk y v₂}
-    (h1 : p₁ <+ q₁) (h2 : p₂ <+ q₂) : (p₁.append p₂) <+ (q₁.append q₂) := by
+    (h1 : p₁ <+ q₁) (h2 : p₂ <+ q₂) : (p₁ ++ p₂) <+ (q₁ ++ q₂) := by
   induction h1 <;> simp_all [Subwalk.append_left]
 
 /-- If `p <+ q` and `q.length ≤ p.length` then `p = q` (mod casting endpoints) -/
@@ -408,8 +408,8 @@ If `p <+ q₁ ++ q₂` then either `p <+ q₁` or `p <+ q₂` or `∃ y, r₁, r
 and `r₁ <+ q₁` and `r₂ <+ q₂`
 -/
 theorem Subwalk.of_append {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
-    (hs : p <+ (q₁.append q₂)) : p <+ q₁ ∨ p <+ q₂ ∨ ∃ (y : V) (r₁ : G.Walk u y)
-    (r₂ : G.Walk y v), p = r₁.append r₂ ∧ r₁ <+ q₁ ∧ r₂ <+ q₂ := by
+    (hs : p <+ (q₁ ++ q₂)) : p <+ q₁ ∨ p <+ q₂ ∨ ∃ (y : V) (r₁ : G.Walk u y)
+    (r₂ : G.Walk y v), p = r₁ ++ r₂ ∧ r₁ <+ q₁ ∧ r₂ <+ q₂ := by
   induction q₁ generalizing p u v with
   | @nil z => right; left; simpa
   | @cons _ b _ h q₁ ih =>
@@ -430,7 +430,7 @@ theorem Subwalk.of_append {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk
 If `p <+ q₁ ++ q₂` and `p.end ∉ q₂`  then `p <+ q₁` (can weaken this to `p.end ∉ q₂.support.tail`)
 -/
 theorem Subwalk.of_append_not_mem_right {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
-    (hs : p <+ (q₁.append q₂)) (hv : v ∉ q₂.support) : p <+ q₁ := by
+    (hs : p <+ (q₁ ++ q₂)) (hv : v ∉ q₂.support) : p <+ q₁ := by
   obtain (hs | hs | ⟨_,_,r,_,_, hs⟩) := hs.of_append
   · exact hs
   · exact (hv <| hs.support_sublist.mem p.end_mem_support).elim
@@ -440,7 +440,7 @@ theorem Subwalk.of_append_not_mem_right {p : G.Walk u v} {q₁ : G.Walk v₁ x} 
 If `p <+ q₁ ++ q₂` and `p.end ∉ q₂.support.tail`  then `p <+ q₁`
 -/
 theorem Subwalk.of_append_not_mem_right' {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
-    (hs : p <+ (q₁.append q₂)) (hv : v ∉ q₂.support.tail) : p <+ q₁ := by
+    (hs : p <+ (q₁ ++ q₂)) (hv : v ∉ q₂.support.tail) : p <+ q₁ := by
   by_cases hvx : v = x
   · subst hvx
     obtain (hs | hs | ⟨_,_,r,_,_, hs⟩) := hs.of_append
@@ -468,13 +468,13 @@ If `p <+ q₁ ++ q₂` and `p.start ∉ q₁`  then `p <+ q₂`
 (can weaken this to `p.end ∉ q₁.support.dropLast`)
 -/
 theorem Subwalk.of_append_not_mem_left {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
-    (hs : p <+ (q₁.append q₂)) (hu : u ∉ q₁.support) : p <+ q₂ := by
+    (hs : p <+ (q₁ ++ q₂)) (hu : u ∉ q₁.support) : p <+ q₂ := by
   have hs := hs.reverse
   rw [reverse_append] at hs
   simpa using (hs.of_append_not_mem_right (by simp_all)).reverse
 
 theorem Subwalk.of_append_not_mem_left' {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
-    (hs : p <+ (q₁.append q₂)) (hu : u ∉ q₁.support.dropLast) : p <+ q₂ := by
+    (hs : p <+ (q₁ ++ q₂)) (hu : u ∉ q₁.support.dropLast) : p <+ q₂ := by
   have hs := hs.reverse
   rw [reverse_append] at hs
   simpa using (hs.of_append_not_mem_right' (by simp_all)).reverse
@@ -483,8 +483,8 @@ theorem Subwalk.of_append_not_mem_left' {p : G.Walk u v} {q₁ : G.Walk v₁ x} 
 and `r₁ <+ q₁` and `r₂ <+ q₂`
 -/
 theorem append_subwalk {p : G.Walk u v} {q₁ : G.Walk v₁ x} {q₂ : G.Walk x v₂}
-    (hs : (q₁.append q₂) <+ p) : ∃ (y : V) (r₁ : G.Walk u y) (r₂ : G.Walk y v),
-    p = r₁.append r₂ ∧ q₁ <+ r₁ ∧ q₂ <+ r₂ := by
+    (hs : (q₁ ++ q₂) <+ p) : ∃ (y : V) (r₁ : G.Walk u y) (r₂ : G.Walk y v),
+    p = r₁ ++ r₂ ∧ q₁ <+ r₁ ∧ q₂ <+ r₂ := by
   induction p generalizing q₁ q₂ v₁ x with
   | nil =>
     rw [subwalk_nil_iff, nil_append_iff] at hs
@@ -673,17 +673,17 @@ lemma suffix_iff_support (p : G.Walk u₂ v) (q : G.Walk u₁ v) :
             List.reverse_prefix]
 
 lemma infix_iff_exists_prefix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
-    p <:+: q ↔ ∃ r : G.Walk u₂ u₁, (r.append p) <+: q := by
+    p <:+: q ↔ ∃ r : G.Walk u₂ u₁, (r ++ p) <+: q := by
   constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
   · use r, s
 
 lemma infix_iff_exists_suffix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
-  p <:+: q ↔ ∃ s : G.Walk v₁ v₂, (p.append s)<:+ q := by
+  p <:+: q ↔ ∃ s : G.Walk v₁ v₂, (p ++ s)<:+ q := by
   constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
   · exact ⟨s, r, by rw [hs, append_assoc]⟩
 
 lemma support_append' {p : G.Walk u v} {q : G.Walk v w} :
-    (p.append q).support = p.support.dropLast ++ q.support := by
+    (p ++ q).support = p.support.dropLast ++ q.support := by
   apply_fun List.reverse using List.reverse_injective
   rw [List.reverse_append, ← support_reverse, ← support_reverse, reverse_append, support_append]
   apply (List.append_right_inj _).2
@@ -821,7 +821,7 @@ lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp 
         by_cases hbe : e = b
         · subst hbe
           obtain ⟨r, s, hr⟩ := ih hp.1 hs.of_cons₂
-          have : q = p.append s := by
+          have : q = p ++ s := by
             have := (hr ▸ hp.1).of_append_left.of_append_left
             simp_all
           use nil' u₁, s
@@ -849,7 +849,7 @@ lemma Prefix.isPrefix  {p : G.Walk u v} {q : G.Walk u y} (hs : p <+: q) : p.IsPr
     rw [cons_append] at hr
     have : e = b := by simp_all
     subst this
-    have : q = p.append r := by simp_all
+    have : q = p ++ r := by simp_all
     simpa using ih ⟨r, this⟩
 
 lemma IsPrefix.prefix {p : G.Walk u v} {q : G.Walk u y} (hs : p.IsPrefix q) : p <+: q := by
@@ -967,7 +967,7 @@ lemma dropLast_prefix (p : G.Walk u v) : p.dropLast <+: p := p.take_prefix _
 
 /-- `p ++ r <+ p ++ q ++ r` i.e. removing a loop from a walk yields a subwalk. -/
 lemma Subwalk.of_prefix_append_suffix {p : G.Walk u₁ u₂} {q : G.Walk u₂ u₂}
-    {r : G.Walk u₂ u₃} : (p.append r) <+ (p.append (q.append r)) :=
+    {r : G.Walk u₂ u₃} : (p ++ r) <+ (p ++ (q ++ r)) :=
   ((Subwalk.refl r).append_left  q).append_left_left p
 
 /-! ## Rotated Subwalks -/
@@ -1036,7 +1036,7 @@ end Rotated
 If `p₁ ++ p₂ = q₁ ++ q₂` and `p₁.length = q₁.length` then `p₁ = q₁` and `p₂ = q₂`.
 -/
 lemma append_inj {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁} {q₂ : G.Walk v₁ v}
-    (hp : p₁.append p₂ = q₁.append q₂) (hl : p₁.length = q₁.length) :
+    (hp : p₁ ++ p₂ = q₁ ++ q₂) (hl : p₁.length = q₁.length) :
     ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
   have : u₁ = v₁ := by
     have h1 := getVert_append p₁ p₂ p₁.length
@@ -1065,7 +1065,7 @@ lemma append_inj {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u 
 If `p₁ ++ p₂ = q₁ ++ q₂` and `p₂.length = q₂.length` then `p₁ = q₁` and `p₂ = q₂`.
 -/
 lemma append_inj' {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u v₁} {q₂ : G.Walk v₁ v}
-    (hp : p₁.append p₂ = q₁.append q₂) (hl : p₂.length = q₂.length) :
+    (hp : p₁ ++ p₂ = q₁ ++ q₂) (hl : p₂.length = q₂.length) :
     ∃ h, p₁.copy rfl h = q₁ ∧ p₂.copy h rfl = q₂ := by
   apply append_inj hp
   apply_fun length at hp
@@ -1073,14 +1073,14 @@ lemma append_inj' {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u
   omega
 
 lemma append_left_inj {p₁ p₂: G.Walk u v₁} {q : G.Walk v₁ v₂} :
-    p₁.append q = p₂.append q ↔ p₁ = p₂ := by
+    p₁ ++ q = p₂ ++ q ↔ p₁ = p₂ := by
   constructor <;> intro heq
   · obtain ⟨_, h1, h2⟩ := append_inj heq (by apply_fun length at heq; simpa using heq)
     simp [← h1]
   · subst heq; rfl
 
 lemma append_right_inj {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
-    p.append q₁ = p.append q₂ ↔ q₁ = q₂ := by
+    p ++ q₁ = p ++ q₂ ↔ q₁ = q₂ := by
   constructor <;> intro heq
   · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
     simp [← h2]
