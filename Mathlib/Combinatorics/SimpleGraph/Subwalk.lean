@@ -11,7 +11,7 @@ import Mathlib.Combinatorics.SimpleGraph.Hasse
 
 We introduce `Subwalk` with `Prefix, Suffix, Infix` as special cases
 
-Names and definitions in this file mimic the analogous parts of the `List` API.
+Names and definitions in this file (mainly) mimic the analogous parts of the `List` API.
 
 For example we have `Walk.Subwalk` as the logical model of not-necessarily contiguous subwalks and
 `Walk.IsSubwalk` as the `Bool` valued computable version.
