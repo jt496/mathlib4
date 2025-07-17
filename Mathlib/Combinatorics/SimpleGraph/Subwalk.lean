@@ -71,6 +71,7 @@ denoted  `p <:+: q` -/
 def Infix (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
   ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
 
+/-- See `isInfix_iff_infix` for equivalence with `Infix` -/
 def IsInfix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
     G.Walk u v → G.Walk x y → Bool
   | nil, q => u ∈ q.support
@@ -830,9 +831,10 @@ lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp 
         use r.cons hq, s
         simp
 
+section  DecEq
+variable [DecidableEq V]
 
-lemma Prefix.isPrefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p <+: q) :
-    p.IsPrefix q := by
+lemma Prefix.isPrefix  {p : G.Walk u v} {q : G.Walk u y} (hs : p <+: q) : p.IsPrefix q := by
   induction q with
   | nil =>
     cases p with
@@ -850,8 +852,7 @@ lemma Prefix.isPrefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p 
     have : q = p.append r := by simp_all
     simpa using ih ⟨r, this⟩
 
-lemma IsPrefix.prefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.IsPrefix q) :
-    p <+: q := by
+lemma IsPrefix.prefix {p : G.Walk u v} {q : G.Walk u y} (hs : p.IsPrefix q) : p <+: q := by
   induction q with
   | nil => cases p <;> simp_all [IsPrefix]
   | @cons d e f h q ih =>
@@ -865,39 +866,24 @@ lemma IsPrefix.prefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.
     use r
     simpa
 
-lemma isPrefix_iff_prefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} :
+lemma isPrefix_iff_prefix {p : G.Walk u v} {q : G.Walk u y} :
     p.IsPrefix q ↔ p <+: q := Iff.intro IsPrefix.prefix Prefix.isPrefix
 
-instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} : Decidable (p <+: q) :=
+instance {p : G.Walk u v} {q : G.Walk u y} : Decidable (p <+: q) :=
   decidable_of_iff _ isPrefix_iff_prefix
 
-instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x v} : Decidable (p <:+ q) := by
+instance {p : G.Walk u v} {q : G.Walk x v} : Decidable (p <:+ q) := by
   rw [suffix_iff_reverse_prefix]
   infer_instance
 
-
-lemma IsInfix.infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsInfix q) :
-     p <:+: q := by
+lemma IsInfix.infix {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsInfix q) : p <:+: q := by
   induction q with
-  | nil =>
-    cases p with
-    | nil =>
-      simp only [IsInfix, support_nil, List.mem_cons, List.not_mem_nil,
-        or_false, decide_eq_true_eq] at hs
-      subst hs; simp
-    | cons h p => simp [IsInfix] at hs
+  | nil => cases p <;> simp_all [IsInfix]
   | @cons x z y hq q ih =>
     cases p with
-    | nil =>
-      simp only [IsInfix, support_cons, List.mem_cons, Bool.decide_or, Bool.or_eq_true,
-        decide_eq_true_eq] at hs
-      obtain (rfl | hu) := hs
-      · simp
-      · exact .nil (by simp [hu])
+    | nil => simp_all [IsInfix]
     | cons h p =>
-    rw [IsInfix] at hs
-    simp at hs
-    rw [infix_cons_iff]
+    rw [IsInfix, Bool.or_eq_true, infix_cons_iff] at *
     obtain (hs | hs) := hs
     · right; exact ih hs
     · left;
@@ -906,9 +892,7 @@ lemma IsInfix.infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.Is
         rw [isPrefix_iff_prefix] at hs
         simpa using hs
 
-
-lemma Infix.isInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p <:+: q) :
-     p.IsInfix q := by
+lemma Infix.isInfix {p : G.Walk u v} {q : G.Walk x y} (hs : p <:+: q) : p.IsInfix q := by
   induction q with
   | nil =>
     have := hs.subwalk
@@ -927,11 +911,11 @@ lemma Infix.isInfix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p <:
       simp only [IsInfix, ↓reduceDIte, copy_rfl_rfl, Bool.or_eq_true]
       right
       simpa [← isPrefix_iff_prefix] using hs
-    · simp only [IsInfix, Bool.or_eq_true]
+    · rw [IsInfix, Bool.or_eq_true]
       left; exact ih hs
 
-lemma isInfix_iff_infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
-    p.IsInfix q ↔ p <:+: q := Iff.intro IsInfix.infix Infix.isInfix
+lemma isInfix_iff_infix {p : G.Walk u v} {q : G.Walk x y} : p.IsInfix q ↔ p <:+: q :=
+  Iff.intro IsInfix.infix Infix.isInfix
 
 instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} : Decidable (p <:+: q) :=
   decidable_of_iff _ isInfix_iff_infix
@@ -954,11 +938,22 @@ private def top_walk {n : ℕ} (l : List (Fin n)) (u v : Fin n) (h : (u :: l ++ 
 
 /-  End Tests -/
 
-lemma takeUntil_prefix [DecidableEq V] {p : G.Walk u v} (hx : x ∈ p.support) :
+lemma takeUntil_prefix {p : G.Walk u v} (hx : x ∈ p.support) :
     (p.takeUntil _ hx) <+: p := ⟨_, (take_spec p hx).symm⟩
 
-lemma dropUntil_suffix [DecidableEq V] {p : G.Walk u v} (hx : x ∈ p.support) :
+lemma dropUntil_suffix {p : G.Walk u v} (hx : x ∈ p.support) :
     (p.dropUntil _ hx)<:+ p := ⟨_, (take_spec p hx).symm⟩
+
+lemma bypass_subwalk (p : G.Walk u v) : p.bypass <+ p := by
+  induction p with
+  | nil => rfl
+  | cons _ p ih =>
+    rw [bypass]
+    split_ifs with h1
+    · exact (p.bypass.dropUntil_suffix h1).subwalk.trans (ih.cons _)
+    · exact ih.cons₂ _
+
+end DecEq
 
 lemma take_prefix {p : G.Walk u v} (n : ℕ) :
     (p.take n) <+: p := ⟨_, (take_append_drop p n).symm⟩
@@ -970,22 +965,13 @@ lemma tail_suffix (p : G.Walk u v) : p.tail<:+ p := p.drop_suffix _
 
 lemma dropLast_prefix (p : G.Walk u v) : p.dropLast <+: p := p.take_prefix _
 
-lemma bypass_subwalk [DecidableEq V] (p : G.Walk u v) : p.bypass <+ p := by
-  induction p with
-  | nil => rfl
-  | cons _ p ih =>
-    rw [bypass]
-    split_ifs with h1
-    · exact (p.bypass.dropUntil_suffix h1).subwalk.trans (ih.cons _)
-    · exact ih.cons₂ _
-
 /-- `p ++ r <+ p ++ q ++ r` i.e. removing a loop from a walk yields a subwalk. -/
 lemma Subwalk.of_prefix_append_suffix {p : G.Walk u₁ u₂} {q : G.Walk u₂ u₂}
     {r : G.Walk u₂ u₃} : (p.append r) <+ (p.append (q.append r)) :=
   ((Subwalk.refl r).append_left  q).append_left_left p
 
 /-! ## Rotated Subwalks -/
-section DecEq
+section Rotated
 variable [DecidableEq V]
 /--
 `p` is a rotated subwalk of `q` if it is a rotation of a subwalk
@@ -1040,7 +1026,7 @@ lemma IsRotatedSubwalk.length_le_rotate {p : G.Walk u u} {q : G.Walk v v} (hy : 
     (h : p.IsRotatedSubwalk (q.rotate hy)): p.length ≤ q.length :=
   length_rotate hy ▸ h.length_le
 
-end DecEq
+end Rotated
 
 
 
