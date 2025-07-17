@@ -21,6 +21,8 @@ For example we have `Walk.Subwalk` as the logical model of not-necessarily conti
 
 namespace SimpleGraph.Walk
 
+variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
+
 /-- `p.Subwalk q` if `p` is a (not necessarily contiguous) subwalk of `q`
 (This definition is modelled on `List.Sublist`.) -/
 inductive Subwalk {V : Type*} {G : SimpleGraph V} :
@@ -34,6 +36,8 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} :
   | cons₂ {u v y z : V} {p : G.Walk u v} {q : G.Walk u y} (h : G.Adj z u) :
       p.Subwalk q → (p.cons h).Subwalk (q.cons h)
 
+attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
+
 /-- See isSubwalk_iff_subwalk for equivalence with Subwalk -/
 def IsSubwalk {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
     G.Walk u v → G.Walk x y → Bool
@@ -42,9 +46,33 @@ def IsSubwalk {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
   | cons' u w _ h p, cons' x z _ _ q =>
       if u ≠ x ∨ (u = x ∧ w ≠ z) then (cons h p).IsSubwalk q else p.IsSubwalk q
 
-variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
+/-- `p.Prefix q` means that the walk `q` starts with the walk `p`. -/
+def Prefix (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
+  ∃ (r : G.Walk v₁ v₂), q = p.append r
 
-attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
+def IsPrefix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
+    G.Walk u v → G.Walk x y → Bool
+  | nil, q => u = x
+  | cons h p, nil => false
+  | cons' u a _ _ p, cons' x z _ _ q => u = x && a = z && p.IsPrefix q
+
+/-- `p.Suffix q` means that the walk `q` ends with the walk `p`. -/
+def Suffix (p : G.Walk u₂ v) (q : G.Walk u₁ v) : Prop :=
+  ∃ (r : G.Walk u₁ u₂), q = r.append p
+
+/-- `p.Infix q` means that the walk `p` is a contiguous Subwalk of the walk `q`. -/
+def Infix (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
+  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
+
+def IsInfix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
+    G.Walk u v → G.Walk x y → Bool
+  | nil, q => u ∈ q.support
+  | cons h p, nil => false
+  | cons h p, cons h' q =>
+      (cons h p).IsInfix q ||
+        if hux : u = x
+          then (((cons h p).copy (by simpa using hux) rfl).IsPrefix (cons h' q))
+        else false
 
 open scoped List
 
@@ -513,9 +541,6 @@ lemma Subwalk.transfer  {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q) (hp)
 
 ---------------- Infix / Prefix / Suffix walks
 
-/-- `p.Infix q` means that the walk `p` is a contiguous Subwalk of the walk `q`. -/
-def Infix (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
-  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
 
 /-- If `p <:+: q` then `p <+ q` -/
 lemma Infix.subwalk {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p.Infix q) : p.Subwalk q := by
@@ -541,15 +566,6 @@ lemma infix_nil_iff {q : G.Walk u v} : q.Infix (nil' x) ↔ q.Nil ∧ u = x ∧ 
   · rintro ⟨hq, rfl, rfl⟩
     have := hq.eq_nil
     subst this; rfl
-
-/-- `p.Prefix q` means that the walk `q` starts with the walk `p`. -/
-def Prefix (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
-  ∃ (r : G.Walk v₁ v₂), q = p.append r
-
-
-/-- `p.Suffix q` means that the walk `q` ends with the walk `p`. -/
-def Suffix (p : G.Walk u₂ v) (q : G.Walk u₁ v) : Prop :=
-  ∃ (r : G.Walk u₁ u₂), q = r.append p
 
 @[simp,refl]
 lemma Prefix.refl (p : G.Walk u₁ v₁) : p.Prefix p := ⟨nil' v₁, by simp⟩
@@ -801,11 +817,6 @@ lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp 
         use r.cons hq, s
         simp
 
-def IsPrefix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
-    G.Walk u v → G.Walk x y → Bool
-  | nil, q => u = x
-  | cons h p, nil => false
-  | cons' u a _ _ p, cons' x z _ _ q => u = x && a = z && p.IsPrefix q
 
 lemma Prefix.isPrefix [DecidableEq V] {p : G.Walk u v} {q : G.Walk u y} (hs : p.Prefix q) :
     p.IsPrefix q := by
@@ -851,15 +862,6 @@ instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x v} : Decidable (p.Suffix
   rw [suffix_iff_reverse_prefix]
   infer_instance
 
-def IsInfix {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
-    G.Walk u v → G.Walk x y → Bool
-  | nil, q => u ∈ q.support
-  | cons h p, nil => false
-  | cons h p, cons h' q =>
-      (cons h p).IsInfix q ||
-        if hux : u = x
-          then (((cons h p).copy (by simpa using hux) rfl).IsPrefix (cons h' q))
-        else false
 
 lemma IsInfix.infix [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsInfix q) :
      p.Infix q := by
