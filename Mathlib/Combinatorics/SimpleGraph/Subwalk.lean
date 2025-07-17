@@ -17,6 +17,13 @@ Names and definitions in this file mimics the analogous parts of the `List` API.
 For example we have `Walk.Subwalk` as the logical model of not-necessarily contiguous subwalks and
 `Walk.IsSubwalk` as the `Bool` valued computable version.
 
+If `p` and `q` are walks then we have `p` is a Prefix/Suffix/Infix of `q` iff `p.support` is a
+Prefix/Suffix/Infix of `q.support`.
+
+This doesn't hold for `Subwalks` but we do have `p` is a Subwalk of `q` iff `p.darts` is a sublist
+of `q.darts` (for `p ≠ nil`).
+
+
 -/
 
 namespace SimpleGraph.Walk
