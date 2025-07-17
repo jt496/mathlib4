@@ -602,9 +602,9 @@ lemma Prefix.nil (q : G.Walk u v) : (nil' u) <+: q := ⟨q, rfl⟩
 lemma Prefix.of_nil {q : G.Walk u v} (h : q <+: (nil' u)) : q.Nil  := by
   simpa using (subwalk_nil_iff.1 h.subwalk).1
 
-lemma Suffix.nil (q : G.Walk u v) : (nil' v)<:+ q := ⟨q, by simp⟩
+lemma Suffix.nil (q : G.Walk u v) : (nil' v) <:+ q := ⟨q, by simp⟩
 
-lemma Suffix.of_nil {q : G.Walk u v} (h : q<:+ (nil' v)) : q.Nil := by
+lemma Suffix.of_nil {q : G.Walk u v} (h : q <:+ (nil' v)) : q.Nil := by
   simpa using (subwalk_nil_iff.1 h.subwalk).1
 
 /-- `p.cons h <+: q.cons h` iff `p <+: q` -/
@@ -674,7 +674,7 @@ lemma infix_iff_exists_prefix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v�
   · use r, s
 
 lemma infix_iff_exists_suffix_append (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) :
-  p <:+: q ↔ ∃ s : G.Walk v₁ v₂, (p ++ s)<:+ q := by
+  p <:+: q ↔ ∃ s : G.Walk v₁ v₂, (p ++ s) <:+ q := by
   constructor <;> intro ⟨r, ⟨s, hs⟩⟩ <;>
   · exact ⟨s, r, by rw [hs, append_assoc]⟩
 
@@ -730,18 +730,17 @@ lemma subwalk_of_darts {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (he : p.dar
     subst hs
     rw [darts_eq_nil_iff] at he
     exact ⟨he, trivial, he.eq.symm⟩
-  | @cons a b c h' q ih =>
+  | @cons a b _ h' q ih =>
     rw [support_cons, darts_cons] at *
     cases p with
     | nil => simp_all
-    | @cons d e f hp p =>
+    | @cons _ e _ hp p =>
     by_cases h1 : u₁ = a ∧ e = b
     · obtain ⟨rfl, rfl⟩ := h1
       cases he with
       | cons a he =>
         exact Subwalk.cons₂ _ <| ih (List.sublist_of_cons_sublist he) (start_mem_support _)
-      | cons₂ a he =>
-        apply Subwalk.cons₂ _ <| ih he (start_mem_support _)
+      | cons₂ a he => exact Subwalk.cons₂ _ <| ih he (start_mem_support _)
     · push_neg at h1
       by_cases h2 : u₁ = a
       · have h3 := h1 h2
@@ -753,8 +752,7 @@ lemma subwalk_of_darts {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (he : p.dar
           exact dart_fst_mem_support_of_mem_darts _ (he.mem List.mem_cons_self)
         | cons₂ a he => trivial
       · cases he with
-        | cons a he =>
-          exact (ih he (by simp_all)).cons _
+        | cons a he => exact (ih he (by simp_all)).cons _
         | cons₂ a he => trivial
 
 lemma subwalk_of_darts_of_not_nil {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂}(hs : ¬ p.Nil)
@@ -938,7 +936,7 @@ lemma takeUntil_prefix {p : G.Walk u v} (hx : x ∈ p.support) :
     (p.takeUntil _ hx) <+: p := ⟨_, (take_spec p hx).symm⟩
 
 lemma dropUntil_suffix {p : G.Walk u v} (hx : x ∈ p.support) :
-    (p.dropUntil _ hx)<:+ p := ⟨_, (take_spec p hx).symm⟩
+    (p.dropUntil _ hx) <:+ p := ⟨_, (take_spec p hx).symm⟩
 
 lemma bypass_subwalk (p : G.Walk u v) : p.bypass <+ p := by
   induction p with
@@ -955,7 +953,7 @@ lemma take_prefix {p : G.Walk u v} (n : ℕ) :
     (p.take n) <+: p := ⟨_, (take_append_drop p n).symm⟩
 
 lemma drop_suffix {p : G.Walk u v} (n : ℕ) :
-    (p.drop n)<:+ p := ⟨_, (take_append_drop p n).symm⟩
+    (p.drop n) <:+ p := ⟨_, (take_append_drop p n).symm⟩
 
 lemma tail_suffix (p : G.Walk u v) : p.tail<:+ p := p.drop_suffix _
 
