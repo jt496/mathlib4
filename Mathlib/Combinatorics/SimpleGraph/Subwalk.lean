@@ -598,6 +598,15 @@ lemma Prefix.nil (q : G.Walk u v) : (nil' u) <+: q := ⟨q, rfl⟩
 lemma Prefix.of_nil {q : G.Walk u v} (h : q <+: (nil' u)) : q.Nil  := by
   simpa using (subwalk_nil_iff.1 h.subwalk).1
 
+lemma Prefix.cons {p : G.Walk u v} {q : G.Walk u w} (hp : p <+: q) (h : G.Adj x u) :
+    p.cons h <+: q.cons h := by
+  obtain ⟨r, rfl⟩ := hp
+  exact ⟨r, by simp⟩
+
+lemma infix_of_prefix {p : G.Walk u v} {q : G.Walk u w} (h : p <+: q) : p <:+: q := by
+  obtain ⟨r, hr⟩ := h
+  exact ⟨nil' u, r, by simpa⟩
+
 lemma Suffix.nil (q : G.Walk u v) : (nil' v) <:+ q := ⟨q, by simp⟩
 
 lemma Suffix.of_nil {q : G.Walk u v} (h : q <:+ (nil' v)) : q.Nil := by
@@ -811,6 +820,103 @@ lemma Subwalk.infix_of_isPath {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (hp 
         · exact (hp.2 <| (hs.of_cons₂_of_ne _ _ hbe).support_sublist.mem (start_mem_support _)).elim
       · obtain ⟨r, s, rfl⟩ := ih hp.1 (hs.of_cons_of_ne _ hua)
         exact ⟨r.cons hq, s, by simp⟩
+
+/-- Any Subwalk of a cycle is an Infix walk -/
+lemma Subwalk.infix_of_isCycle {p : G.Walk u₁ v₁} {c : G.Walk x x} (hc : c.IsCycle) (hs : p <+ c) :
+    p <:+: c := by
+  cases c with
+  | nil => simp at hc
+  | cons h' c =>
+    rw [cons_isCycle_iff] at hc
+    cases hs with
+    | nil => simp
+    | cons h hs =>
+      obtain ⟨r, s, hr⟩:= hs.infix_of_isPath  hc.1
+      exact ⟨r.cons h', s, by simpa⟩
+    | @cons₂ a b c d p f h hs =>
+      obtain ⟨r, s, hr⟩:=hs.infix_of_isPath  hc.1
+      rw [hr] at hc
+      cases r with
+      | nil =>
+        have : p <+: c := by exact ⟨s, by simpa⟩
+        exact infix_of_prefix (this.cons h)
+      | cons h p =>
+        apply_fun List.tail ∘ support at hr
+        rw [← cons_isCycle_iff _ h'] at hc
+        have := hc.support_nodup
+        simp at this
+
+/- Some results about cycles -/
+
+lemma support_reverse_dropLast (p : G.Walk u v) :
+    p.reverse.support.dropLast = p.support.tail.reverse := by
+  cases p with
+  | nil => simp
+  | cons h p =>
+    rw [support_reverse, support_cons]
+    simp
+
+lemma IsCircuit.reverse {c : G.Walk x x} (hc : c.IsCircuit) : c.reverse.IsCircuit := by
+  apply IsCircuit.mk hc.toIsTrail.reverse
+  intro hf
+  rw [← nil_iff_eq_nil, nil_reverse] at hf
+  exact hc.not_nil hf
+
+lemma isCycle_support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCircuit)
+    (hd : c.support.dropLast.Nodup) : c.IsCycle := by
+  rw [← isCycle_reverse]
+  have := support_reverse_dropLast c.reverse
+  rw [reverse_reverse] at this
+  rw [this] at hd
+  apply IsCycle.mk hc.reverse <| List.nodup_reverse.1 hd
+
+lemma IsCycle.support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCycle) :
+    c.support.dropLast.Nodup := by
+  have := hc.reverse.support_nodup
+  have := c.reverse.support_reverse_dropLast
+  rw [reverse_reverse] at this
+  rwa [this, List.nodup_reverse]
+
+lemma IsCircuit.isCycle_iff_support_dropLast {c : G.Walk x x} (hc : c.IsCircuit) :
+  c.IsCycle ↔ c.support.dropLast.Nodup := Iff.intro
+    (fun h ↦ h.support_dropLast_nodup) (fun h ↦ isCycle_support_dropLast_nodup hc h)
+
+/-- Any proper Subwalk of a cycle is a path -/
+lemma Subwalk.of_cycle_lt_isPath {p : G.Walk u₁ v₁} {c : G.Walk x x} (hc : c.IsCycle) (hs : p <+ c)
+    (hn : ¬ c <+ p) : p.IsPath := by
+  obtain ⟨r, s, hr⟩ := hs.infix_of_isCycle hc
+  cases r with
+  | nil =>
+    cases s with
+    | nil => simp at hr; apply hn.elim (hr ▸ Subwalk.refl _)
+    | cons h p =>
+      simp only [nil_append] at hr
+      have := hc.support_dropLast_nodup
+      apply_fun List.dropLast ∘ support at hr
+      apply IsPath.mk'
+      simp_rw [Function.comp_apply, support_append, support_cons, List.tail] at hr
+      rw [hr, support_eq_cons p] at this
+      simp only [ne_eq, reduceCtorEq, not_false_eq_true, List.dropLast_append_of_ne_nil] at this
+      exact (List.nodup_append.1 this).1
+  | cons h p =>
+    have hc := hc.support_nodup
+    apply_fun List.tail ∘ support at hr
+    apply IsPath.mk'
+    cases s with
+    | nil =>
+      simp only [Function.comp_apply, cons_append, append_nil, support_cons, List.tail_cons] at hr
+      rw [hr, support_append'] at hc
+      exact (List.nodup_append.1 hc).2.1
+    | cons h p =>
+      simp only [Function.comp_apply, cons_append, support_cons, List.tail_cons] at hr
+      rw [hr, support_append, support_append', support_cons, List.tail_cons,
+        List.append_assoc] at hc
+      exact (List.nodup_append.1 (List.nodup_append.1 hc).2.1).1
+
+
+
+
+
 
 section  DecEq
 variable [DecidableEq V]
@@ -1056,39 +1162,6 @@ lemma append_right_inj {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
   · obtain ⟨_, h1, h2⟩ := append_inj heq (by simp)
     simp [← h2]
   · subst heq; rfl
-
-lemma support_reverse_dropLast (p : G.Walk u v) :
-    p.reverse.support.dropLast = p.support.tail.reverse := by
-  cases p with
-  | nil => simp
-  | cons h p =>
-    rw [support_reverse, support_cons]
-    simp
-
-lemma IsCircuit.reverse {c : G.Walk x x} (hc : c.IsCircuit) : c.reverse.IsCircuit := by
-  apply IsCircuit.mk hc.toIsTrail.reverse
-  intro hf
-  rw [← nil_iff_eq_nil, nil_reverse] at hf
-  exact hc.not_nil hf
-
-lemma isCycle_support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCircuit)
-    (hd : c.support.dropLast.Nodup) : c.IsCycle := by
-  rw [← isCycle_reverse]
-  have := support_reverse_dropLast c.reverse
-  rw [reverse_reverse] at this
-  rw [this] at hd
-  apply IsCycle.mk hc.reverse <| List.nodup_reverse.1 hd
-
-lemma IsCycle.support_dropLast_nodup {c : G.Walk x x} (hc : c.IsCycle) :
-    c.support.dropLast.Nodup := by
-  have := hc.reverse.support_nodup
-  have := c.reverse.support_reverse_dropLast
-  rw [reverse_reverse] at this
-  rwa [this, List.nodup_reverse]
-
-lemma IsCircuit.isCycle_iff_support_dropLast {c : G.Walk x x} (hc : c.IsCircuit) :
-  c.IsCycle ↔ c.support.dropLast.Nodup := Iff.intro
-    (fun h ↦ h.support_dropLast_nodup) (fun h ↦ isCycle_support_dropLast_nodup hc h)
 
 
 end SimpleGraph.Walk
