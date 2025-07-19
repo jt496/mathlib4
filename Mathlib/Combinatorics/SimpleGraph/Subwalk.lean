@@ -1265,7 +1265,7 @@ instance {V : Type*} : SizeOf (List V) := ⟨fun l ↦ l.length⟩
 def nodupPrefixes : List V → List (List V)
 | [] => [[]]
 | a :: l =>
-  if (a :: l).nodupPrefix = (a :: l) then [(a :: l)] else
+  if (a :: l).Nodup then [(a :: l)] else
     have : (a :: l).nodupSuffix.length < (a :: l).length :=
       nodupSuffix_length_lt_length
     (a :: l).nodupPrefix :: (nodupPrefixes (a :: l).nodupSuffix)
