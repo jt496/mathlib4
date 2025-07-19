@@ -882,16 +882,16 @@ lemma IsCircuit.isCycle_iff_support_dropLast {c : G.Walk x x} (hc : c.IsCircuit)
     (fun h ↦ h.support_dropLast_nodup) (fun h ↦ isCycle_support_dropLast_nodup hc h)
 
 /-- Any proper Subwalk of a cycle is a path -/
-lemma Subwalk.of_cycle_lt_isPath {p : G.Walk u₁ v₁} {c : G.Walk x x} (hc : c.IsCycle) (hs : p <+ c)
-    (hn : ¬ c <+ p) : p.IsPath := by
+lemma Subwalk.of_cycle_not_gt_isPath {p : G.Walk u₁ v₁} {c : G.Walk x x} (hs : p <+ c)
+    (hc : c.IsCycle) (hn : ¬ c <+ p) : p.IsPath := by
   obtain ⟨r, s, hr⟩ := hs.infix_of_isCycle hc
   cases r with
   | nil =>
+    have := hc.support_dropLast_nodup
     cases s with
     | nil => simp at hr; apply hn.elim (hr ▸ Subwalk.refl _)
     | cons h p =>
       simp only [nil_append] at hr
-      have := hc.support_dropLast_nodup
       apply_fun List.dropLast ∘ support at hr
       apply IsPath.mk'
       simp_rw [Function.comp_apply, support_append, support_cons, List.tail] at hr
