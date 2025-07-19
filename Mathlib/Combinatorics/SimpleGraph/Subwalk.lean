@@ -1178,6 +1178,11 @@ def nodupPrefix : List V → List V
               else a :: l.nodupPrefix
 
 
+lemma nodupPrefix_of_cons_ne_nil {a : V} {l : List V} :
+  (a :: l).nodupPrefix ≠ nil := by
+  rw [nodupPrefix]
+  split_ifs with h1 <;> simp
+
 lemma notMem_take_idxOf  (a : V) (l : List V) : a ∉ l.take (l.idxOf a) := by
   induction l with
   | nil => simp
@@ -1247,5 +1252,24 @@ lemma nodupPrefix_append_nodupSuffix  (l : List V) :
   nth_rw 3 [← hs]
   apply_fun drop (l.nodupPrefix.length) at hs
   simp_all [nodupSuffix]
+
+lemma nodupSuffix_length_lt_length {a : V} {l : List V} :
+    (a :: l).nodupSuffix.length < (a :: l).length := by
+  nth_rw 2 [← nodupPrefix_append_nodupSuffix (a ::l)]
+  simp only [length_append, lt_add_iff_pos_left]
+  apply length_pos_iff.2 nodupPrefix_of_cons_ne_nil
+
+instance {V : Type*} : SizeOf (List V) := ⟨fun l ↦ l.length⟩
+
+/-- Split a list into contiguous sublists that are maximally nodup -/
+def nodupPrefixes : List V → List (List V)
+| [] => [[]]
+| a :: l =>
+  if (a :: l).nodupPrefix = (a :: l) then [(a :: l)] else
+    have : (a :: l).nodupSuffix.length < (a :: l).length :=
+      nodupSuffix_length_lt_length
+    (a :: l).nodupPrefix :: (nodupPrefixes (a :: l).nodupSuffix)
+
+#eval nodupPrefixes [1,2, 1,3,2,4,5,1,2,1, 0,5,1]
 
 end List
