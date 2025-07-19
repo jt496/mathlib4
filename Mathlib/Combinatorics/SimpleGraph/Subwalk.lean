@@ -23,9 +23,10 @@ This doesn't hold for `Subwalks` but we do have `p` is a Subwalk of `q` iff `p.d
 of `q.darts` (for `p ≠ nil`).
 
 -/
+variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
+
 namespace SimpleGraph.Walk
 
-variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
 
 /--
 `p.Subwalk q` if `p` is a (not necessarily contiguous) subwalk of `q`, denoted `p <+ q`
@@ -913,11 +914,6 @@ lemma Subwalk.of_cycle_not_gt_isPath {p : G.Walk u₁ v₁} {c : G.Walk x x} (hs
         List.append_assoc] at hc
       exact (List.nodup_append.1 (List.nodup_append.1 hc).2.1).1
 
-
-
-
-
-
 section  DecEq
 variable [DecidableEq V]
 
@@ -1165,3 +1161,91 @@ lemma append_right_inj {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk u₂ v} :
 
 
 end SimpleGraph.Walk
+
+
+namespace List
+variable [DecidableEq V]
+/-
+Some ideas for functions to split a walk into paths / cycles
+(write versions for lists of vertices first before doing the same for Walks)
+-/
+
+/-- The longest prefix of a list without duplicates -/
+def nodupPrefix : List V → List V
+| [] => []
+| a :: l => if a ∈ l.nodupPrefix
+              then a :: l.nodupPrefix.take (l.nodupPrefix.idxOf a)
+              else a :: l.nodupPrefix
+
+
+lemma notMem_take_idxOf  (a : V) (l : List V) : a ∉ l.take (l.idxOf a) := by
+  induction l with
+  | nil => simp
+  | cons b l ih =>
+    intro ha
+    by_cases hab : b = a
+    · subst hab
+      simp at ha
+    · apply ih
+      have : idxOf a (b :: l) = idxOf a l + 1 := idxOf_cons_ne _ hab
+      rw [this, take_succ_cons, mem_cons] at ha
+      obtain (rfl | ha) := ha <;> trivial
+
+lemma nodup_nodupPrefix (l : List V) : l.nodupPrefix.Nodup := by
+  induction l with
+  | nil => simp [nodupPrefix]
+  | cons a l ih =>
+    rw [nodupPrefix]
+    split_ifs with h1
+    · apply Nodup.cons _ ((take_sublist _ _).nodup ih)
+      exact notMem_take_idxOf a l.nodupPrefix
+    · exact Nodup.cons h1 ih
+
+lemma prefix_nodupPrefix  (l : List V) : l.nodupPrefix <+: l := by
+  induction l with
+  | nil => simp [nodupPrefix]
+  | cons a l ih =>
+    rw [nodupPrefix]
+    split_ifs with h1
+    · exact (prefix_cons_inj a).mpr ((take_prefix _ _).trans ih)
+    · exact (prefix_cons_inj a).mpr ih
+
+lemma IsPrefix.notMem_take_idxOf_of_notMem  {l k : List V} (h : k <+: l) (ha : a ∈ l)
+    (hk : a ∉ k) : k <+: l.take (idxOf a l) := by
+  obtain ⟨s, hs⟩ := h
+  have has : a ∈ s := by
+    subst hs
+    simp_all only [mem_append, false_or]
+  use s.take (idxOf a s)
+  rw [← hs]
+  have : idxOf a (k ++ s) = k.length + (idxOf a s) := idxOf_append_of_notMem hk
+  rw [this]
+  simp [take_append]
+
+/-- Any prefix of `l` without duplicates is also a prefix of `l.nodupPrefix` -/
+lemma nodupPrefix_max_prefix  {l k : List V} (h : k <+: l) (hk : k.Nodup ) :
+    k <+: l.nodupPrefix := by
+  induction k generalizing l with
+  | nil => simp
+  | cons a k ih =>
+    cases l with
+    | nil => simp at h
+    | cons b l =>
+      obtain ⟨rfl, h'⟩ := cons_prefix_cons.1 h
+      have hi := ih h' hk.of_cons
+      rw [nodupPrefix]
+      split_ifs with h1
+      · simp only [cons_prefix_cons, true_and]
+        exact hi.notMem_take_idxOf_of_notMem h1 hk.notMem
+      · exact (prefix_cons_inj a).2 <| ih h' hk.of_cons
+
+def nodupSuffix (l : List V) : List V := l.drop (l.nodupPrefix.length)
+
+lemma nodupPrefix_append_nodupSuffix  (l : List V) :
+    l.nodupPrefix ++ l.nodupSuffix = l := by
+  obtain ⟨s, hs⟩ := prefix_nodupPrefix l
+  nth_rw 3 [← hs]
+  apply_fun drop (l.nodupPrefix.length) at hs
+  simp_all [nodupSuffix]
+
+end List
