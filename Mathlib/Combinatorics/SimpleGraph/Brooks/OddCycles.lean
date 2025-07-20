@@ -630,4 +630,69 @@ lemma Walk.exists_odd_cycle_of_odd_closed_walk  (p : G.Walk u u) (ho : Odd p.len
 lemma Walk.darts_oddCycle_subset (p : G.Walk u u) : p.oddCycle.toWalk.darts ⊆ p.darts :=
   fun _ hd ↦ p.darts_oddTrailLike_subset <| p.oddTrailLike.toWalk.darts_cutVert_subset hd
 
+
+/- TODO : replace shorterOdd' with something based on the following : -/
+def Walk.takeUntilNth {u v x : α} : ∀ {p : G.Walk u v} {n : ℕ}, n < p.support.count x → G.Walk u x
+  | nil , 0, hu =>
+      have : x = u := by simpa using hu
+      this ▸ Walk.nil
+  | nil, n + 1, hu => by
+      simp only [support_nil, nodup_cons, not_mem_nil, not_false_eq_true,
+        nodup_nil, and_self, count_singleton, beq_iff_eq] at hu
+      split_ifs at hu <;> omega
+  | cons h p, 0, hu => (p.cons h).takeUntil _ (count_pos_iff.mp hu)
+  | cons h p, n + 1, hu =>
+      if hux : u = x
+        then
+          have : n < p.support.count u := by simpa [hux] using hu
+          hux ▸ ((p.takeUntilNth this).cons h)
+        else
+          have : n + 1 <  p.support.count x := by simp_all
+        (p.takeUntilNth this).cons h
+
+lemma Walk.takeUntilNth_cons_succ_of_ne {u v x y : α} (h : G.Adj u y) (p : G.Walk y v) {n : ℕ}
+    (hn : n + 1 < p.support.count x) (hx : u ≠ x ) :
+    (p.cons h).takeUntilNth (hn.trans_le List.count_le_count_cons) =
+    (p.takeUntilNth hn).cons h := by
+  rw [takeUntilNth]
+  split_ifs with hyx <;> trivial
+
+lemma Walk.count_support_takeUntilNth_eq {u v x : α} {p : G.Walk u v} {n : ℕ}
+    (hn : n < p.support.count x) : (p.takeUntilNth hn).support.count x = n + 1 := by
+  induction n generalizing p u v with
+  | zero =>
+    cases p with
+    | nil =>
+      simp_all [takeUntilNth]
+      rw [support_nil] at hn; simp at hn
+      subst hn
+      simp
+    | cons h p => rw [takeUntilNth, count_support_takeUntil_eq_one]
+  | succ n ih =>
+    cases p with
+    | nil =>
+      simp only [support_nil, nodup_cons, not_mem_nil, not_false_eq_true,
+        nodup_nil, and_self, count_singleton, beq_iff_eq] at hn
+      split_ifs at hn <;> omega
+    | cons h p =>
+      rw [takeUntilNth]
+      split_ifs with hux
+      · have : n < p.support.count x := by simpa [hux] using hn
+        have := ih this
+        subst hux
+        simpa [support_cons]
+      · have : n + 1 <  p.support.count x := by simp_all
+        simp_all [count_cons]
+        induction p generalizing u with
+        | nil => simp [count_singleton] at this; split_ifs at this <;> omega
+        | @cons a b c hp p iph =>
+          sorry
+      -- by_cases hux : u = x
+      -- · have : n < p.support.count x := by simpa [hux] using hn
+      --   have := ih this
+
+      --   sorry
+      -- · sorry
+
+
 end SimpleGraph
