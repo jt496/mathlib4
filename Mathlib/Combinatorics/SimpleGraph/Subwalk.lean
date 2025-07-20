@@ -1272,17 +1272,42 @@ def nodupPrefixes : List V → List (List V)
 
 
 lemma infix_of_nodupPrefixes {l k : List V} (h : k ∈ l.nodupPrefixes) : k <:+: l := by
-  induction hn : l.length using Nat.strong_induction_on generalizing l with
-  | h n ih =>
-    cases l with
-    | nil => simp_all [nodupPrefixes]
-    | cons a l =>
+  cases l with
+  | nil => simp_all [nodupPrefixes]
+  | cons a l =>
+  rw [nodupPrefixes] at h
+  split_ifs at h with h1
+  · simp_all
+  · obtain (rfl | h) := mem_cons.1 h
+    · exact IsPrefix.isInfix (prefix_nodupPrefix (a :: l))
+    · have : (a :: l).nodupSuffix.length < (a :: l).length := nodupSuffix_length_lt_length _ _
+      rw [← nodupPrefix_append_nodupSuffix (a :: l)]
+      exact infix_append_of_infix_right <| infix_of_nodupPrefixes (l := (a :: l).nodupSuffix) h
+
+lemma nodup_of_mem_nodupPrefixes {l k : List V} (h : k ∈ l.nodupPrefixes) : k.Nodup := by
+  cases l with
+  | nil => simp_all [nodupPrefixes]
+  | cons a l =>
     rw [nodupPrefixes] at h
     split_ifs at h with h1
     · simp_all
     · obtain (rfl | h) := mem_cons.1 h
-      · exact IsPrefix.isInfix (prefix_nodupPrefix (a :: l))
-      · rw [← nodupPrefix_append_nodupSuffix (a :: l)]
-        exact infix_append_of_infix_right (ih _ (hn ▸ (nodupSuffix_length_lt_length a l)) h rfl)
+      · exact nodup_nodupPrefix (a :: l)
+      · have : (a :: l).nodupSuffix.length < (a :: l).length := nodupSuffix_length_lt_length _ _
+        exact nodup_of_mem_nodupPrefixes (l := (a :: l).nodupSuffix) h
+
+
+lemma foldr_of_nodupPrefixes (l : List V) : l.nodupPrefixes.foldr (· ++ ·) [] = l := by
+  cases l with
+  | nil => simp [nodupPrefixes]
+  | cons a l =>
+    rw [nodupPrefixes]
+    split_ifs with h1
+    · simp
+    · rw [foldr_cons]
+      have : (a :: l).nodupSuffix.length < (a :: l).length := nodupSuffix_length_lt_length _ _
+      nth_rw 3 [← nodupPrefix_append_nodupSuffix (a :: l)]
+      nth_rw 2 [← foldr_of_nodupPrefixes (a :: l).nodupSuffix]
+
 
 end List
