@@ -632,6 +632,27 @@ lemma Walk.darts_oddCycle_subset (p : G.Walk u u) : p.oddCycle.toWalk.darts ⊆ 
 
 
 /- TODO : replace shorterOdd' with something based on the following : -/
+
+def Walk.takeUntilNext {u : α} (p : G.Walk u u) : G.Walk u u :=
+  match p with
+| nil => nil
+| cons h p => (p.takeUntil _ p.end_mem_support).cons h
+
+def Walk.dropUntilNext {u : α} (p : G.Walk u u) : G.Walk u u :=
+  match p with
+| nil => nil
+| cons _ p => (p.dropUntil _ p.end_mem_support)
+
+lemma Walk.takeNext_spec_cons (h : G.Adj u v) (p : G.Walk v u) :
+    (cons h p).takeUntilNext.append (cons h p).dropUntilNext = p.cons h := by
+  rw [takeUntilNext, dropUntilNext, ← take_spec _ p.end_mem_support]
+  simp
+
+
+
+
+
+
 def Walk.takeUntilNth {u v x : α} : ∀ {p : G.Walk u v} {n : ℕ}, n < p.support.count x → G.Walk u x
   | nil , 0, hu =>
       have : x = u := by simpa using hu
