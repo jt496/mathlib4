@@ -18,10 +18,11 @@ that travels along `w` from `u` to `x` and then back to `v` without revisiting `
 `w.shortClosed hx` is the closed walk that travels along `w` from the first visit of `x` to the last
  visit.
 
-We use these to construct an odd cycle from an odd length closed walk.
+We also introduce `takeUntilNext` and `dropUntilNext` which, given a closed walk `w : G.Walk u u`
+give the walk in `w` from start to the next occurence of `u` and then from there to the end
+respectively.
 
-Any closed walk of odd length contains an odd cycle, but its not obvious what the endpoints of such
-a cycle will be so we introduce `G.Loop := Σ v, G.Walk v v` the type of closed walks in `G`.
+We use these to prove that given a closed walk of odd length in `G` there is an odd length cycle.
 -/
 
 namespace SimpleGraph.Walk
