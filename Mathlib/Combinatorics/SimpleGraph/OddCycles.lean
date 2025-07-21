@@ -139,13 +139,6 @@ lemma support_tail_nodup_iff_count_le  {u : α} (w : G.Walk u v) : w.support.tai
     · rw [count_eq_zero_of_not_mem (fun hf ↦ ha (mem_of_mem_tail hf))]
       omega
 
-lemma odd_walk_isCycle_iff {u : α} (w : G.Walk u u) (h : Odd w.length) :
-    (w.support.count u ≤ 2 ∧ ∀ x ∈ w.support, x ≠ u → count x w.support ≤ 1) ↔ w.IsCycle := by
-  constructor <;> intro h'
-  · exact isCycle_odd_support_tail_nodup h ((support_tail_nodup_iff_count_le w).mpr h')
-  · exact (support_tail_nodup_iff_count_le _).1 h'.support_nodup
-
-
 /-- Given a vertex `x` in a walk `w` form the walk that travels along `w` from the first visit of
 `x` to the last visit of `x` (which may be the same in which case this is `nil' x`) -/
 abbrev shortClosed (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk x x :=
@@ -373,21 +366,21 @@ lemma length_shorterOddStart_lt_length {p : G.Walk u u} (h2 : 2 < p.support.coun
   · simp only [lt_add_iff_pos_left, ← not_nil_iff_lt_length]
     exact takeUntilNext_not_nil_of_count h2
 
-local instance {u v : α} : SizeOf (G.Walk u v) := ⟨fun l ↦ l.length⟩
-
-theorem exists_odd_cycle {u : α} (w : G.Walk u u) (ho : Odd w.length) :
+theorem exists_odd_cycle {u : α} {w : G.Walk u u} (ho : Odd w.length) :
     ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length := by
   cases w with
   | nil => simp at ho
   | cons h c =>
     by_cases h2 : 2 < (cons h c).support.count u
     · have := length_shorterOddStart_lt_length h2
-      exact exists_odd_cycle ((cons h c).shorterOddStart) (length_shorterOddStart_odd ho)
+      exact exists_odd_cycle <| length_shorterOddStart_odd ho
     · by_cases h1 : ∃ x, (x ∈ (cons h c).support ∧ x ≠ u ∧ 1 < (cons h c).support.count x)
       · obtain ⟨x, hx, hxu, hx1⟩ := h1
         have := length_shorterOdd_lt_length hx hxu hx1
-        exact exists_odd_cycle ((cons h c).shorterOdd hx) (length_shorterOdd_odd hx ho)
+        exact exists_odd_cycle <| length_shorterOdd_odd hx ho
       · push_neg at h1 h2
-        exact ⟨_, _, (odd_walk_isCycle_iff _ ho).1 ⟨h2, h1⟩, ho⟩
+        have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
+        use u, c.cons h
+  termination_by w.length
 
 end SimpleGraph.Walk
