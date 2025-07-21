@@ -233,32 +233,16 @@ lemma notMem_support_reverse_tail_takeUntil (w : G.Walk u v) (hx : x ∈ w.suppo
       count_support_takeUntil_eq_one, support_eq_concat] at hx2
   simp at hx2
 
-lemma nil_iff_count_le_one {w : G.Walk u u} : w.Nil ↔ w.support.count u ≤ 1 := by
-  cases w with
-  | nil => simp
-  | cons h p =>
-  simp only [not_nil_cons, support_cons, count_cons_self, add_le_iff_nonpos_left,
-    nonpos_iff_eq_zero, false_iff]
-  intro hf
-  rw [count_eq_zero] at hf
-  apply hf p.end_mem_support
-
 /-- If `x` is a repeated vertex of the walk `w` then `w.shortClosed hx` is
 a non-nil closed walk. -/
 lemma shortClosed_not_nil_of_one_lt_count (w : G.Walk u v) (hx : x ∈ w.support)
-    (h2 : 1 < w.support.count x) : ¬(w.shortClosed hx).Nil := by
+    (h2 : 1 < w.support.count x) : ¬ (w.shortClosed hx).Nil := by
   intro h
-  have hs := dropUntil_spec w hx
   have : w.dropUntil x hx = (w.reverse.takeUntil x (w.mem_support_reverse.2 hx)).reverse := by
-    rw [← hs, h.eq_nil]
-    exact nil_append _
+    simp [← dropUntil_spec w hx, h.eq_nil]
   have hw :=  congr_arg (count x) <| congr_arg support <| take_spec w hx
-  rw [this, support_append, count_append] at hw
-  simp only [count_support_takeUntil_eq_one, support_reverse] at *
-  have : 0 < count x (w.reverse.takeUntil x (w.mem_support_reverse.2 hx)).support.reverse.tail := by
-    omega
-  rw [List.count_pos_iff] at this
-  exact (w.reverse.notMem_support_reverse_tail_takeUntil _) this
+  rw [this, support_append, count_append, count_support_takeUntil_eq_one, support_reverse] at hw
+  exact (w.reverse.notMem_support_reverse_tail_takeUntil (by simpa)) <| count_pos_iff.1 (by omega)
 
 lemma length_shortCut_add_shortClosed (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortCut hx).length + (w.shortClosed hx).length = w.length := by
