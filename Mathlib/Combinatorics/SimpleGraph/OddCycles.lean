@@ -139,13 +139,13 @@ lemma support_tail_nodup_iff_count_le  {u : α} (w : G.Walk u v) : w.support.tai
   · intro ⟨_, h1⟩ a
     by_cases ha : a ∈ w.support
     · by_cases ha' : a = u
-      · subst a
-        simpa
+      · simp_all
       · rw [support_eq_cons] at ha
-        simp_all only [mem_cons, false_or]
-        have :=  h1 _ ha ha'
-        rw [count_cons] at this
-        omega
+        obtain (rfl | ha) := mem_cons.1 ha
+        · trivial
+        · have :=  h1 _ ha ha'
+          rw [count_cons] at this
+          omega
     · rw [count_eq_zero_of_not_mem (fun hf ↦ ha (mem_of_mem_tail hf))]
       omega
 
@@ -205,7 +205,7 @@ lemma shortCut_start (w : G.Walk u v) : w.shortCut w.start_mem_support =
   cases w <;> simp [shortCut]
 
 lemma shortCut_not_nil (w : G.Walk u v) (hx : x ∈ w.support) (hu : x ≠ u) :
-    ¬(w.shortCut hx).Nil := by
+    ¬ (w.shortCut hx).Nil := by
   rw [shortCut]
   simp only [nil_append_iff, nil_takeUntil, nil_reverse, not_and]
   rintro rfl; contradiction
@@ -346,6 +346,7 @@ lemma length_shorterOddStart_lt_length {p : G.Walk u u} (h2 : 2 < p.support.coun
   · simp only [lt_add_iff_pos_left, ← not_nil_iff_lt_length]
     exact takeUntilNext_not_nil_of_not_nil (not_nil_of_one_lt_count u (by omega) )
 
+/-- If `G` contains a closed odd walk then it contains an odd cycle -/
 theorem exists_odd_cycle {u : α} {w : G.Walk u u} (ho : Odd w.length) :
     ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length := by
   by_cases h2 : 2 < w.support.count u
@@ -360,7 +361,9 @@ theorem exists_odd_cycle {u : α} {w : G.Walk u u} (ho : Odd w.length) :
       use u, w
   termination_by w.length
 
-/-- TODO: work out why the `termination_by w.length` proof fails here. -/
+/- TODO: work out why the `termination_by w.length` proof fails in the next result. -/
+
+/-- If `G` contains a closed odd walk `w` then `w` contains a subwalk that is an odd cycle -/
 theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
     ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length  ∧ c <+ w := by
   induction hn : w.length using Nat.strong_induction_on generalizing w u with
@@ -393,8 +396,7 @@ theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
 --   · by_cases h1 : ∃ x, (x ∈ w.support ∧ x ≠ u ∧ 1 < w.support.count x)
 --     · obtain ⟨x, hx, hxu, hx1⟩ := h1
 --       by_cases ho1 : Odd (w.shortClosed hx).length
---       ·
---         have := length_shortClosed_lt_length hx hxu
+--       · have := length_shortClosed_lt_length hx hxu
 --         obtain ⟨y, c', hc1, hc2, hc3⟩ := exists_odd_cycle_subwalk' ho1
 --         exact ⟨y, c', hc1, hc2, hc3.trans (shortClosed_infix hx).subwalk⟩
 --       · have ho' : Odd (w.shortCut hx).length := by
