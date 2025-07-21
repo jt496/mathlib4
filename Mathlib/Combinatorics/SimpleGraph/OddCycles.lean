@@ -18,11 +18,12 @@ that travels along `w` from `u` to `x` and then back to `v` without revisiting `
 `w.shortClosed hx` is the closed walk that travels along `w` from the first visit of `x` to the last
  visit.
 
-We also introduce `takeUntilNext` and `dropUntilNext` which, given a closed walk `w : G.Walk u u`
-give the walk in `w` from start to the next occurence of `u` and then from there to the end
+We also introduce `takeUntilNext` and `dropUntilNext` which, given a closed walk `w : G.Walk u u`,
+yield the walks in `w` from start to the next occurence of `u` and then from there to the end
 respectively.
 
 We use these to prove that given a closed walk of odd length in `G` there is an odd length cycle.
+  `exists_odd_cycle`
 -/
 
 namespace SimpleGraph.Walk
@@ -36,10 +37,8 @@ theorem support_eq_concat {u v : α} (p : G.Walk u v) : p.support = p.support.dr
     obtain ⟨x, q, h',h2⟩ := exists_cons_eq_concat h p
     simp [h2]
 
-
 lemma mem_support_reverse {u v x : α} (p : G.Walk u v) : x ∈ p.reverse.support ↔ x ∈ p.support := by
   simp [*]
-
 
 @[simp]
 lemma length_takeUntil_add_dropUntil [DecidableEq α] {p : G.Walk u v} (h : w ∈ p.support) :
@@ -227,14 +226,23 @@ lemma shortCut_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortCut hx).support.count y ≤ w.support.count y :=
   List.Sublist.count_le _ (w.shortCut_subwalk hx).support_sublist
 
-lemma not_mem_support_reverse_tail_takeUntil (w : G.Walk u v) (hx : x ∈ w.support) :
+lemma notMem_support_reverse_tail_takeUntil (w : G.Walk u v) (hx : x ∈ w.support) :
     x ∉ (w.takeUntil x hx).support.reverse.tail := by
   intro hx2
-  rw [← List.count_pos_iff, List.count_tail,  List.count_reverse,
+  rw [← count_pos_iff, count_tail, List.count_reverse,
       count_support_takeUntil_eq_one, support_eq_concat] at hx2
   simp at hx2
 
-open List
+lemma nil_iff_count_le_one {w : G.Walk u u} : w.Nil ↔ w.support.count u ≤ 1 := by
+  cases w with
+  | nil => simp
+  | cons h p =>
+  simp only [not_nil_cons, support_cons, count_cons_self, add_le_iff_nonpos_left,
+    nonpos_iff_eq_zero, false_iff]
+  intro hf
+  rw [count_eq_zero] at hf
+  apply hf p.end_mem_support
+
 /-- If `x` is a repeated vertex of the walk `w` then `w.shortClosed hx` is
 a non-nil closed walk. -/
 lemma shortClosed_not_nil_of_one_lt_count (w : G.Walk u v) (hx : x ∈ w.support)
@@ -250,7 +258,7 @@ lemma shortClosed_not_nil_of_one_lt_count (w : G.Walk u v) (hx : x ∈ w.support
   have : 0 < count x (w.reverse.takeUntil x (w.mem_support_reverse.2 hx)).support.reverse.tail := by
     omega
   rw [List.count_pos_iff] at this
-  exact (w.reverse.not_mem_support_reverse_tail_takeUntil _) this
+  exact (w.reverse.notMem_support_reverse_tail_takeUntil _) this
 
 lemma length_shortCut_add_shortClosed (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortCut hx).length + (w.shortClosed hx).length = w.length := by
