@@ -24,6 +24,9 @@ respectively.
 
 We use these to prove that given a closed walk of odd length in `G` there is an odd length cycle.
   `exists_odd_cycle`
+
+We also prove `exists_odd_cycle_subwalk` that given `w` a closed odd walk then there is a subwalk of
+`w` that is an odd cycle.
 -/
 
 namespace SimpleGraph.Walk
@@ -250,6 +253,18 @@ lemma length_shortCut_add_shortClosed (w : G.Walk u v) (hx : x ∈ w.support) :
             length_append, length_reverse]
   omega
 
+lemma length_shortClosed_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support) (hne : x ≠ u) :
+    (p.shortClosed hx).length < p.length := by
+  rw [ ← p.length_shortCut_add_shortClosed hx]
+  rw [lt_add_iff_pos_left, ← not_nil_iff_lt_length]
+  exact p.shortCut_not_nil hx hne
+
+lemma length_shortCut_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support)
+    (h2 : 1 < p.support.count x) : (p.shortCut hx).length < p.length := by
+  rw [ ← p.length_shortCut_add_shortClosed hx]
+  rw [lt_add_iff_pos_right, ← not_nil_iff_lt_length]
+  exact p.shortClosed_not_nil_of_one_lt_count hx h2
+
 /--
 Given a closed walk `w : G.Walk u u` and a vertex `x ∈ w.support` we can form a new closed walk
 `w.shorterOdd hx`. If `w.length` is odd then this walk is also odd. Morever if `x` occured more
@@ -286,12 +301,10 @@ lemma length_shorterOdd_le {u : α} (p : G.Walk u u) {x : α} (hx : x ∈ p.supp
 
 lemma length_shorterOdd_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support) (hne : x ≠ u)
     (h2 : 1 < p.support.count x) : (p.shorterOdd hx).length < p.length := by
-  rw [shorterOdd, ← p.length_shortCut_add_shortClosed hx]
+  rw [shorterOdd]
   split_ifs with ho
-  · rw [lt_add_iff_pos_left, ← not_nil_iff_lt_length]
-    exact p.shortCut_not_nil hx hne
-  · rw [length_rotate, lt_add_iff_pos_right, ← not_nil_iff_lt_length]
-    exact p.shortClosed_not_nil_of_one_lt_count hx h2
+  · exact p.length_shortClosed_lt_length hx hne
+  · rw [length_rotate]; exact p.length_shortCut_lt_length hx h2
 
 def takeUntilNext {u : α} (p : G.Walk u u) : G.Walk u u :=
   match p with
@@ -340,6 +353,12 @@ lemma dropUntilNext_isSuffix {u : α} (p : G.Walk u u) : p.dropUntilNext <:+ p :
 def shorterOddStart {u : α} (p : G.Walk u u) : G.Walk u u :=
   if Odd p.takeUntilNext.length then p.takeUntilNext else p.dropUntilNext
 
+lemma shorterOddStart_infix {u : α} (p : G.Walk u u) : p.shorterOddStart <:+: p := by
+  rw [shorterOddStart]
+  split_ifs with h
+  · exact p.takeUntilNext_isPrefix.infix
+  · exact p.dropUntilNext_isSuffix.infix
+
 lemma length_shorterOddStart_odd {p : G.Walk u u} (ho : Odd p.length) :
   Odd p.shorterOddStart.length := by
   rw [← p.takeNext_spec] at ho
@@ -375,5 +394,63 @@ theorem exists_odd_cycle {u : α} {w : G.Walk u u} (ho : Odd w.length) :
         have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
         use u, c.cons h
   termination_by w.length
+
+/-- TODO: work out why the direct induction (as in previous result) fails here. -/
+theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
+    ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length  ∧ c <+ w := by
+  induction hn : w.length using Nat.strong_induction_on generalizing w u with
+  | h n ih =>
+  cases w with
+  | nil => simp at ho
+  | cons h c =>
+    subst hn
+    by_cases h2 : 2 < (cons h c).support.count u
+    · have := length_shorterOddStart_lt_length h2
+      obtain ⟨x, c', hc1, hc2, hc3⟩:= ih _ this (length_shorterOddStart_odd ho) rfl
+      exact ⟨x, c', hc1, hc2, hc3.trans (shorterOddStart_infix _).subwalk⟩
+    · by_cases h1 : ∃ x, (x ∈ (cons h c).support ∧ x ≠ u ∧ 1 < (cons h c).support.count x)
+      · obtain ⟨x, hx, hxu, hx1⟩ := h1
+        by_cases ho1 : Odd ((cons h c).shortClosed hx).length
+        · have := length_shortClosed_lt_length hx hxu
+          obtain ⟨y, c', hc1, hc2, hc3⟩ := ih ((cons h c).shortClosed hx).length this ho1 rfl
+          exact ⟨y, c', hc1, hc2, hc3.trans (shortClosed_infix hx).subwalk⟩
+        · have ho' : Odd ((cons h c).shortCut hx).length := by
+            rw [← (cons h c).length_shortCut_add_shortClosed hx] at ho
+            exact (Nat.odd_add.1 ho).2 (Nat.not_odd_iff_even.1 ho1)
+          have := length_shortCut_lt_length hx hx1
+          obtain ⟨y, c', hc1, hc2, hc3⟩ := ih ((cons h c).shortCut hx).length this ho' rfl
+          exact ⟨y, c', hc1, hc2, hc3.trans ((shortCut_subwalk hx))⟩
+      · push_neg at h1 h2
+        have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
+        use u, c.cons h
+
+
+-- theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
+--     ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length  ∧ c <+ w := by
+--   cases w with
+--   | nil => simp at ho
+--   | cons h c =>
+--     by_cases h2 : 2 < (cons h c).support.count u
+--     · have := length_shorterOddStart_lt_length h2
+--       obtain ⟨x, c', hc1, hc2, hc3⟩:= exists_odd_cycle_subwalk (length_shorterOddStart_odd ho)
+--       exact ⟨x, c', hc1, hc2, hc3.trans (shorterOddStart_infix _).subwalk⟩
+--     · by_cases h1 : ∃ x, (x ∈ (cons h c).support ∧ x ≠ u ∧ 1 < (cons h c).support.count x)
+--       · obtain ⟨x, hx, hxu, hx1⟩ := h1
+--         by_cases ho1 : Odd ((cons h c).shortClosed hx).length
+--         · have := length_shortClosed_lt_length hx hxu
+--           obtain ⟨y, c', hc1, hc2, hc3⟩ := exists_odd_cycle_subwalk ho1
+--           exact ⟨y, c', hc1, hc2, hc3.trans (shortClosed_infix hx).subwalk⟩
+--         · have ho' : Odd ((cons h c).shortCut hx).length := by
+--             rw [← (cons h c).length_shortCut_add_shortClosed hx] at ho
+--             exact (Nat.odd_add.1 ho).2 (Nat.not_odd_iff_even.1 ho1)
+--           have := length_shortCut_lt_length hx hx1
+--           obtain ⟨y, c', hc1, hc2, hc3⟩ := exists_odd_cycle_subwalk ho'
+--           exact ⟨y, c', hc1, hc2, hc3.trans ((shortCut_subwalk hx))⟩
+--       · push_neg at h1 h2
+--         have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
+--         use u, c.cons h
+--    termination_by w.length
+
+
 
 end SimpleGraph.Walk
