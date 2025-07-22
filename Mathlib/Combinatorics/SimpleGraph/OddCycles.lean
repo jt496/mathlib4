@@ -28,7 +28,7 @@ necessarily contiguous subwalk of `w`.
 
 If `w` is a closed walk (i.e. `u = v`) then both `shortCut` and `shortClosed` are closed walks.
 
-We also introduce a way to decompose a closed walk `w : G.Walk u u` into two walks
+We also introduce another way to decompose a closed walk `w : G.Walk u u` into two walks
 `takeUntilNext` and `dropUntilNext`, where
 `w.takeUntilNext` is the prefix of `w` from its start to the next occurence of `u`.
 `w.dropUntilNext` is the suffix of `w` from the second occurence of `u` to its end.
