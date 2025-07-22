@@ -7,7 +7,6 @@ import Mathlib.Combinatorics.SimpleGraph.Finsubgraph
 import Mathlib.Combinatorics.SimpleGraph.Paths
 import Mathlib.Combinatorics.SimpleGraph.ConcreteColorings
 import Mathlib.Combinatorics.SimpleGraph.Subwalk
-
 /-! # Walk decompositions and odd cycles
 We extend the walk decomposition API.
 
@@ -33,8 +32,10 @@ We also introduce another way to decompose a closed walk `w : G.Walk u u` into t
 `w.takeUntilNext` is the prefix of `w` from its start to the next occurence of `u`.
 `w.dropUntilNext` is the suffix of `w` from the second occurence of `u` to its end.
 
-Given an odd length closed walk `w : G.Walk u u` we now have two ways to split `w` into two closed
-walks. In each case one of the pair of new closed walks will also be odd. Moreover:
+Given a closed walk `w : G.Walk u u` we now have two ways to split `w` into two closed
+walks.
+
+If `Odd w.length` then in each case one of the pair of new closed walks will also be odd. Moreover:
 
 (1) If `x ≠ u` and `x` occurs more than once in `w.support` then both `w.shortCut hx` and
     `w.shortClosed hx` are not `Nil` and so whichever of these has odd length is a strictly
@@ -51,51 +52,25 @@ For an odd closed walk `w : G.Walk u u` the condition
 
 Hence we can use these to prove `exists_odd_cycle_subwalk`: given `w` a closed odd walk there is a
 subwalk of `w` that is an odd cycle.
--/
 
+TODO: what should we do for even closed walks? (There is no guarantee of any cycles but perhaps the
+walk decomposition API developed here could still be useful.)
+-/
 namespace SimpleGraph.Walk
 open Walk List
-variable {α : Type*} {u v x w : α} {G : SimpleGraph α}
+variable {α : Type*} {u v x y z : α} {G : SimpleGraph α}
 
-theorem support_eq_concat {u v : α} (p : G.Walk u v) : p.support = p.support.dropLast ++ [v] := by
+theorem support_eq_concat (p : G.Walk u v) : p.support = p.support.dropLast ++ [v] := by
   cases p with
   | nil => rfl
   | cons h p =>
     obtain ⟨x, q, h',h2⟩ := exists_cons_eq_concat h p
     simp [h2]
 
-lemma mem_support_reverse {u v x : α} (p : G.Walk u v) : x ∈ p.reverse.support ↔ x ∈ p.support := by
-  simp [*]
+lemma mem_support_reverse (p : G.Walk u v) : x ∈ p.reverse.support ↔ x ∈ p.support := by simp [*]
 
-lemma not_nil_of_one_lt_count [DecidableEq α] {u v : α} {p : G.Walk u v} (x : α)
-    (h : 1 < p.support.count x) : ¬ p.Nil := by
-  contrapose! h
-  have := h.eq
-  subst this
-  rw [h.eq_nil, support_nil]
-  convert List.count_le_length
-
-@[simp]
-lemma length_takeUntil_add_dropUntil [DecidableEq α] {p : G.Walk u v} (h : w ∈ p.support) :
-    (p.takeUntil w h).length + (p.dropUntil w h).length = p.length := by
-  rw [← length_append, take_spec]
-
-lemma takeUntil_append_of_mem_left [DecidableEq α] (p : G.Walk u v) (q : G.Walk v w)
-    (hx : x ∈ p.support) :
-    (p ++ q).takeUntil x (subset_support_append_left _ _ hx) = p.takeUntil _ hx  := by
-  induction p with
-  | nil => rw [mem_support_nil_iff] at hx; subst_vars; simp
-  | @cons u _ _ _ p ih =>
-    rw [support_cons] at hx
-    by_cases hxu : u = x
-    · subst_vars; simp
-    · have := List.mem_of_ne_of_mem (fun hf ↦ hxu hf.symm) hx
-      simp_rw [takeUntil_cons this hxu, cons_append]
-      rw [takeUntil_cons (subset_support_append_left _ _ this) hxu]
-      simpa using ih _ this
-
-lemma IsPath.length_one_of_end_start_mem_edges {u v : α} {w : G.Walk u v}
-    (hp : w.IsPath) (h1 : s(v, u) ∈ w.edges) : w.length = 1 := by
+lemma IsPath.length_one_of_end_start_mem_edges {w : G.Walk u v} (hp : w.IsPath)
+    (h1 : s(v, u) ∈ w.edges) : w.length = 1 := by
   cases w with
   | nil => simp at h1
   | cons h p =>
@@ -114,7 +89,7 @@ lemma IsPath.length_one_of_end_start_mem_edges {u v : α} {w : G.Walk u v}
 If `w : G.Walk u u` is a closed walk and `w.support.tail.Nodup` then it is almost a cycle, in the
 sense that is either a cycle or nil or has length 2.
 -/
-lemma isCycle_or_nil_or_length_two_of_support_tail_nodup {u : α} (w : G.Walk u u)
+lemma isCycle_or_nil_or_length_two_of_support_tail_nodup (w : G.Walk u u)
     (hn : w.support.tail.Nodup) : w.IsCycle ∨ w.Nil ∨ w.length = 2 := by
   by_cases hnc : w.IsCycle
   · exact Or.inl hnc
@@ -137,7 +112,7 @@ lemma isCycle_or_nil_or_length_two_of_support_tail_nodup {u : α} (w : G.Walk u 
       rw [support_cons, List.tail_cons] at hn
       apply nodup_cons.2 ⟨by aesop, edges_nodup_of_support_nodup hn⟩
 
-lemma isCycle_odd_support_tail_nodup {u : α} {w : G.Walk u u} (ho : Odd w.length)
+lemma isCycle_odd_support_tail_nodup {w : G.Walk u u} (ho : Odd w.length)
     (hn : w.support.tail.Nodup) : w.IsCycle := by
   apply (w.isCycle_or_nil_or_length_two_of_support_tail_nodup hn).resolve_right
   rintro (hf | hf)
@@ -148,7 +123,33 @@ lemma isCycle_odd_support_tail_nodup {u : α} {w : G.Walk u u} (ho : Odd w.lengt
 
 variable [DecidableEq α]
 
-lemma support_tail_nodup_iff_count_le  {u : α} (w : G.Walk u v) : w.support.tail.Nodup ↔
+lemma not_nil_of_one_lt_count {p : G.Walk u v} (x : α) (h : 1 < p.support.count x) : ¬ p.Nil := by
+  contrapose! h
+  have := h.eq
+  subst this
+  rw [h.eq_nil, support_nil]
+  convert List.count_le_length
+
+@[simp]
+lemma length_takeUntil_add_dropUntil {p : G.Walk u v} (hx : x ∈ p.support) :
+    (p.takeUntil x hx).length + (p.dropUntil x hx).length = p.length := by
+  rw [← length_append, take_spec]
+
+lemma takeUntil_append_of_mem_left (p : G.Walk u v) (q : G.Walk v z) (hx : x ∈ p.support) :
+    (p ++ q).takeUntil x (subset_support_append_left _ _ hx) = p.takeUntil _ hx  := by
+  induction p with
+  | nil => rw [mem_support_nil_iff] at hx; subst_vars; simp
+  | @cons u _ _ _ p ih =>
+    rw [support_cons] at hx
+    by_cases hxu : u = x
+    · subst_vars; simp
+    · have := List.mem_of_ne_of_mem (fun hf ↦ hxu hf.symm) hx
+      simp_rw [takeUntil_cons this hxu, cons_append]
+      rw [takeUntil_cons (subset_support_append_left _ _ this) hxu]
+      simpa using ih _ this
+
+
+lemma support_tail_nodup_iff_count_le (w : G.Walk u v) : w.support.tail.Nodup ↔
     w.support.count u ≤ 2 ∧ ∀ x ∈ w.support, x ≠ u → count x w.support ≤ 1 := by
   rw [List.nodup_iff_count_le_one, support_eq_cons]
   simp only [List.tail_cons, count_cons_self, Nat.reduceLeDiff, mem_cons, ne_eq, forall_eq_or_imp,
@@ -199,17 +200,14 @@ lemma take_shortClosed_reverse_spec (w : G.Walk u v) (hx : x ∈ w.support) :
     rw [← take_spec w hx]
   rw [w.dropUntil_spec hx]
 
-lemma shortClosed_infix {u v x : α} {p : G.Walk u v} (hx : x ∈ p.support) :
-   Infix (p.shortClosed hx) p := by
+lemma shortClosed_infix {p : G.Walk u v} (hx : x ∈ p.support) : Infix (p.shortClosed hx) p := by
   use p.takeUntil _ hx, (p.reverse.takeUntil _ (p.mem_support_reverse.2 hx)).reverse
   have := (take_shortClosed_reverse_spec p hx).symm
   rwa [← append_assoc]
 
-lemma count_reverse {y : α} (w : G.Walk u v) :
-    w.reverse.support.count y = w.support.count y := by
-  simp
+lemma count_reverse (w : G.Walk u v) : w.reverse.support.count y = w.support.count y := by simp
 
-lemma shortClosed_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
+lemma shortClosed_count_le (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortClosed hx).support.count y ≤ w.support.count y :=
   (shortClosed_infix hx).subwalk.count_le _
 
@@ -218,8 +216,7 @@ to `x` and then back to `v` without revisiting `x` -/
 def shortCut (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk u v :=
   (w.takeUntil _ hx) ++ (w.reverse.takeUntil _ (w.mem_support_reverse.2 hx)).reverse
 
-lemma shortCut_subwalk {u v x : α} {p : G.Walk u v} (hx : x ∈ p.support) :
-   (p.shortCut hx) <+ p := by
+lemma shortCut_subwalk {p : G.Walk u v} (hx : x ∈ p.support) : (p.shortCut hx) <+ p := by
   have := (take_shortClosed_reverse_spec p hx).symm
   convert Subwalk.of_prefix_append_suffix
 
@@ -258,12 +255,12 @@ lemma length_shortCut_add_shortClosed (w : G.Walk u v) (hx : x ∈ w.support) :
             length_append, length_reverse]
   omega
 
-lemma length_shortClosed_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support) (hne : x ≠ u) :
+lemma length_shortClosed_lt_length {p : G.Walk u u} (hx : x ∈ p.support) (hne : x ≠ u) :
     (p.shortClosed hx).length < p.length := by
   rw [ ← p.length_shortCut_add_shortClosed hx, lt_add_iff_pos_left, ← not_nil_iff_lt_length]
   exact p.shortCut_not_nil hx hne
 
-lemma length_shortCut_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support)
+lemma length_shortCut_lt_length {p : G.Walk u u} (hx : x ∈ p.support)
     (h2 : 1 < p.support.count x) : (p.shortCut hx).length < p.length := by
   rw [ ← p.length_shortCut_add_shortClosed hx, lt_add_iff_pos_right, ← not_nil_iff_lt_length]
   exact p.shortClosed_not_nil_of_one_lt_count hx h2
@@ -288,13 +285,12 @@ lemma takeNext_spec (p : G.Walk u u) :
     rw [takeUntilNext, dropUntilNext, ← take_spec _ p.end_mem_support]
     simp
 
-lemma takeUntilNext_not_nil_of_not_nil {u : α} {p : G.Walk u u} (h : ¬ p.Nil) :
-    ¬ p.takeUntilNext.Nil := by
+lemma takeUntilNext_not_nil_of_not_nil {p : G.Walk u u} (h : ¬ p.Nil) : ¬ p.takeUntilNext.Nil := by
   cases p with
   | nil => simp at h
   | cons h p => simp [takeUntilNext]
 
-lemma dropUntilNext_not_nil_of_count {u : α} {p : G.Walk u u} (h2 : 2 < p.support.count u) :
+lemma dropUntilNext_not_nil_of_count {p : G.Walk u u} (h2 : 2 < p.support.count u) :
     ¬ p.dropUntilNext.Nil := by
   cases p with
   | nil => simp at h2
@@ -306,18 +302,18 @@ lemma dropUntilNext_not_nil_of_count {u : α} {p : G.Walk u u} (h2 : 2 < p.suppo
     simp only [append_nil, Function.comp_apply, support_cons, count_cons_self] at ht h2
     simp [← ht, takeUntilNext] at h2
 
-lemma takeUntilNext_isPrefix {u : α} (p : G.Walk u u) : p.takeUntilNext <+: p := by
+lemma takeUntilNext_isPrefix (p : G.Walk u u) : p.takeUntilNext <+: p := by
   use p.dropUntilNext
   rw [takeNext_spec]
 
-lemma dropUntilNext_isSuffix {u : α} (p : G.Walk u u) : p.dropUntilNext <:+ p := by
+lemma dropUntilNext_isSuffix (p : G.Walk u u) : p.dropUntilNext <:+ p := by
   use p.takeUntilNext
   rw [takeNext_spec]
 
 def shorterOddStart {u : α} (p : G.Walk u u) : G.Walk u u :=
   if Odd p.takeUntilNext.length then p.takeUntilNext else p.dropUntilNext
 
-lemma shorterOddStart_infix {u : α} (p : G.Walk u u) : p.shorterOddStart <:+: p := by
+lemma shorterOddStart_infix (p : G.Walk u u) : p.shorterOddStart <:+: p := by
   rw [shorterOddStart]
   split_ifs with h
   · exact p.takeUntilNext_isPrefix.infix

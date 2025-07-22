@@ -1,12 +1,11 @@
 /-
-Copyright (c) 2024 John Talbot. All rights reserved.
+Copyright (c) 2025 John Talbot. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: John Talbot
 -/
 import Mathlib.Combinatorics.SimpleGraph.Connectivity.WalkDecomp
 import Mathlib.Combinatorics.SimpleGraph.Paths
 import Mathlib.Combinatorics.SimpleGraph.Hasse
-
 /-! ## Subwalks
 
 We introduce `Subwalk` with `Prefix, Suffix, Infix` as special cases
@@ -21,7 +20,6 @@ Prefix/Suffix/Infix of `q.support`.
 
 This doesn't hold for `Subwalks` but we do have `p` is a Subwalk of `q` iff `p.darts` is a sublist
 of `q.darts` (for `p ≠ nil`).
-
 -/
 variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
 
