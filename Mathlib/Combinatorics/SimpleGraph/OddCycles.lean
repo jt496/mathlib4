@@ -94,24 +94,23 @@ lemma isCycle_or_nil_or_length_two_of_support_tail_nodup (w : G.Walk u u)
     (hn : w.support.tail.Nodup) : w.IsCycle ∨ w.Nil ∨ w.length = 2 := by
   by_cases hnc : w.IsCycle
   · exact Or.inl hnc
-  right
-  contrapose! hnc
-  rw [isCycle_def]
-  refine ⟨?_, fun hf ↦ hnc.1 <| nil_iff_eq_nil.mpr hf, hn⟩
-  apply IsTrail.mk
-  cases w with
-  | nil => simp
-  | @cons _ b _ h w =>
-    have : s(u, b) ∉ w.edges := by
-      intro hf
-      apply hnc.2
-      rw [support_cons, List.tail_cons] at hn
-      simpa using (IsPath.mk' hn).length_one_of_end_start_mem_edges hf
+  · right
+    contrapose! hnc
+    rw [isCycle_def]
+    refine ⟨IsTrail.mk ?_, fun hf ↦ hnc.1 <| nil_iff_eq_nil.mpr hf, hn⟩
     cases w with
     | nil => simp
-    | cons h w =>
-      rw [support_cons, List.tail_cons] at hn
-      apply nodup_cons.2 ⟨by aesop, edges_nodup_of_support_nodup hn⟩
+    | @cons _ b _ h w =>
+      have : s(u, b) ∉ w.edges := by
+        intro hf
+        apply hnc.2
+        rw [support_cons, List.tail_cons] at hn
+        simpa using (IsPath.mk' hn).length_one_of_end_start_mem_edges hf
+      cases w with
+      | nil => simp
+      | cons h w =>
+        rw [support_cons, List.tail_cons] at hn
+        apply nodup_cons.2 ⟨by aesop, edges_nodup_of_support_nodup hn⟩
 
 lemma isCycle_odd_support_tail_nodup {w : G.Walk u u} (ho : Odd w.length)
     (hn : w.support.tail.Nodup) : w.IsCycle := by
