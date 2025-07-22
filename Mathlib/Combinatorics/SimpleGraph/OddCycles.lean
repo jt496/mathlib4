@@ -6,6 +6,7 @@ Authors: John Talbot
 import Mathlib.Combinatorics.SimpleGraph.Finsubgraph
 import Mathlib.Combinatorics.SimpleGraph.Paths
 import Mathlib.Combinatorics.SimpleGraph.ConcreteColorings
+import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
 import Mathlib.Combinatorics.SimpleGraph.Subwalk
 /-! # Walk decompositions and odd cycles
 We extend the walk decomposition API. Our main aim here is to prove that if `w` is a closed odd
@@ -57,10 +58,10 @@ subwalk of `w` that is an odd cycle.
 TODO: what should we do for even closed walks? (There is no guarantee of any cycles but perhaps the
 walk decomposition API developed here could still be useful.)
 -/
-namespace SimpleGraph.Walk
-open Walk List
+namespace SimpleGraph
 variable {α : Type*} {u v x y z : α} {G : SimpleGraph α}
-
+namespace Walk
+open List
 theorem support_eq_concat (p : G.Walk u v) : p.support = p.support.dropLast ++ [v] := by
   cases p with
   | nil => rfl
@@ -347,5 +348,53 @@ theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
       have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
       use u, w
   termination_by w.length
+end Walk
 
-end SimpleGraph.Walk
+
+-- Below mainly from #25837
+variable {β : Type*}
+/-- Given graph homomorphisms from each connected component of `G` to `H` this is the `G →g H` -/
+def homOfConnectedComponents (G : SimpleGraph α) {H : SimpleGraph β}
+    (C : (c : G.ConnectedComponent) → (c.toSimpleGraph) →g H) : G →g H where
+  toFun := fun x ↦ (C (G.connectedComponentMk _)) _
+  map_rel' := fun hab ↦ by
+    have h : (G.connectedComponentMk _).toSimpleGraph.Adj ⟨_, rfl⟩
+        ⟨_, ((G.connectedComponentMk _).mem_supp_congr_adj hab).1 rfl⟩ := by simpa using hab
+    convert (C (G.connectedComponentMk _)).map_rel h using 3 <;>
+      rw [ConnectedComponent.connectedComponentMk_eq_of_adj hab]
+
+theorem colorable_iff_forall_connectedComponents {n : ℕ} :
+    G.Colorable n ↔ ∀ c : G.ConnectedComponent, (c.toSimpleGraph).Colorable n :=
+  ⟨fun ⟨C⟩ _ ↦ ⟨fun v ↦ C v, fun h h1 ↦ C.valid h h1⟩,
+   fun h ↦ ⟨G.homOfConnectedComponents (fun c ↦ (h c).some)⟩⟩
+
+open Walk
+lemma two_colorable_iff_forall_loop_not_odd {α : Type*} {G : SimpleGraph α} :
+    G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), ¬ Odd w.length := by
+  constructor <;> intro h
+  · intro _ w ho
+    have := (w.three_le_chromaticNumber_of_odd_loop ho).trans h.chromaticNumber_le
+    norm_cast
+  · apply colorable_iff_forall_connectedComponents.2
+    intro c
+    obtain ⟨_, hv⟩ := c.nonempty_supp
+    use fun a ↦ Fin.ofNat 2 ((c.connected_toSimpleGraph ⟨_, hv⟩ a).some.length)
+    intro a b hab he
+    apply h _ <| (((c.connected_toSimpleGraph ⟨_, hv⟩ a).some.concat hab) ++
+                 (c.connected_toSimpleGraph ⟨_, hv⟩ b).some.reverse).map c.toSimpleGraph_hom
+    rw [length_map, length_append, length_concat, length_reverse, add_right_comm]
+    have : ((Nonempty.some (c.connected_toSimpleGraph ⟨_, hv⟩ a)).length) % 2 =
+        (Nonempty.some (c.connected_toSimpleGraph ⟨_, hv⟩ b)).length % 2 := by
+      simp_rw [← Fin.val_natCast, ← Fin.ofNat_eq_cast, he]
+    exact (Nat.even_iff.mpr (by omega)).add_one
+
+lemma two_colorable_iff_no_odd_cycle {α : Type*} {G : SimpleGraph α} :
+    G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), w.IsCycle → ¬ Odd w.length := by
+  rw [two_colorable_iff_forall_loop_not_odd]
+  constructor <;> intro h <;> contrapose! h <;> obtain ⟨u, w, hw⟩ := h
+  · exact ⟨_, _, hw.2⟩
+  · classical
+    obtain ⟨x,c, hc ,ho, _ ⟩ := exists_odd_cycle_subwalk hw
+    use x, c
+
+end SimpleGraph
