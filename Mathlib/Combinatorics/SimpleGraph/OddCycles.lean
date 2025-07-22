@@ -8,25 +8,49 @@ import Mathlib.Combinatorics.SimpleGraph.Paths
 import Mathlib.Combinatorics.SimpleGraph.ConcreteColorings
 import Mathlib.Combinatorics.SimpleGraph.Subwalk
 
-/-!
-We extend some of the walk decomposition API : we already have `takeUntil` and `dropUntil`
+/-! # Walk decompositions and odd cycles
+We extend the walk decomposition API.
+
+Given a walk `w : G.Walk u v`: we already have `takeUntil` and `dropUntil`
 which satisfy `(w.takeUntil _ hx) ++ (w.dropUntil _ hx) = w`, where `w.takeUntil _ hx` is the part
 of `w` from its start to the first occurence of `x` (given `hx : x ∈ w.support`).
 
-We define two new walks `shortCut` and `shortClosed` where `w.shortCut hx` is the walk
-that travels along `w` from `u` to `x` and then back to `v` without revisiting `x` and
-`w.shortClosed hx` is the closed walk that travels along `w` from the first visit of `x` to the last
- visit.
+For `w : G.Walk u v` and `x ∈ w.support` we define two new walks, `w.shortCut hx` and
+  `w.shortClosed`: `w.shortCut hx` is the part of `w` from the start `u` to the first occurence of
+  `x` and then from the last occurence of `x` in `w` to `v`, while `w.shortClosed hx` is the closed
+  walk that travels along `w` from the first occurence of `x` to the last occurence of `x`.
 
-We also introduce `takeUntilNext` and `dropUntilNext` which, given a closed walk `w : G.Walk u u`,
-yield the walks in `w` from start to the next occurence of `u` and then from there to the end
-respectively.
+So `w.shortCut hx : G.Walk u v` is `(w.takeUntil _ hx) ++ (w.reverse.takeUntil _ hx).reverse`
+and `w.shortClosed hx : G.Walk x x` is `((w.dropUntil _ hx).reverse.dropUntil _ hx).reverse`.
 
-We use these to prove that given a closed walk of odd length in `G` there is an odd length cycle.
-  `exists_odd_cycle`
+Note `w.shortClosed` is a closed contiguous (infix) subwalk of `w` while `w.shortCut` is a not
+necessarily contiguous subwalk of `w`.
 
-We also prove `exists_odd_cycle_subwalk` that given `w` a closed odd walk then there is a subwalk of
-`w` that is an odd cycle.
+If `w` is a closed walk (i.e. `u = v`) then both `shortCut` and `shortClosed` are closed walks.
+
+We also introduce a way to decompose a closed walk `w : G.Walk u u` into two walks
+`takeUntilNext` and `dropUntilNext`, where
+`w.takeUntilNext` is the prefix of `w` from its start to the next occurence of `u`.
+`w.dropUntilNext` is the suffix of `w` from the second occurence of `u` to its end.
+
+Given an odd length closed walk `w : G.Walk u u` we now have two ways to split `w` into two closed
+walks. In each case one of the pair of new closed walks will also be odd. Moreover:
+
+(1) If `x ≠ u` and `x` occurs more than once in `w.support` then both `w.shortCut hx` and
+    `w.shortClosed hx` are not `Nil` and so whichever of these has odd length is a strictly
+    shorter odd closed subwalk of `w`.
+(2) If `u` (the starting vertex of `w`) occurs more than twice in `w.support` then both
+    `w.takeUntilNext` and `w.dropUntilNext` are not `Nil` and so whichever of these has odd length
+    is a strictly shorter odd closed walk.
+
+Hence if `w : G.Walk u u` is an odd closed walk in which either some vertex `x ≠ u` occurs twice
+or `u` occurs more than twice then we can find a shorter odd closed walk.
+
+For an odd closed walk `w : G.Walk u u` the condition
+  `w.support.count u ≤ 2` and `∀ x, x ≠ u → w.support.count x ≤ 1` is equivalent to being a cycle.
+
+Hence we can use these to prove `exists_odd_cycle_subwalk`: given `w` a closed odd walk there is a
+subwalk of `w` that is an odd cycle.
 -/
 
 namespace SimpleGraph.Walk
@@ -151,7 +175,7 @@ lemma support_tail_nodup_iff_count_le  {u : α} (w : G.Walk u v) : w.support.tai
 
 /-- Given a vertex `x` in a walk `w` form the walk that travels along `w` from the first visit of
 `x` to the last visit of `x` (which may be the same in which case this is `nil' x`) -/
-abbrev shortClosed (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk x x :=
+def shortClosed (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk x x :=
   ((w.dropUntil _ hx).reverse.dropUntil _ (by simp)).reverse
 
 @[simp]
@@ -191,7 +215,7 @@ lemma shortClosed_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
 
 /-- Given a vertex `x` in a walk `w : G.Walk u v` form the walk that travels along `w` from `u`
 to `x` and then back to `v` without revisiting `x` -/
-abbrev shortCut (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk u v :=
+def shortCut (w : G.Walk u v) (hx : x ∈ w.support) : G.Walk u v :=
   (w.takeUntil _ hx) ++ (w.reverse.takeUntil _ (w.mem_support_reverse.2 hx)).reverse
 
 lemma shortCut_subwalk {u v x : α} {p : G.Walk u v} (hx : x ∈ p.support) :
@@ -243,34 +267,6 @@ lemma length_shortCut_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support)
     (h2 : 1 < p.support.count x) : (p.shortCut hx).length < p.length := by
   rw [ ← p.length_shortCut_add_shortClosed hx, lt_add_iff_pos_right, ← not_nil_iff_lt_length]
   exact p.shortClosed_not_nil_of_one_lt_count hx h2
-
-/--
-Given a closed walk `w : G.Walk u u` and a vertex `x ∈ w.support` we can form a new closed walk
-`w.shorterOdd hx`. If `w.length` is odd then this walk is also odd. Morever if `x` occured more
-than once in `w` and `x ≠ u` then `w.shorterOdd hx` is strictly shorter than `w`.
--/
-def shorterOdd {u : α} (p : G.Walk u u) {x : α} (hx : x ∈ p.support) : G.Walk x x :=
-  if ho : Odd (p.shortClosed hx).length then
-    p.shortClosed hx
-  else
-  -- In this case we rotate this walk to be able to return a `G.Walk x x` in both cases
-    (p.shortCut hx).rotate (by simp)
-
-lemma length_shorterOdd_odd {p : G.Walk u u} {x : α} (hx : x ∈ p.support)
-    (ho : Odd p.length) : Odd (p.shorterOdd hx).length := by
-  rw [← p.length_shortCut_add_shortClosed hx] at ho
-  rw [shorterOdd]
-  split_ifs with h1
-  · exact h1
-  · rw [length_rotate]
-    exact (Nat.odd_add.1 ho).2 (Nat.not_odd_iff_even.1 h1)
-
-lemma length_shorterOdd_lt_length {p : G.Walk u u} {x : α} (hx : x ∈ p.support) (hne : x ≠ u)
-    (h2 : 1 < p.support.count x) : (p.shorterOdd hx).length < p.length := by
-  rw [shorterOdd]
-  split_ifs with ho
-  · exact p.length_shortClosed_lt_length hx hne
-  · rw [length_rotate]; exact p.length_shortCut_lt_length hx h2
 
 /-- The walk in `w : G.Walk u u` from the start to the next occurence of `u` -/
 def takeUntilNext {u : α} (p : G.Walk u u) : G.Walk u u :=
@@ -346,69 +342,30 @@ lemma length_shorterOddStart_lt_length {p : G.Walk u u} (h2 : 2 < p.support.coun
   · simp only [lt_add_iff_pos_left, ← not_nil_iff_lt_length]
     exact takeUntilNext_not_nil_of_not_nil (not_nil_of_one_lt_count u (by omega) )
 
-/-- If `G` contains a closed odd walk then it contains an odd cycle -/
-theorem exists_odd_cycle {u : α} {w : G.Walk u u} (ho : Odd w.length) :
-    ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length := by
-  by_cases h2 : 2 < w.support.count u
-  · have := length_shorterOddStart_lt_length h2
-    exact exists_odd_cycle <| length_shorterOddStart_odd ho
-  · by_cases h1 : ∃ x, (x ∈ w.support ∧ x ≠ u ∧ 1 < w.support.count x)
-    · obtain ⟨x, hx, hxu, hx1⟩ := h1
-      have := length_shorterOdd_lt_length hx hxu hx1
-      exact exists_odd_cycle <| length_shorterOdd_odd hx ho
-    · push_neg at h1 h2
-      have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
-      use u, w
-  termination_by w.length
-
-/- TODO: work out why the `termination_by w.length` proof fails in the next result. -/
-
-/-- If `G` contains a closed odd walk `w` then `w` contains a subwalk that is an odd cycle -/
+/--
+If `G` contains a closed odd walk `w` then there is an odd cycle `c` that is a subwalk of `w`
+-/
 theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
     ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length  ∧ c <+ w := by
-  induction hn : w.length using Nat.strong_induction_on generalizing w u with
-  | h n ih =>
-  subst hn
   by_cases h2 : 2 < w.support.count u
   · have := length_shorterOddStart_lt_length h2
-    obtain ⟨x, c', hc1, hc2, hc3⟩:= ih _ this (length_shorterOddStart_odd ho) rfl
+    obtain ⟨x, c', hc1, hc2, hc3⟩:= exists_odd_cycle_subwalk (length_shorterOddStart_odd ho)
     exact ⟨x, c', hc1, hc2, hc3.trans (shorterOddStart_infix _).subwalk⟩
   · by_cases h1 : ∃ x, (x ∈ w.support ∧ x ≠ u ∧ 1 < w.support.count x)
     · obtain ⟨x, hx, hxu, hx1⟩ := h1
       by_cases ho1 : Odd (w.shortClosed hx).length
-      · obtain ⟨y, c', hc1, hc2, hc3⟩ := ih _ (length_shortClosed_lt_length hx hxu) ho1 rfl
+      · have := length_shortClosed_lt_length hx hxu
+        obtain ⟨y, c', hc1, hc2, hc3⟩ := exists_odd_cycle_subwalk ho1
         exact ⟨y, c', hc1, hc2, hc3.trans (shortClosed_infix hx).subwalk⟩
       · have ho' : Odd (w.shortCut hx).length := by
           rw [← w.length_shortCut_add_shortClosed hx] at ho
           exact (Nat.odd_add.1 ho).2 (Nat.not_odd_iff_even.1 ho1)
-        obtain ⟨y, c', hc1, hc2, hc3⟩ := ih _ (length_shortCut_lt_length hx hx1) ho' rfl
-        exact ⟨y, c', hc1, hc2, hc3.trans <| shortCut_subwalk hx⟩
+        have := length_shortCut_lt_length hx hx1
+        obtain ⟨y, c', hc1, hc2, hc3⟩ := exists_odd_cycle_subwalk ho'
+        exact ⟨y, c', hc1, hc2, hc3.trans (shortCut_subwalk hx)⟩
     · push_neg at h1 h2
       have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
       use u, w
-
--- theorem exists_odd_cycle_subwalk' {u : α} {w : G.Walk u u} (ho : Odd w.length) :
---     ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length  ∧ c <+ w := by
---   by_cases h2 : 2 < w.support.count u
---   · have := length_shorterOddStart_lt_length h2
---     obtain ⟨x, c', hc1, hc2, hc3⟩:= exists_odd_cycle_subwalk' (length_shorterOddStart_odd ho)
---     exact ⟨x, c', hc1, hc2, hc3.trans (shorterOddStart_infix _).subwalk⟩
---   · by_cases h1 : ∃ x, (x ∈ w.support ∧ x ≠ u ∧ 1 < w.support.count x)
---     · obtain ⟨x, hx, hxu, hx1⟩ := h1
---       by_cases ho1 : Odd (w.shortClosed hx).length
---       · have := length_shortClosed_lt_length hx hxu
---         obtain ⟨y, c', hc1, hc2, hc3⟩ := exists_odd_cycle_subwalk' ho1
---         exact ⟨y, c', hc1, hc2, hc3.trans (shortClosed_infix hx).subwalk⟩
---       · have ho' : Odd (w.shortCut hx).length := by
---           rw [← w.length_shortCut_add_shortClosed hx] at ho
---           exact (Nat.odd_add.1 ho).2 (Nat.not_odd_iff_even.1 ho1)
---         have := length_shortCut_lt_length hx hx1
---         obtain ⟨y, c', hc1, hc2, hc3⟩ := exists_odd_cycle_subwalk' ho'
---         exact ⟨y, c', hc1, hc2, hc3.trans ((shortCut_subwalk hx))⟩
---     · push_neg at h1 h2
---       have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
---       use u, w
---   termination_by w.length
-
+  termination_by w.length
 
 end SimpleGraph.Walk
