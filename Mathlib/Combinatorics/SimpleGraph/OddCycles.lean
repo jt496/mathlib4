@@ -150,29 +150,21 @@ lemma takeUntil_append_of_mem_left (p : G.Walk u v) (q : G.Walk v z) (hx : x ∈
       simpa using ih _ this
 
 lemma support_tail_nodup_iff_count_le (w : G.Walk u v) : w.support.tail.Nodup ↔
-    w.support.count u ≤ 2 ∧ ∀ x ∈ w.support, x ≠ u → count x w.support ≤ 1 := by
-  rw [List.nodup_iff_count_le_one, support_eq_cons]
-  simp only [List.tail_cons, count_cons_self, Nat.reduceLeDiff, mem_cons, ne_eq, forall_eq_or_imp,
-    not_true_eq_false, add_le_iff_nonpos_left, nonpos_iff_eq_zero, IsEmpty.forall_iff, true_and]
+    w.support.count u ≤ 2 ∧ ∀ x ∈ w.support, u ≠ x → count x w.support ≤ 1 := by
+  have : w.support.tail.count u + 1 = w.support.count u  := by
+    nth_rw 2 [support_eq_cons]
+    simp
+  simp only [List.nodup_iff_count_le_one, ← this, Nat.reduceLeDiff, ne_eq]
   constructor
   · intro h
-    constructor
-    · exact h u
-    · intro x _ h'
-      have := h x
-      simpa [Ne.symm h']
-  · intro ⟨_, h1⟩ a
-    by_cases ha : a ∈ w.support
-    · by_cases ha' : a = u
-      · simp_all
-      · rw [support_eq_cons] at ha
-        obtain (rfl | ha) := mem_cons.1 ha
-        · trivial
-        · have :=  h1 _ ha ha'
-          rw [count_cons] at this
-          omega
-    · rw [count_eq_zero_of_not_mem (fun hf ↦ ha (mem_of_mem_tail hf))]
-      omega
+    exact ⟨h u, fun x _ h' ↦ by rw [support_eq_cons, count_cons_of_ne h']; exact h x⟩
+  · intro ⟨hu, h⟩ a
+    by_cases hau : u = a
+    · subst hau; trivial
+    · by_cases ha : a ∈ u :: w.support.tail
+      · have := (w.support_eq_cons ▸ h) a ha hau
+        rwa [count_cons_of_ne hau] at this
+      · exact (count_eq_zero_of_not_mem <| not_mem_of_not_mem_cons ha).le.trans zero_le_one
 
 /-- Given a vertex `x` in a walk `w` form the walk that travels along `w` from the first visit of
 `x` to the last visit of `x` (which may be the same in which case this is `nil' x`) -/
@@ -218,7 +210,7 @@ lemma shortCut_subwalk {p : G.Walk u v} (hx : x ∈ p.support) : (p.shortCut hx)
   have := (take_shortClosed_reverse_spec p hx).symm
   convert Subwalk.of_prefix_append_suffix
 
-lemma shortCut_not_nil (w : G.Walk u v) (hx : x ∈ w.support) (hu : x ≠ u) :
+lemma shortCut_not_nil (w : G.Walk u v) (hx : x ∈ w.support) (hu : u ≠ x) :
     ¬ (w.shortCut hx).Nil := by
   rw [shortCut]
   simp only [nil_append_iff, nil_takeUntil, nil_reverse, not_and]
@@ -248,7 +240,7 @@ lemma length_shortCut_add_shortClosed (w : G.Walk u v) (hx : x ∈ w.support) :
             length_append, length_reverse]
   omega
 
-lemma length_shortClosed_lt_length {p : G.Walk u u} (hx : x ∈ p.support) (hne : x ≠ u) :
+lemma length_shortClosed_lt_length {p : G.Walk u u} (hx : x ∈ p.support) (hne : u ≠ x) :
     (p.shortClosed hx).length < p.length := by
   rw [ ← p.length_shortCut_add_shortClosed hx, lt_add_iff_pos_left, ← not_nil_iff_lt_length]
   exact p.shortCut_not_nil hx hne
@@ -340,7 +332,7 @@ theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
   · have := length_shorterOdd_lt_length h2
     obtain ⟨x, c', hc1, hc2, hc3⟩:= exists_odd_cycle_subwalk (length_shorterOdd_odd ho)
     exact ⟨x, c', hc1, hc2, hc3.trans (shorterOdd_infix _).subwalk⟩
-  · by_cases h1 : ∃ x, (x ∈ w.support ∧ x ≠ u ∧ 1 < w.support.count x)
+  · by_cases h1 : ∃ x, (x ∈ w.support ∧ u ≠ x ∧ 1 < w.support.count x)
     · obtain ⟨x, hx, hxu, hx1⟩ := h1
       by_cases ho1 : Odd (w.shortClosed hx).length
       · have := length_shortClosed_lt_length hx hxu
