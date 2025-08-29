@@ -369,8 +369,9 @@ theorem colorable_iff_forall_connectedComponents {n : ℕ} :
    fun h ↦ ⟨G.homOfConnectedComponents (fun c ↦ (h c).some)⟩⟩
 
 open Walk
-lemma two_colorable_iff_forall_loop_not_odd {α : Type*} {G : SimpleGraph α} :
-    G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), ¬ Odd w.length := by
+lemma two_colorable_iff_forall_loop_even {α : Type*} {G : SimpleGraph α} :
+    G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), Even w.length := by
+  simp_rw [← Nat.not_odd_iff_even]
   constructor <;> intro h
   · intro _ w ho
     have := (w.three_le_chromaticNumber_of_odd_loop ho).trans h.chromaticNumber_le
@@ -378,7 +379,7 @@ lemma two_colorable_iff_forall_loop_not_odd {α : Type*} {G : SimpleGraph α} :
   · apply colorable_iff_forall_connectedComponents.2
     intro c
     obtain ⟨_, hv⟩ := c.nonempty_supp
-    use fun a ↦ Fin.ofNat 2 ((c.connected_toSimpleGraph ⟨_, hv⟩ a).some.length)
+    use fun a ↦ Fin.ofNat 2 (c.connected_toSimpleGraph ⟨_, hv⟩ a).some.length
     intro a b hab he
     apply h _ <| (((c.connected_toSimpleGraph ⟨_, hv⟩ a).some.concat hab) ++
                  (c.connected_toSimpleGraph ⟨_, hv⟩ b).some.reverse).map c.toSimpleGraph_hom
@@ -388,13 +389,15 @@ lemma two_colorable_iff_forall_loop_not_odd {α : Type*} {G : SimpleGraph α} :
       simp_rw [← Fin.val_natCast, ← Fin.ofNat_eq_cast, he]
     exact (Nat.even_iff.mpr (by omega)).add_one
 
-lemma two_colorable_iff_no_odd_cycle {α : Type*} {G : SimpleGraph α} :
-    G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), w.IsCycle → ¬ Odd w.length := by
-  rw [two_colorable_iff_forall_loop_not_odd]
+lemma two_colorable_iff_forall_cycle_even {α : Type*} {G : SimpleGraph α} :
+    G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), w.IsCycle → Even w.length := by
+  rw [two_colorable_iff_forall_loop_even]
   constructor <;> intro h <;> contrapose! h <;> obtain ⟨u, w, hw⟩ := h
   · exact ⟨_, _, hw.2⟩
   · classical
-    obtain ⟨x,c, hc ,ho, _ ⟩ := exists_odd_cycle_subwalk hw
-    use x, c
+    obtain ⟨x,c, hc ,ho, _ ⟩ := exists_odd_cycle_subwalk (by simpa using hw)
+    use x, c, hc
+    simpa using ho
+
 
 end SimpleGraph
