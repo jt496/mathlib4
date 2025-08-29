@@ -389,7 +389,7 @@ lemma two_colorable_iff_forall_loop_even {α : Type*} {G : SimpleGraph α} :
       simp_rw [← Fin.val_natCast, ← Fin.ofNat_eq_cast, he]
     exact (Nat.even_iff.mpr (by omega)).add_one
 
-lemma two_colorable_iff_forall_cycle_even {α : Type*} {G : SimpleGraph α} :
+lemma two_colorable_iff_forall_isCycle_even {α : Type*} {G : SimpleGraph α} :
     G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), w.IsCycle → Even w.length := by
   rw [two_colorable_iff_forall_loop_even]
   constructor <;> intro h <;> contrapose! h <;> obtain ⟨u, w, hw⟩ := h
