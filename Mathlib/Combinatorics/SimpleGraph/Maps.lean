@@ -317,6 +317,11 @@ theorem injective_of_top_hom (f : (⊤ : SimpleGraph V) →g G') : Function.Inje
   contrapose! h
   exact G'.ne_of_adj (map_adj _ ((top_adj _ _).mpr h))
 
+/-- Any graph homomorphism from a complete graph can be upgraded to a graph embedding -/
+@[simps]
+def embeddingOfTopHom (f : completeGraph V →g G') : completeGraph V ↪g G' :=
+  ⟨⟨f, f.injective_of_top_hom⟩, Iff.intro (fun h hf ↦ G'.irrefl (hf ▸ h)) (fun h ↦ f.map_rel h)⟩
+
 /-- There is a homomorphism to a graph from a comapped graph.
 When the function is injective, this is an embedding (see `SimpleGraph.Embedding.comap`). -/
 @[simps]
