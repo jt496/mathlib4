@@ -199,8 +199,7 @@ instance [Fintype {f : G →g H // Injective f}] : Fintype (G.Copy H) :=
 /-- A copy of `⊤` gives rise to an embedding of `⊤`. -/
 @[simps!]
 def topEmbedding (f : Copy (⊤ : SimpleGraph α) G) : (⊤ : SimpleGraph α) ↪g G :=
-  { f.toEmbedding with
-    map_rel_iff' := fun {v w} ↦ ⟨fun h ↦ by simpa using h.ne, f.toHom.map_adj⟩}
+  f.toHom.embeddingOfTopHom
 
 end Copy
 
@@ -381,7 +380,7 @@ alias ⟨IsIndContained.exists_iso_subgraph, IsIndContained.of_exists_iso_subgra
 
 @[simp] lemma top_isIndContained_iff_top_isContained :
     (⊤ : SimpleGraph V) ⊴ H ↔ (⊤ : SimpleGraph V) ⊑ H :=
-  ⟨IsIndContained.isContained, fun ⟨f⟩ ↦ ⟨f.topEmbedding⟩⟩
+  ⟨IsIndContained.isContained, fun ⟨f⟩ ↦ ⟨f.toHom.embeddingOfTopHom⟩⟩
 
 @[simp] lemma compl_isIndContained_compl : Gᶜ ⊴ Hᶜ ↔ G ⊴ H :=
   Embedding.complEquiv.symm.nonempty_congr

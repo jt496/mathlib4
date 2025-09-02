@@ -374,7 +374,7 @@ theorem cliqueFree_iff_top_free {β : Type*} [Fintype β] :
     G.CliqueFree (card β) ↔ (⊤ : SimpleGraph β).Free G := by
   rw [← not_iff_not, not_free, cliqueFree_iff, not_isEmpty_iff,
     isContained_congr (Iso.completeGraph (Fintype.equivFin β)) Iso.refl]
-  exact ⟨fun ⟨f⟩ ↦ ⟨f.toCopy⟩, fun ⟨f⟩ ↦ ⟨f.topEmbedding⟩⟩
+  exact ⟨fun ⟨f⟩ ↦ ⟨f.toCopy⟩, fun ⟨f⟩ ↦ ⟨f.toHom.embeddingOfTopHom⟩⟩
 
 theorem not_cliqueFree_card_of_top_embedding [Fintype α] (f : (⊤ : SimpleGraph α) ↪g G) :
     ¬G.CliqueFree (card α) := by
