@@ -184,13 +184,16 @@ lemma isClique_sup_edge_of_ne_iff {v w : α} {s : Set α} (h : v ≠ w) :
   ⟨fun h' ↦ ⟨h'.sdiff_of_sup_edge, (edge_comm .. ▸ h').sdiff_of_sup_edge⟩,
     fun h' ↦ isClique_sup_edge_of_ne_sdiff h h'.1 h'.2⟩
 
-/-- The vertices in a copy of `⊤` are a clique. -/
-theorem isClique_range_copy_top (f : Copy (⊤ : SimpleGraph β) G) :
+theorem isClique_range_hom_top (f : (⊤ : SimpleGraph β) →g G) :
     G.IsClique (Set.range f) := by
   intro _ ⟨_, h⟩ _ ⟨_, h'⟩ nh
-  rw [← h, ← Copy.topEmbedding_apply, ← h', ← Copy.topEmbedding_apply] at nh ⊢
-  rwa [← f.topEmbedding.coe_toEmbedding, (f.topEmbedding.apply_eq_iff_eq _ _).ne,
-    ← top_adj, ← f.topEmbedding.map_adj_iff] at nh
+  rw [← h, ← f.embeddingOfTopHom_apply, ← h', ← f.embeddingOfTopHom_apply] at nh ⊢
+  rwa [← f.embeddingOfTopHom.coe_toEmbedding, (f.embeddingOfTopHom.apply_eq_iff_eq _ _).ne,
+    ← top_adj, ← f.embeddingOfTopHom.map_adj_iff] at nh
+
+/-- The vertices in a copy of `⊤` are a clique. -/
+theorem isClique_range_copy_top (f : Copy (⊤ : SimpleGraph β) G) :
+    G.IsClique (Set.range f) := isClique_range_hom_top f.toHom
 
 end Clique
 
@@ -314,11 +317,14 @@ lemma IsNClique.erase_of_sup_edge_of_mem [DecidableEq α] {v w : α} {s : Finset
   isClique := coe_erase v _ ▸ hc.1.sdiff_of_sup_edge
   card_eq  := by rw [card_erase_of_mem hx, hc.2]
 
+theorem isNClique_map_hom_top [Fintype β] (f : (⊤ : SimpleGraph β) →g G) :
+    G.IsNClique (card β) (univ.map f.embeddingOfTopHom.toEmbedding) := by
+  rw [isNClique_iff, card_map, card_univ, coe_map, coe_univ, Set.image_univ]
+  exact ⟨isClique_range_hom_top f, rfl⟩
+
 /-- The vertices in a copy of `⊤ : SimpleGraph β` are a `card β`-clique. -/
 theorem isNClique_map_copy_top [Fintype β] (f : Copy (⊤ : SimpleGraph β) G) :
-    G.IsNClique (card β) (univ.map f.toEmbedding) := by
-  rw [isNClique_iff, card_map, card_univ, coe_map, coe_univ, Set.image_univ]
-  exact ⟨isClique_range_copy_top f, rfl⟩
+    G.IsNClique (card β) (univ.map f.toEmbedding) := isNClique_map_hom_top f.toHom
 
 end NClique
 
@@ -338,17 +344,12 @@ variable {G H} {s : Finset α}
 theorem IsNClique.not_cliqueFree (hG : G.IsNClique n s) : ¬G.CliqueFree n :=
   fun h ↦ h _ hG
 
+theorem not_cliqueFree_of_top_hom {n : ℕ} (f : (⊤ : SimpleGraph (Fin n)) →g G) :
+    ¬G.CliqueFree n := (Fintype.card_fin n) ▸ (isNClique_map_hom_top f).not_cliqueFree
+
+@[deprecated SimpleGraph.not_cliqueFree_of_top_hom (since := "2025-09-01")]
 theorem not_cliqueFree_of_top_embedding {n : ℕ} (f : (⊤ : SimpleGraph (Fin n)) ↪g G) :
-    ¬G.CliqueFree n := by
-  simp only [CliqueFree, isNClique_iff, isClique_iff_induce_eq, not_forall, Classical.not_not]
-  use Finset.univ.map f.toEmbedding
-  simp only [card_map, Finset.card_fin, and_true]
-  ext ⟨v, hv⟩ ⟨w, hw⟩
-  simp only [coe_map, Set.mem_image, coe_univ, Set.mem_univ, true_and] at hv hw
-  obtain ⟨v', rfl⟩ := hv
-  obtain ⟨w', rfl⟩ := hw
-  simp_rw [RelEmbedding.coe_toEmbedding, comap_adj, Function.Embedding.coe_subtype, f.map_adj_iff,
-    top_adj, ne_eq, Subtype.mk.injEq, RelEmbedding.inj]
+     ¬G.CliqueFree n := not_cliqueFree_of_top_hom f
 
 /-- An embedding of a complete graph that witnesses the fact that the graph is not clique-free. -/
 noncomputable def topEmbeddingOfNotCliqueFree {n : ℕ} (h : ¬G.CliqueFree n) :
@@ -363,7 +364,7 @@ noncomputable def topEmbeddingOfNotCliqueFree {n : ℕ} (h : ¬G.CliqueFree n) :
   exact hb.symm
 
 theorem not_cliqueFree_iff (n : ℕ) : ¬G.CliqueFree n ↔ Nonempty (completeGraph (Fin n) ↪g G) :=
-  ⟨fun h ↦ ⟨topEmbeddingOfNotCliqueFree h⟩, fun ⟨f⟩ ↦ not_cliqueFree_of_top_embedding f⟩
+  ⟨fun h ↦ ⟨topEmbeddingOfNotCliqueFree h⟩, fun ⟨f⟩ ↦ not_cliqueFree_of_top_hom f⟩
 
 theorem cliqueFree_iff {n : ℕ} : G.CliqueFree n ↔ IsEmpty (completeGraph (Fin n) ↪g G) := by
   rw [← not_iff_not, not_cliqueFree_iff, not_isEmpty_iff]
@@ -397,10 +398,10 @@ theorem CliqueFree.mono (h : m ≤ n) : G.CliqueFree m → G.CliqueFree n := by
 theorem CliqueFree.anti (h : G ≤ H) : H.CliqueFree n → G.CliqueFree n :=
   forall_imp fun _ ↦ mt <| IsNClique.mono h
 
-/-- If a graph is cliquefree, any graph that embeds into it is also cliquefree. -/
-theorem CliqueFree.comap {H : SimpleGraph β} (f : H ↪g G) : G.CliqueFree n → H.CliqueFree n := by
+/-- If `G` is cliquefree and there is a homomorphism from `H` to `G` then `H` is also cliquefree. -/
+theorem CliqueFree.comap {H : SimpleGraph β} (f : H →g G) : G.CliqueFree n → H.CliqueFree n := by
   intro h; contrapose h
-  exact not_cliqueFree_of_top_embedding <| f.comp (topEmbeddingOfNotCliqueFree h)
+  exact not_cliqueFree_of_top_hom <| f.comp (topEmbeddingOfNotCliqueFree h)
 
 @[simp] theorem cliqueFree_map_iff {f : α ↪ β} [Nonempty α] :
     (G.map f).CliqueFree n ↔ G.CliqueFree n := by
@@ -445,8 +446,8 @@ theorem not_cliqueFree_of_le_card [Fintype ι] (f : ∀ (i : ι), V i) (hc : n �
 
 theorem not_cliqueFree_of_infinite [Infinite ι] (f : ∀ (i : ι), V i) :
     ¬ (completeMultipartiteGraph V).CliqueFree n :=
-  fun hf ↦ not_cliqueFree_of_top_embedding (topEmbedding V f |>.comp
-            <| Embedding.completeGraph <| Fin.valEmbedding.trans <| Infinite.natEmbedding ι) hf
+  fun hf ↦ not_cliqueFree_of_top_hom (topEmbedding V f |>.comp <| Embedding.completeGraph
+             <| Fin.valEmbedding.trans <| Infinite.natEmbedding ι).toHom hf
 
 theorem not_cliqueFree_of_le_enatCard (f : ∀ (i : ι), V i) (hc : n ≤ ENat.card ι) :
     ¬ (completeMultipartiteGraph V).CliqueFree n := by
