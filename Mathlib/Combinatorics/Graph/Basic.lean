@@ -310,6 +310,10 @@ lemma mk_eq_self (G : Graph α β) {E : Set β} (hE : ∀ e, e ∈ E ↔ ∃ x y
   obtain rfl : E = E(G) := by simp [Set.ext_iff, hE, G.edge_mem_iff_exists_isLink]
   rfl
 
+/-
+Add test comment
+-/
+
 /-- Two graphs with the same vertex set and binary incidences are equal.
 (We use this as the default extensionality lemma rather than adding `@[ext]`
 to the definition of `Graph`, so it doesn't require equality of the edge sets.) -/
