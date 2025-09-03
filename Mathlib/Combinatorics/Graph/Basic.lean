@@ -305,13 +305,10 @@ lemma IsLink.adj (h : G.IsLink e x y) : G.Adj x y :=
 `G.IsLink` using any value for `edgeSet` is equal to `G` itself. -/
 @[simp]
 lemma mk_eq_self (G : Graph α β) {E : Set β} (hE : ∀ e, e ∈ E ↔ ∃ x y, G.IsLink e x y) :
-    Graph.mk V(G) G.IsLink E
-    (by simpa [show E = E(G) by simp [Set.ext_iff, hE, G.edge_mem_iff_exists_isLink]]
-      using G.isLink_symm)
-    (fun _ _ _ _ _ h h' ↦ h.left_eq_or_eq h') hE
+    Graph.mk V(G) G.IsLink E (fun _ _ _ _ h ↦ h.symm) (fun _ _ _ _ _ h h' ↦ h.left_eq_or_eq h') hE
     (fun _ _ _ ↦ IsLink.left_mem) = G := by
   obtain rfl : E = E(G) := by simp [Set.ext_iff, hE, G.edge_mem_iff_exists_isLink]
-  cases G with | _ _ _ _ _ _ h _ => simp
+  rfl
 
 /-- Two graphs with the same vertex set and binary incidences are equal.
 (We use this as the default extensionality lemma rather than adding `@[ext]`
@@ -320,10 +317,7 @@ to the definition of `Graph`, so it doesn't require equality of the edge sets.) 
 protected lemma ext {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂))
     (h : ∀ e x y, G₁.IsLink e x y ↔ G₂.IsLink e x y) : G₁ = G₂ := by
   rw [← G₁.mk_eq_self G₁.edge_mem_iff_exists_isLink, ← G₂.mk_eq_self G₂.edge_mem_iff_exists_isLink]
-  convert rfl using 2
-  · exact hV.symm
-  · simp [funext_iff, h]
-  simp [edgeSet_eq_setOf_exists_isLink, h]
+  simp_all [-mk_eq_self, edgeSet_eq_setOf_exists_isLink, funext_iff]
 
 /-- Two graphs with the same vertex set and unary incidences are equal. -/
 lemma ext_inc {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂)) (h : ∀ e x, G₁.Inc e x ↔ G₂.Inc e x) :
