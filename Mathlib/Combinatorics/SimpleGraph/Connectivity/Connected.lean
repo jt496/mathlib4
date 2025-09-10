@@ -83,7 +83,7 @@ theorem reachable_comm {u v : V} : G.Reachable u v ↔ G.Reachable v u :=
 @[trans]
 protected theorem Reachable.trans {u v w : V} (huv : G.Reachable u v) (hvw : G.Reachable v w) :
     G.Reachable u w :=
-  huv.elim fun puv => hvw.elim fun pvw => ⟨puv.append pvw⟩
+  huv.elim fun puv => hvw.elim fun pvw => ⟨puv ++ pvw⟩
 
 theorem reachable_iff_reflTransGen (u v : V) :
     G.Reachable u v ↔ Relation.ReflTransGen G.Adj u v := by
@@ -671,7 +671,7 @@ theorem reachable_deleteEdges_iff_exists_cycle.aux [DecidableEq V] {u v w : V}
   let puw := (c.takeUntil v hv).takeUntil w hw
   let pwv := (c.takeUntil v hv).dropUntil w hw
   let pvu := c.dropUntil v hv
-  have : c = (puw.append pwv).append pvu := by simp [puw, pwv, pvu]
+  have : c = (puw ++ pwv) ++ pvu := by simp [puw, pwv, pvu]
   -- We have two walks from v to w
   --      pvu     puw
   --   v ----> u ----> w
@@ -679,7 +679,7 @@ theorem reachable_deleteEdges_iff_exists_cycle.aux [DecidableEq V] {u v w : V}
   --    `-------------'
   --      pwv.reverse
   -- so they both contain the edge s(v, w), but that's a contradiction since c is a trail.
-  have hbq := hb (pvu.append puw)
+  have hbq := hb (pvu ++ puw)
   have hpq' := hb pwv.reverse
   rw [Walk.edges_reverse, List.mem_reverse] at hpq'
   rw [Walk.isTrail_def, this, Walk.edges_append, Walk.edges_append, List.nodup_append_comm,

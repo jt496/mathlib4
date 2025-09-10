@@ -184,7 +184,7 @@ lemma two_colorable_iff_forall_loop_even {α : Type*} {G : SimpleGraph α} :
     obtain ⟨_, hv⟩ := c.nonempty_supp
     use fun a ↦ Fin.ofNat 2 (c.connected_toSimpleGraph ⟨_, hv⟩ a).some.length
     intro a b hab he
-    apply h _ <| (((c.connected_toSimpleGraph ⟨_, hv⟩ a).some.concat hab).append
+    apply h _ <| (((c.connected_toSimpleGraph ⟨_, hv⟩ a).some.concat hab) ++
                  (c.connected_toSimpleGraph ⟨_, hv⟩ b).some.reverse).map c.toSimpleGraph_hom
     rw [length_map, length_append, length_concat, length_reverse, add_right_comm]
     have : ((Nonempty.some (c.connected_toSimpleGraph ⟨_, hv⟩ a)).length) % 2 =
