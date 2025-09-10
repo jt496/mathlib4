@@ -82,7 +82,7 @@ lemma IsHamiltonianCycle.map {H : SimpleGraph β} (f : G →g H) (hf : Bijective
     simp only [IsHamiltonian, hf.surjective.forall]
     intro x
     rcases p with (_ | ⟨y, p⟩)
-    · cases hp.ne_nil rfl
+    · exact hp.isCycle.not_of_nil.elim
     simp only [map_cons, getVert_cons_succ, tail_cons, support_copy,support_map]
     rw [List.count_map_of_injective _ _ hf.injective, ← support_copy, ← tail_cons]
     exact hp.isHamiltonian_tail _

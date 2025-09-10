@@ -111,9 +111,9 @@ theorem IsAcyclic.path_unique {G : SimpleGraph V} (h : G.IsAcyclic) {v w : V} (p
 
 theorem isAcyclic_of_path_unique (h : ∀ (v w : V) (p q : G.Path v w), p = q) : G.IsAcyclic := by
   intro v c hc
-  simp only [Walk.isCycle_def, Ne] at hc
+  rw [Walk.isCycle_def] at hc
   cases c with
-  | nil => cases hc.2.1 rfl
+  | nil => simpa using hc.2.1
   | cons ha c' =>
     simp only [Walk.cons_isTrail_iff, Walk.support_cons, List.tail_cons] at hc
     specialize h _ _ ⟨c', by simp only [Walk.isPath_def, hc.2]⟩ (Path.singleton ha.symm)
@@ -160,7 +160,7 @@ lemma IsTree.card_edgeFinset [Fintype V] [Fintype G.edgeSet] (hG : G.IsTree) :
   refine Eq.symm <| Finset.card_bij
           (fun w hw => ((f w).firstDart <| ?notNil).edge)
           (fun a ha => ?memEdges) ?inj ?surj
-  case notNil => exact not_nil_of_ne (by simpa using hw)
+  case notNil => exact length_pos_of_ne (by simpa using hw)
   case memEdges => simp
   case inj =>
     intro a ha b hb h
@@ -169,11 +169,11 @@ lemma IsTree.card_edgeFinset [Fintype V] [Fintype G.edgeSet] (hG : G.IsTree) :
     rw [dart_edge_eq_iff] at h
     obtain (h | h) := h
     · exact (congrArg (·.fst) h)
-    · have h1 : ((f a).firstDart <| not_nil_of_ne (by simpa using ha)).snd = b :=
+    · have h1 : ((f a).firstDart <| length_pos_of_ne (by simpa using ha)).snd = b :=
         congrArg (·.snd) h
       have h3 := congrArg length (hf' _ ((f _).tail.copy h1 rfl) ?_)
       · rw [length_copy, ← add_left_inj 1,
-          length_tail_add_one (not_nil_of_ne (by simpa using ha))] at h3
+          length_tail_add_one (length_pos_of_ne (by simpa using ha))] at h3
         omega
       · simp only [isPath_copy]
         exact (hf _).tail

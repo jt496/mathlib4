@@ -146,7 +146,7 @@ theorem mem_verts_toSubgraph (p : G.Walk u v) : w ∈ p.toSubgraph.verts ↔ w �
     simp [ih, or_assoc, this]
 
 lemma not_nil_of_adj_toSubgraph {u v} {x : V} {p : G.Walk u v} (hadj : p.toSubgraph.Adj w x) :
-    ¬p.Nil := by
+    0 < p.length := by
   cases p <;> simp_all
 
 lemma start_mem_verts_toSubgraph (p : G.Walk u v) : u ∈ p.toSubgraph.verts := by
@@ -223,12 +223,11 @@ theorem toSubgraph_adj_getVert {u v} (w : G.Walk u v) {i : ℕ} (hi : i < w.leng
       right
       exact ih (Nat.succ_lt_succ_iff.mp hi)
 
-theorem toSubgraph_adj_snd {u v} (w : G.Walk u v) (h : ¬ w.Nil) : w.toSubgraph.Adj u w.snd := by
-  simpa using w.toSubgraph_adj_getVert (not_nil_iff_lt_length.mp h)
+theorem toSubgraph_adj_snd {u v} (w : G.Walk u v) (h : 0 < w.length) :
+    w.toSubgraph.Adj u w.snd := by simpa using w.toSubgraph_adj_getVert h
 
-theorem toSubgraph_adj_penultimate {u v} (w : G.Walk u v) (h : ¬ w.Nil) :
+theorem toSubgraph_adj_penultimate {u v} (w : G.Walk u v) (h : 0 < w.length) :
     w.toSubgraph.Adj w.penultimate v := by
-  rw [not_nil_iff_lt_length] at h
   simpa [show w.length - 1 + 1 = w.length from by omega]
     using w.toSubgraph_adj_getVert (by omega : w.length - 1 < w.length)
 
@@ -267,7 +266,7 @@ lemma mem_support_of_adj_toSubgraph {u v u' v' : V} {p : G.Walk u v} (hp : p.toS
 namespace IsPath
 
 lemma neighborSet_toSubgraph_startpoint {u v} {p : G.Walk u v}
-    (hp : p.IsPath) (hnp : ¬ p.Nil) : p.toSubgraph.neighborSet u = {p.snd} := by
+    (hp : p.IsPath) (hnp : 0 < p.length) : p.toSubgraph.neighborSet u = {p.snd} := by
   have hadj1 := p.toSubgraph_adj_snd hnp
   ext v
   simp_all only [Subgraph.mem_neighborSet, Set.mem_singleton_iff,
@@ -284,10 +283,8 @@ lemma neighborSet_toSubgraph_startpoint {u v} {p : G.Walk u v}
     contradiction
 
 lemma neighborSet_toSubgraph_endpoint {u v} {p : G.Walk u v}
-    (hp : p.IsPath) (hnp : ¬ p.Nil) : p.toSubgraph.neighborSet v = {p.penultimate} := by
-  simpa using IsPath.neighborSet_toSubgraph_startpoint hp.reverse
-      (by rw [Walk.not_nil_iff_lt_length, Walk.length_reverse]; exact
-        Walk.not_nil_iff_lt_length.mp hnp)
+    (hp : p.IsPath) (hnp : 0 < p.length) : p.toSubgraph.neighborSet v = {p.penultimate} := by
+  simpa using IsPath.neighborSet_toSubgraph_startpoint hp.reverse (by simpa)
 
 lemma neighborSet_toSubgraph_internal {u} {i : ℕ} {p : G.Walk u v} (hp : p.IsPath)
     (h : i ≠ 0) (h' : i < p.length) :

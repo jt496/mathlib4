@@ -71,7 +71,7 @@ structure IsPath {u v : V} (p : G.Walk u v) : Prop extends isTrail : IsTrail p w
 /-- A *circuit* at `u : V` is a nonempty trail beginning and ending at `u`. -/
 @[mk_iff isCircuit_def]
 structure IsCircuit {u : V} (p : G.Walk u u) : Prop extends isTrail : IsTrail p where
-  ne_nil : p ≠ nil
+  ne_nil : 0 < p.length
 
 /-- A *cycle* at `u : V` is a circuit at `u` whose only repeating vertex
 is `u` (which appears exactly twice). -/
@@ -106,10 +106,10 @@ theorem isCircuit_copy {u u'} (p : G.Walk u u) (hu : u = u') :
   subst_vars
   rfl
 
-lemma IsCircuit.not_nil {p : G.Walk v v} (hp : IsCircuit p) : ¬ p.Nil := (hp.ne_nil ·.eq_nil)
+lemma IsCircuit.not_nil {p : G.Walk v v} (hp : IsCircuit p) : 0 < p.length := hp.ne_nil
 
 theorem isCycle_def {u : V} (p : G.Walk u u) :
-    p.IsCycle ↔ p.IsTrail ∧ p ≠ nil ∧ p.support.tail.Nodup :=
+    p.IsCycle ↔ p.IsTrail ∧ 0 < p.length ∧ p.support.tail.Nodup :=
   Iff.intro (fun h => ⟨h.1.1, h.1.2, h.2⟩) fun h => ⟨⟨h.1, h.2.1⟩, h.2.2⟩
 
 @[simp]
@@ -118,8 +118,7 @@ theorem isCycle_copy {u u'} (p : G.Walk u u) (hu : u = u') :
   subst_vars
   rfl
 
-lemma IsCycle.not_nil {p : G.Walk v v} (hp : IsCycle p) : ¬ p.Nil := (hp.ne_nil ·.eq_nil)
-
+lemma IsCycle.not_nil {p : G.Walk v v} (hp : IsCycle p) : 0 < p.length := hp.ne_nil
 @[simp]
 theorem IsTrail.nil {u : V} : (nil : G.Walk u u).IsTrail :=
   ⟨by simp [edges]⟩
@@ -234,7 +233,7 @@ theorem IsPath.concat {p : G.Walk u v} (hp : p.IsPath) (hw : w ∉ p.support)
   (concat_isPath_iff h).mpr ⟨hp, hw⟩
 
 lemma IsPath.disjoint_support_of_append {u v w : V} {p : G.Walk u v} {q : G.Walk v w}
-    (hpq : (p.append q).IsPath) (hq : ¬q.Nil) : p.support.Disjoint q.tail.support := by
+    (hpq : (p.append q).IsPath) (hq : 0 < q.length) : p.support.Disjoint q.tail.support := by
   have hpq' := hpq.support_nodup
   rw [support_append] at hpq'
   rw [support_tail_of_not_nil q hq]
@@ -245,10 +244,7 @@ lemma IsPath.ne_of_mem_support_of_append {u v w : V} {p : G.Walk u v} {q : G.Wal
     x ≠ y := by
   intro hxy
   subst hxy
-  have hq : ¬q.Nil := by
-    intro hq
-    simp only [nil_iff_support_eq.mp hq, List.mem_cons, List.not_mem_nil, or_false] at hy
-    exact hyv hy
+  have hq : 0 < q.length := length_pos_of_mem_support_ne hy q.start_mem_support hyv
   have hx' : x ∈ q.tail.support := by
     rw [support_tail_of_not_nil q hq]
     rw [mem_support_iff] at hy
@@ -256,10 +252,11 @@ lemma IsPath.ne_of_mem_support_of_append {u v w : V} {p : G.Walk u v} {q : G.Wal
   exact IsPath.disjoint_support_of_append hpq hq hx hx'
 
 @[simp]
-theorem IsCycle.not_of_nil {u : V} : ¬(nil : G.Walk u u).IsCycle := fun h => h.ne_nil rfl
+theorem IsCycle.not_of_nil {u : V} : ¬(nil : G.Walk u u).IsCycle := fun h => by
+  simpa using h.ne_nil
 
 lemma IsCycle.ne_bot : ∀ {p : G.Walk u u}, p.IsCycle → G ≠ ⊥
-  | nil, hp => by cases hp.ne_nil rfl
+  | nil, hp => by simp_all
   | cons h _, hp => by rintro rfl; exact h
 
 lemma IsCycle.three_le_length {v : V} {p : G.Walk v v} (hp : p.IsCycle) : 3 ≤ p.length := by
@@ -271,35 +268,34 @@ lemma IsCycle.three_le_length {v : V} {p : G.Walk v v} (hp : p.IsCycle) : 3 ≤ 
   | .cons _ (.cons _ (.cons _ _)) => simp_rw [SimpleGraph.Walk.length_cons]; omega
 
 lemma not_nil_of_isCycle_cons {p : G.Walk u v} {h : G.Adj v u} (hc : (Walk.cons h p).IsCycle) :
-    ¬ p.Nil := by
+    0 < p.length := by
   have := Walk.length_cons _ _ ▸ Walk.IsCycle.three_le_length hc
-  rw [Walk.not_nil_iff_lt_length]
   omega
 
 theorem cons_isCycle_iff {u v : V} (p : G.Walk v u) (h : G.Adj u v) :
     (Walk.cons h p).IsCycle ↔ p.IsPath ∧ s(u, v) ∉ p.edges := by
-  simp only [Walk.isCycle_def, Walk.isPath_def, Walk.isTrail_def, edges_cons, List.nodup_cons,
-    support_cons, List.tail_cons]
+  simp only [isCycle_def, isTrail_def, edges_cons, List.nodup_cons, length_cons, Nat.zero_lt_succ,
+    support_cons, List.tail_cons, true_and, isPath_def]
   have : p.support.Nodup → p.edges.Nodup := edges_nodup_of_support_nodup
   tauto
 
 protected lemma IsCycle.reverse {p : G.Walk u u} (h : p.IsCycle) : p.reverse.IsCycle := by
   simp only [Walk.isCycle_def, nodup_tail_support_reverse] at h ⊢
-  exact ⟨h.1.reverse, fun h' ↦ h.2.1 (by simp_all [← Walk.length_eq_zero_iff]), h.2.2⟩
+  exact ⟨h.1.reverse, by simp_all, h.2.2⟩
 
 @[simp]
 lemma isCycle_reverse {p : G.Walk u u} : p.reverse.IsCycle ↔ p.IsCycle where
   mp h := by simpa using h.reverse
   mpr := .reverse
 
-lemma IsCycle.isPath_of_append_right {p : G.Walk u v} {q : G.Walk v u} (h : ¬ p.Nil)
+lemma IsCycle.isPath_of_append_right {p : G.Walk u v} {q : G.Walk v u} (h : 0 < p.length)
     (hcyc : (p.append q).IsCycle) : q.IsPath := by
   have := hcyc.2
   rw [tail_support_append, List.nodup_append'] at this
   rw [isPath_def, support_eq_cons, List.nodup_cons]
-  exact ⟨this.2.2 (p.end_mem_tail_support h), this.2.1⟩
+  exact ⟨this.2.2 (p.end_mem_tail_support_of_length_pos h), this.2.1⟩
 
-lemma IsCycle.isPath_of_append_left {p : G.Walk u v} {q : G.Walk v u} (h : ¬ q.Nil)
+lemma IsCycle.isPath_of_append_left {p : G.Walk u v} {q : G.Walk v u} (h : 0 < q.length)
     (hcyc : (p.append q).IsCycle) : p.IsPath :=
   p.isPath_reverse_iff.mp ((reverse_append _ _ ▸ hcyc.reverse).isPath_of_append_right (by simpa))
 
@@ -465,13 +461,7 @@ protected theorem IsTrail.rotate {u v : V} {c : G.Walk v v} (hc : c.IsTrail) (h 
 
 protected theorem IsCircuit.rotate {u v : V} {c : G.Walk v v} (hc : c.IsCircuit)
     (h : u ∈ c.support) : (c.rotate h).IsCircuit := by
-  refine ⟨hc.isTrail.rotate _, ?_⟩
-  cases c
-  · exact (hc.ne_nil rfl).elim
-  · intro hn
-    have hn' := congr_arg length hn
-    rw [rotate, length_append, add_comm, ← length_append, take_spec] at hn'
-    simp at hn'
+  refine ⟨hc.isTrail.rotate _,  length_rotate h ▸ hc.ne_nil⟩
 
 protected theorem IsCycle.rotate {u v : V} {c : G.Walk v v} (hc : c.IsCycle) (h : u ∈ c.support) :
     (c.rotate h).IsCycle := by
@@ -485,7 +475,7 @@ lemma IsCycle.isPath_takeUntil {c : G.Walk v v} (hc : c.IsCycle) (h : w ∈ c.su
   · subst hvw
     simp
   rw [← isCycle_reverse, ← take_spec c h, reverse_append] at hc
-  exact (c.takeUntil w h).isPath_reverse_iff.mp (hc.isPath_of_append_right (not_nil_of_ne hvw))
+  exact (c.takeUntil w h).isPath_reverse_iff.mp (hc.isPath_of_append_right (length_pos_of_ne hvw))
 
 /-- Taking a strict initial segment of a path removes the end vertex from the support. -/
 lemma endpoint_notMem_support_takeUntil {p : G.Walk u v} (hp : p.IsPath) (hw : w ∈ p.support)
@@ -717,8 +707,7 @@ alias ⟨_, map_isTrail_of_injective⟩ := map_isTrail_iff_of_injective
 
 theorem map_isCycle_iff_of_injective {p : G.Walk u u} (hinj : Function.Injective f) :
     (p.map f).IsCycle ↔ p.IsCycle := by
-  rw [isCycle_def, isCycle_def, map_isTrail_iff_of_injective hinj, Ne, map_eq_nil_iff,
-    support_map, ← List.map_tail, List.nodup_map_iff hinj]
+  simp [isCycle_def, map_isTrail_iff_of_injective hinj, ← List.map_tail, List.nodup_map_iff hinj]
 
 alias ⟨_, IsCycle.map⟩ := map_isCycle_iff_of_injective
 

@@ -122,14 +122,11 @@ lemma Reachable.mem_subgraphVerts {u v} {H : G.Subgraph} (hr : G.Reachable u v)
     (h : ∀ v ∈ H.verts, ∀ w, G.Adj v w → H.Adj v w)
     (hu : u ∈ H.verts) : v ∈ H.verts := by
   let rec aux {v' : V} (hv' : v' ∈ H.verts) (p : G.Walk v' v) : v ∈ H.verts := by
-    by_cases hnp : p.Nil
-    · exact hnp.eq ▸ hv'
-    exact aux (H.edge_vert (h _ hv' _ (Walk.adj_snd hnp)).symm) p.tail
+    cases p with
+    | nil => exact hv'
+    | cons ha p =>
+    exact aux (H.edge_vert (h _ hv' _ ((p.cons ha).adj_snd (by simp))).symm) ((p.cons ha)).tail
   termination_by p.length
-  decreasing_by {
-    rw [← Walk.length_tail_add_one hnp]
-    omega
-  }
   exact aux hu hr.some
 
 variable (G)
@@ -195,38 +192,38 @@ lemma Preconnected.minDegree_pos_of_nontrivial [Nontrivial V] [Fintype V] {G : S
   rw [hv]
   exact h.degree_pos_of_nontrivial v
 
-lemma adj_of_mem_walk_support {G : SimpleGraph V} {u v : V} (p : G.Walk u v) (hp : ¬p.Nil) {x : V}
-    (hx : x ∈ p.support) : ∃ y ∈ p.support, G.Adj x y := by
+lemma adj_of_mem_walk_support {G : SimpleGraph V} {u v : V} (p : G.Walk u v) (hp : 0 < p.length)
+    {x : V} (hx : x ∈ p.support) : ∃ y ∈ p.support, G.Adj x y := by
   induction p with
-  | nil =>
-    exact (hp Walk.Nil.nil).elim
+  | nil => simp_all
   | @cons u v w h p ih =>
     cases List.mem_cons.mp hx with
     | inl hxu =>
       rw [hxu]
       exact ⟨v, ⟨((Walk.cons h p).mem_support_iff).mpr (Or.inr p.start_mem_support), h⟩⟩
     | inr hxp =>
-      cases Decidable.em p.Nil with
-      | inl hnil =>
-        rw [Walk.nil_iff_support_eq.mp hnil] at hxp
-        rw [show (x = v) by simp_all]
+      by_cases h0 : p.length = 0
+      · have : x = v := by
+          contrapose! h0
+          have := p.length_pos_of_mem_support_ne hxp p.start_mem_support h0
+          omega
+        subst this
         exact ⟨u, ⟨(Walk.cons h p).start_mem_support, G.adj_symm h⟩⟩
-      | inr hnotnil =>
-        obtain ⟨y, hy⟩ := ih hnotnil hxp
+      · obtain ⟨y, hy⟩ := ih (by omega) hxp
         refine ⟨y, ⟨?_, hy.right⟩⟩
         rw [Walk.mem_support_iff]
         simp only [Walk.support_cons, List.tail_cons]
         exact Or.inr hy.left
 
-lemma mem_support_of_mem_walk_support {G : SimpleGraph V} {u v : V} (p : G.Walk u v) (hp : ¬p.Nil)
-    {w : V} (hw : w ∈ p.support) : w ∈ G.support := by
+lemma mem_support_of_mem_walk_support {G : SimpleGraph V} {u v : V} (p : G.Walk u v)
+    (hp : 0 < p.length) {w : V} (hw : w ∈ p.support) : w ∈ G.support := by
   obtain ⟨y, hy⟩ := adj_of_mem_walk_support p hp hw
   exact (mem_support G).mpr ⟨y, hy.right⟩
 
 lemma mem_support_of_reachable {G : SimpleGraph V} {u v : V} (huv : u ≠ v) (h : G.Reachable u v) :
     u ∈ G.support := by
   let p : G.Walk u v := Classical.choice h
-  have hp : ¬p.Nil := Walk.not_nil_of_ne huv
+  have hp : 0 < p.length := Walk.length_pos_of_ne huv
   exact mem_support_of_mem_walk_support p hp p.start_mem_support
 
 theorem Preconnected.exists_isPath {G : SimpleGraph V} (h : G.Preconnected) (u v : V) :

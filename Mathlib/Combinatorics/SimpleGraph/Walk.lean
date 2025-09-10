@@ -508,6 +508,12 @@ theorem support_reverse {u v : V} (p : G.Walk u v) : p.reverse.support = p.suppo
 @[simp]
 theorem support_ne_nil {u v : V} (p : G.Walk u v) : p.support ≠ [] := by cases p <;> simp
 
+@[simp]
+lemma length_pos_of_mem_support_ne {u v x y : V} {p : G.Walk u v} (hx : x ∈ p.support)
+  (hx : y ∈ p.support) (h : x ≠ y) : 0 < p.length := by
+  cases p <;> simp_all
+
+
 theorem support_append_eq_support_dropLast_append {u v w : V} (p : G.Walk u v) (p' : G.Walk v w) :
     (p.append p').support = p.support.dropLast ++ p'.support := by
   induction p <;> simp_all [List.dropLast_cons_of_ne_nil]
