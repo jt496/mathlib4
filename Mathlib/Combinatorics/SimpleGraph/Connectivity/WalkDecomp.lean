@@ -51,16 +51,17 @@ lemma takeUntil_first (p : G.Walk u v) :
 
 @[simp]
 lemma nil_takeUntil (p : G.Walk u v) (hwp : w ∈ p.support) :
-    (p.takeUntil w hwp).Nil ↔ u = w := by
+    (p.takeUntil w hwp).length = 0 ↔ w = u := by
   refine ⟨?_, fun h => by subst h; simp⟩
   intro hnil
   cases p with
-  | nil => simp only [takeUntil, eq_mpr_eq_cast] at hnil; exact hnil.eq
+  | nil => simpa using hwp
   | cons h q =>
     simp only [support_cons, List.mem_cons] at hwp
     obtain hl | hr := hwp
-    · exact hl.symm
+    · exact hl
     · by_contra! hc
+      rw [ne_comm] at hc
       simp [takeUntil_cons hr hc] at hnil
 
 /-- Given a vertex in the support of a path, give the path from (and including) that vertex to
@@ -206,9 +207,8 @@ lemma getVert_takeUntil {u v : V} {n : ℕ} {p : G.Walk u v} (hw : w ∈ p.suppo
 lemma snd_takeUntil (hsu : w ≠ u) (p : G.Walk u v) (h : w ∈ p.support) :
     (p.takeUntil w h).snd = p.snd := by
   apply p.getVert_takeUntil h
-  by_contra! hc
-  simp only [Nat.lt_one_iff, ← nil_iff_length_eq, nil_takeUntil] at hc
-  exact hsu hc.symm
+  contrapose! hsu
+  simpa using hsu
 
 lemma length_takeUntil_lt {u v w : V} {p : G.Walk v w} (h : u ∈ p.support) (huw : u ≠ w) :
     (p.takeUntil u h).length < p.length := by
@@ -265,6 +265,11 @@ def rotate {u v : V} (c : G.Walk v v) (h : u ∈ c.support) : G.Walk u u :=
   (c.dropUntil u h).append (c.takeUntil u h)
 
 @[simp]
+lemma length_rotate {u v : V} {c : G.Walk v v} (h : u ∈ c.support) :
+    (c.rotate h).length = c.length := by
+  rw [rotate, length_append, add_comm, ← length_append, take_spec]
+
+@[simp]
 theorem support_rotate {u v : V} (c : G.Walk v v) (h : u ∈ c.support) :
     (c.rotate h).support.tail ~r c.support.tail := by
   simp only [rotate, tail_support_append]
@@ -303,8 +308,7 @@ theorem mem_support_iff_exists_getVert {u v w : V} {p : G.Walk v w} :
     | zero => aesop
     | succ n =>
       right
-      have hnp : ¬ p.Nil := by
-        rw [nil_iff_length_eq]
+      have hnp : 0 < p.length := by
         omega
       rw [← support_tail_of_not_nil _ hnp, mem_support_iff_exists_getVert]
       use n

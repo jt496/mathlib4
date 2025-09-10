@@ -448,7 +448,7 @@ private lemma IsCycles.reachable_sdiff_toSubgraph_spanningCoe_aux [Fintype V] {v
   by_cases hvw : v = w
   · subst hvw
     use .nil
-  have hpn : ¬p.Nil := Walk.not_nil_of_ne hvw
+  have hpn : 0 < p.length := Walk.length_pos_of_ne hvw
   obtain ⟨w', ⟨hw'1, hw'2⟩, hwu⟩ := hcyc.existsUnique_ne_adj
     (p.toSubgraph_adj_snd hpn).adj_sub
   -- The edge (v, w) can't be in p, because then it would be the second node
