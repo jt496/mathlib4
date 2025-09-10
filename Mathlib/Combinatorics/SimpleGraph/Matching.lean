@@ -474,8 +474,8 @@ private lemma IsCycles.reachable_sdiff_toSubgraph_spanningCoe_aux [Fintype V] {v
     simp only [sdiff_adj, Subgraph.spanningCoe_adj]
     refine ⟨hw'2.symm, fun h ↦ ?_⟩
     exact hnpvw' h.symm
-  use (((hcyc.reachable_sdiff_toSubgraph_spanningCoe_aux
-    (p.cons hw'2.symm) hp'p).some).mapLe hle) ++ this.toWalk
+  use ((hcyc.reachable_sdiff_toSubgraph_spanningCoe_aux
+    (p.cons hw'2.symm) hp'p).some).mapLe hle ++ this.toWalk
 termination_by Fintype.card V + 1 - p.length
 decreasing_by
   simp_wf

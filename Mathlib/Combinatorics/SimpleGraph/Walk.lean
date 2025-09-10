@@ -130,12 +130,15 @@ def append {u v w : V} : G.Walk u v → G.Walk v w → G.Walk u w
 
 instance {u v w : V} : HAppend (G.Walk u v) (G.Walk v w) (G.Walk u w) := ⟨Walk.append⟩
 
+@[simp]
+lemma append_def {u v w : V} (p : G.Walk u v) (q : G.Walk v w) : p.append q = p ++ q := rfl
+
 /-- The reversed version of `SimpleGraph.Walk.cons`, concatenating an edge to
 the end of a walk. -/
-def concat {u v w : V} (p : G.Walk u v) (h : G.Adj v w) : G.Walk u w := p ++ (cons h nil)
+def concat {u v w : V} (p : G.Walk u v) (h : G.Adj v w) : G.Walk u w := p ++ cons h nil
 
 theorem concat_eq_append {u v w : V} (p : G.Walk u v) (h : G.Adj v w) :
-    p.concat h = p ++ (cons h nil) := rfl
+    p.concat h = p ++ cons h nil := rfl
 
 /-- The concatenation of the reverse of the first walk with the second walk. -/
 protected def reverseAux {u v w : V} : G.Walk u v → G.Walk u w → G.Walk v w
@@ -193,24 +196,24 @@ lemma getVert_cons {u v w n} (p : G.Walk v w) (h : G.Adj u v) (hn : n ≠ 0) :
 
 @[simp]
 theorem cons_append {u v w x : V} (h : G.Adj u v) (p : G.Walk v w) (q : G.Walk w x) :
-    (cons h p) ++ q = cons h (p ++ q) := rfl
+    cons h p ++ q = cons h (p ++ q) := rfl
 
 @[simp]
 theorem cons_nil_append {u v w : V} (h : G.Adj u v) (p : G.Walk v w) :
-    (cons h nil) ++ p = cons h p := rfl
+    cons h nil ++ p = cons h p := rfl
 
 @[simp]
-theorem nil_append {u v : V} (p : G.Walk u v) : (@nil _ G u) ++ p = p :=
+theorem nil_append {u v : V} (p : G.Walk u v) : @nil _ G u ++ p = p :=
   rfl
 
 @[simp]
-theorem append_nil {u v : V} (p : G.Walk u v) : p ++ (@nil _ G v) = p := by
+theorem append_nil {u v : V} (p : G.Walk u v) : p ++ @nil _ G v = p := by
   induction p with
   | nil => rw [nil_append]
   | cons _ _ ih => rw [cons_append, ih]
 
 theorem append_assoc {u v w x : V} (p : G.Walk u v) (q : G.Walk v w) (r : G.Walk w x) :
-    p ++ (q ++ r) = (p ++ q) ++ r := by
+    p ++ (q ++ r) = p ++ q ++ r := by
   induction p with
   | nil => rw [nil_append, nil_append]
   | cons h p' ih => rw [cons_append, cons_append, cons_append, ih]
@@ -229,10 +232,10 @@ theorem concat_cons {u v w x : V} (h : G.Adj u v) (p : G.Walk v w) (h' : G.Adj w
     (cons h p).concat h' = cons h (p.concat h') := rfl
 
 theorem append_concat {u v w x : V} (p : G.Walk u v) (q : G.Walk v w) (h : G.Adj w x) :
-    p ++ (q.concat h) = (p ++ q).concat h := append_assoc _ _ _
+    p ++ q.concat h = (p ++ q).concat h := append_assoc _ _ _
 
 theorem concat_append {u v w x : V} (p : G.Walk u v) (h : G.Adj v w) (q : G.Walk w x) :
-    (p.concat h) ++ q = p ++ (cons h q) := by
+    p.concat h ++ q = p ++ cons h q := by
   rw [concat_eq_append, ← append_assoc, cons_nil_append]
 
 /-- A non-trivial `cons` walk is representable as a `concat` walk. -/
@@ -273,7 +276,7 @@ protected theorem append_reverseAux {u v w x : V}
 @[simp]
 protected theorem reverseAux_append {u v w x : V}
     (p : G.Walk u v) (q : G.Walk u w) (r : G.Walk w x) :
-    (p.reverseAux q) ++ r = p.reverseAux (q ++ r) := by
+    p.reverseAux q ++ r = p.reverseAux (q ++ r) := by
   induction p with
   | nil => rfl
   | cons h _ ih => simp [ih (cons (G.symm h) q)]
@@ -283,7 +286,7 @@ protected theorem reverseAux_eq_reverse_append {u v w : V} (p : G.Walk u v) (q :
 
 @[simp]
 theorem reverse_cons {u v w : V} (h : G.Adj u v) (p : G.Walk v w) :
-    (cons h p).reverse = p.reverse ++ (cons (G.symm h) nil) := by simp [reverse]
+    (cons h p).reverse = p.reverse ++ cons (G.symm h) nil := by simp [reverse]
 
 @[simp]
 theorem reverse_copy {u v u' v'} (p : G.Walk u v) (hu : u = u') (hv : v = v') :
@@ -1241,7 +1244,7 @@ theorem map_eq_nil_iff {p : G.Walk u u} : p.map f = nil ↔ p = nil := by cases 
 theorem length_map : (p.map f).length = p.length := by induction p <;> simp [*]
 
 theorem map_append {u v w : V} (p : G.Walk u v) (q : G.Walk v w) :
-    (p ++ q).map f = (p.map f) ++ (q.map f) := by induction p <;> simp [*]
+    (p ++ q).map f = p.map f ++ q.map f := by induction p <;> simp [*]
 
 @[simp]
 theorem reverse_map : (p.map f).reverse = p.reverse.map f := by induction p <;> simp [map_append, *]
@@ -1402,7 +1405,7 @@ variable {V : Type*} {G : SimpleGraph V}
 
 /-- `p.IsSubwalk q` means that the walk `p` is a contiguous subwalk of the walk `q`. -/
 def IsSubwalk {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
-  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru ++ p) ++ rv
+  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = ru ++ p ++ rv
 
 @[refl, simp]
 lemma isSubwalk_rfl {u v} (p : G.Walk u v) : p.IsSubwalk p :=
