@@ -460,8 +460,8 @@ protected theorem IsTrail.rotate {u v : V} {c : G.Walk v v} (hc : c.IsTrail) (h 
   exact hc.edges_nodup
 
 protected theorem IsCircuit.rotate {u v : V} {c : G.Walk v v} (hc : c.IsCircuit)
-    (h : u ∈ c.support) : (c.rotate h).IsCircuit := by
-  refine ⟨hc.isTrail.rotate _,  length_rotate h ▸ hc.ne_nil⟩
+    (h : u ∈ c.support) : (c.rotate h).IsCircuit :=
+  ⟨hc.isTrail.rotate _,  length_rotate h ▸ hc.ne_nil⟩
 
 protected theorem IsCycle.rotate {u v : V} {c : G.Walk v v} (hc : c.IsCycle) (h : u ∈ c.support) :
     (c.rotate h).IsCycle := by

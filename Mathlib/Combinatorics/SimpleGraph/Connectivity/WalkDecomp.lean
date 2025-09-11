@@ -64,6 +64,13 @@ lemma nil_takeUntil (p : G.Walk u v) (hwp : w ∈ p.support) :
       rw [ne_comm] at hc
       simp [takeUntil_cons hr hc] at hnil
 
+@[simp]
+lemma not_nil_takeUntil (p : G.Walk u v) (hwp : w ∈ p.support) :
+    0 < (p.takeUntil w hwp).length ↔ w ≠ u := by
+  apply Iff.intro <;> intro h
+  · intro hf; rw [← p.nil_takeUntil hwp] at hf; omega
+  · contrapose! h; simp_all
+
 /-- Given a vertex in the support of a path, give the path from (and including) that vertex to
 the end. In other words, drop vertices from the front of a path until (and not including)
 that vertex. -/
@@ -308,14 +315,12 @@ theorem mem_support_iff_exists_getVert {u v w : V} {p : G.Walk v w} :
     | zero => aesop
     | succ n =>
       right
-      have hnp : 0 < p.length := by
-        omega
-      rw [← support_tail_of_not_nil _ hnp, mem_support_iff_exists_getVert]
+      rw [← support_tail_of_not_nil _ (by omega), mem_support_iff_exists_getVert]
       use n
-      rwa [getVert_tail, ← Nat.add_one_le_add_one_iff, length_tail_add_one hnp]
+      rwa [getVert_tail, ← Nat.add_one_le_add_one_iff, length_tail_add_one (by omega)]
 termination_by p.length
 decreasing_by
 · simp_wf
-  rw [Nat.lt_iff_add_one_le, length_tail_add_one hnp]
+  rw [Nat.lt_iff_add_one_le, length_tail_add_one (by omega)]
 
 end SimpleGraph.Walk
