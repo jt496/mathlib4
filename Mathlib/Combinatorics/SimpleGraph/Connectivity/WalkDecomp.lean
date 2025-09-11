@@ -52,7 +52,7 @@ lemma takeUntil_first (p : G.Walk u v) :
 @[simp]
 lemma nil_takeUntil (p : G.Walk u v) (hwp : w ∈ p.support) :
     (p.takeUntil w hwp).Nil ↔ u = w := by
-  refine ⟨?_, fun h => by subst h; simp⟩
+  refine ⟨?_, fun h => by subst h; simp only [takeUntil_first]; rfl⟩
   intro hnil
   cases p with
   | nil => simp only [takeUntil, eq_mpr_eq_cast] at hnil; exact hnil.eq

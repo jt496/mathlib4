@@ -199,7 +199,7 @@ lemma adj_of_mem_walk_support {G : SimpleGraph V} {u v : V} (p : G.Walk u v) (hp
     (hx : x ∈ p.support) : ∃ y ∈ p.support, G.Adj x y := by
   induction p with
   | nil =>
-    exact (hp Walk.Nil.nil).elim
+    exact (hp rfl).elim
   | @cons u v w h p ih =>
     cases List.mem_cons.mp hx with
     | inl hxu =>

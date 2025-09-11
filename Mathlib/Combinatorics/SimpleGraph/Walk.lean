@@ -371,7 +371,7 @@ lemma exists_length_eq_one_iff {u v : V} : (∃ (p : G.Walk u v), p.length = 1) 
     exact (p'.eq_of_length_eq_zero hp) ▸ h
 
 @[simp]
-theorem length_eq_zero_iff {u : V} {p : G.Walk u u} : p.length = 0 ↔ p = nil := by cases p <;> simp
+theorem length_eq_zero_iff {u : V} {p : G.Walk u u} : p = nil ↔ p.length = 0 := by cases p <;> simp
 
 theorem getVert_append {u v w : V} (p : G.Walk u v) (q : G.Walk v w) (i : ℕ) :
     (p.append q).getVert i = if i < p.length then p.getVert i else q.getVert (i - p.length) := by
@@ -840,29 +840,27 @@ theorem coe_edges_toFinset [DecidableEq V] {u v : V} (p : G.Walk u v) :
 
 Solves the dependent type problem where `p = G.Walk.nil` typechecks
 only if `p` has defeq endpoints. -/
-inductive Nil : {v w : V} → G.Walk v w → Prop
-  | nil {u : V} : Nil (nil : G.Walk u u)
+abbrev Nil {v w : V} (p : G.Walk v w) : Prop := p.length = 0
 
 variable {u v w : V}
 
-@[simp] lemma nil_nil : (nil : G.Walk u u).Nil := Nil.nil
+@[simp] lemma nil_nil : (nil : G.Walk u u).Nil := rfl
 
 @[simp] lemma not_nil_cons {h : G.Adj u v} {p : G.Walk v w} : ¬ (cons h p).Nil := nofun
 
-instance (p : G.Walk v w) : Decidable p.Nil :=
-  match p with
-  | nil => isTrue .nil
-  | cons _ _ => isFalse nofun
+instance (p : G.Walk v w) : Decidable p.Nil := inferInstance
 
-protected lemma Nil.eq {p : G.Walk v w} : p.Nil → v = w | .nil => rfl
+protected lemma Nil.eq {p : G.Walk v w} (h : p.Nil) : v = w := by
+  cases p <;> simp_all
 
 lemma not_nil_of_ne {p : G.Walk v w} : v ≠ w → ¬ p.Nil := mt Nil.eq
 
 lemma nil_iff_support_eq {p : G.Walk v w} : p.Nil ↔ p.support = [v] := by
-  cases p <;> simp
+  cases p with
+  | nil => simp only [support_nil, iff_true]; rfl
+  | cons h p => simp
 
-lemma nil_iff_length_eq {p : G.Walk v w} : p.Nil ↔ p.length = 0 := by
-  cases p <;> simp
+lemma nil_iff_length_eq {p : G.Walk v w} : p.Nil ↔ p.length = 0 := Iff.rfl
 
 lemma not_nil_iff_lt_length {p : G.Walk v w} : ¬ p.Nil ↔ 0 < p.length := by
   cases p <;> simp
@@ -875,8 +873,10 @@ lemma not_nil_iff {p : G.Walk v w} :
 lemma nil_append_iff {p : G.Walk u v} {q : G.Walk v w} : (p.append q).Nil ↔ p.Nil ∧ q.Nil := by
   cases p <;> cases q <;> simp
 
-lemma Nil.append {p : G.Walk u v} {q : G.Walk v w} (hp : p.Nil) (hq : q.Nil) : (p.append q).Nil :=
-  by simp [hp, hq]
+lemma Nil.append {p : G.Walk u v} {q : G.Walk v w} (hp : p.Nil) (hq : q.Nil) :
+    (p.append q).Nil := by
+  simp only [nil_append_iff]
+  exact ⟨hp, hq⟩
 
 @[simp]
 lemma nil_reverse {p : G.Walk v w} : p.reverse.Nil ↔ p.Nil := by
@@ -884,7 +884,8 @@ lemma nil_reverse {p : G.Walk v w} : p.reverse.Nil ↔ p.Nil := by
 
 /-- A walk with its endpoints defeq is `Nil` if and only if it is equal to `nil`. -/
 lemma nil_iff_eq_nil : ∀ {p : G.Walk v v}, p.Nil ↔ p = nil
-  | .nil | .cons _ _ => by simp
+  | .nil => by simp; rfl
+  | .cons _ _  => by simp
 
 alias ⟨Nil.eq_nil, _⟩ := nil_iff_eq_nil
 
@@ -894,7 +895,7 @@ def notNilRec {motive : {u w : V} → (p : G.Walk u w) → (h : ¬ p.Nil) → So
     (cons : {u v w : V} → (h : G.Adj u v) → (q : G.Walk v w) → motive (cons h q) not_nil_cons)
     (p : G.Walk u w) : (hp : ¬ p.Nil) → motive p hp :=
   match p with
-  | nil => fun hp => absurd .nil hp
+  | nil => fun hp => hp.elim rfl
   | .cons h q => fun _ => cons h q
 
 @[simp]
@@ -1028,10 +1029,10 @@ lemma tail_cons (h : G.Adj u v) (p : G.Walk v w) :
 @[deprecated (since := "2025-08-19")] alias tail_cons_eq := tail_cons
 
 @[simp]
-lemma dropLast_nil : (@nil _ G v).dropLast = nil := rfl
+lemma dropLast_nil : (@nil _ G v).dropLast.Nil := rfl
 
 @[simp]
-lemma dropLast_cons_nil (h : G.Adj u v) : (cons h nil).dropLast = nil := rfl
+lemma dropLast_cons_nil (h : G.Adj u v) : (cons h nil).dropLast.Nil := rfl
 
 @[simp]
 lemma dropLast_cons_cons {w'} (h : G.Adj u v) (h₂ : G.Adj v w) (p : G.Walk w w') :
@@ -1110,10 +1111,7 @@ lemma not_nil_of_tail_not_nil {p : G.Walk v w} (hp : ¬ p.tail.Nil) : ¬ p.Nil :
 
 lemma support_tail_of_not_nil (p : G.Walk u v) (hnp : ¬p.Nil) :
     p.tail.support = p.support.tail := by
-  match p with
-  | .nil => simp only [nil_nil, not_true_eq_false] at hnp
-  | .cons h q =>
-    simp only [tail_cons, getVert_cons_succ, support_copy, support_cons, List.tail_cons]
+  cases p <;> simp_all
 
 /-- Given a set `S` and a walk `w` from `u` to `v` such that `u ∈ S` but `v ∉ S`,
 there exists a dart in the walk whose start is in `S` but whose end is not. -/
@@ -1233,7 +1231,10 @@ theorem map_eq_of_eq {f : G →g G'} (f' : G →g G') (h : f = f') :
   rfl
 
 @[simp]
-theorem map_eq_nil_iff {p : G.Walk u u} : p.map f = nil ↔ p = nil := by cases p <;> simp
+theorem map_eq_nil_iff {p : G.Walk u v} : (p.map f).Nil ↔ p.Nil := by
+  cases p with
+  | nil => rfl
+  | cons h p => simp
 
 @[simp]
 theorem length_map : (p.map f).length = p.length := by induction p <;> simp [*]
