@@ -844,9 +844,9 @@ abbrev Nil {v w : V} (p : G.Walk v w) : Prop := p.length = 0
 
 variable {u v w : V}
 
-@[simp] lemma nil_nil : (nil : G.Walk u u).Nil := rfl
+@[simp, grind] lemma nil_nil : (nil : G.Walk u u).Nil := rfl
 
-@[simp] lemma not_nil_cons {h : G.Adj u v} {p : G.Walk v w} : ¬ (cons h p).Nil := nofun
+@[simp, grind] lemma not_nil_cons {h : G.Adj u v} {p : G.Walk v w} : ¬ (cons h p).Nil := nofun
 
 instance (p : G.Walk v w) : Decidable p.Nil := inferInstance
 
@@ -884,8 +884,7 @@ lemma nil_reverse {p : G.Walk v w} : p.reverse.Nil ↔ p.Nil := by
 
 /-- A walk with its endpoints defeq is `Nil` if and only if it is equal to `nil`. -/
 lemma nil_iff_eq_nil : ∀ {p : G.Walk v v}, p.Nil ↔ p = nil
-  | .nil => by simp; rfl
-  | .cons _ _  => by simp
+  | .nil | .cons _ _ => by grind
 
 alias ⟨Nil.eq_nil, _⟩ := nil_iff_eq_nil
 
