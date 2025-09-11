@@ -197,23 +197,16 @@ lemma adj_of_mem_walk_support {G : SimpleGraph V} {u v : V} (p : G.Walk u v) (hp
   induction p with
   | nil => simp_all
   | @cons u v w h p ih =>
-    cases List.mem_cons.mp hx with
-    | inl hxu =>
-      rw [hxu]
-      exact ⟨v, ⟨((Walk.cons h p).mem_support_iff).mpr (Or.inr p.start_mem_support), h⟩⟩
-    | inr hxp =>
-      by_cases h0 : p.length = 0
-      · have : x = v := by
+    obtain (rfl | hxp) := List.mem_cons.mp hx
+    · exact ⟨v, ⟨((Walk.cons h p).mem_support_iff).mpr (Or.inr p.start_mem_support), h⟩⟩
+    · obtain (h0 | h0) := p.length.eq_zero_or_pos
+      · obtain rfl : x = v := by
           contrapose! h0
           have := p.length_pos_of_mem_support_ne hxp p.start_mem_support h0
           omega
-        subst this
         exact ⟨u, ⟨(Walk.cons h p).start_mem_support, G.adj_symm h⟩⟩
-      · obtain ⟨y, hy⟩ := ih (by omega) hxp
-        refine ⟨y, ⟨?_, hy.right⟩⟩
-        rw [Walk.mem_support_iff]
-        simp only [Walk.support_cons, List.tail_cons]
-        exact Or.inr hy.left
+      · obtain ⟨y, hy1, hy2⟩ := ih (by omega) hxp
+        exact ⟨y, ⟨by grind [Walk.support_cons], hy2⟩⟩
 
 lemma mem_support_of_mem_walk_support {G : SimpleGraph V} {u v : V} (p : G.Walk u v)
     (hp : 0 < p.length) {w : V} (hw : w ∈ p.support) : w ∈ G.support := by

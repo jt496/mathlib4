@@ -324,6 +324,10 @@ theorem length_eq_zero_iff {u : V} (p : G.Walk u u) : p = nil ↔ p.length = 0 :
   cases p <;> simp
 
 @[simp]
+theorem length_eq_zero_iff' {u : V} (p : G.Walk u u) : nil = p ↔ p.length = 0 := by
+  cases p <;> simp
+
+@[simp]
 lemma length_pos_of_ne {u v : V} {p : G.Walk u v} (h : u ≠ v) : 0 < p.length := by
   cases p <;> simp_all
 
@@ -1191,7 +1195,7 @@ theorem map_eq_of_eq {f : G →g G'} (f' : G →g G') (h : f = f') :
   rfl
 
 @[simp]
-theorem map_eq_nil_iff {p : G.Walk u u} : (p.map f).length = 0 ↔ p.length = 0 := by cases p <;> simp
+theorem map_eq_nil_iff {p : G.Walk u v} : (p.map f).length = 0 ↔ p.length = 0 := by cases p <;> simp
 
 @[simp]
 theorem length_map : (p.map f).length = p.length := by induction p <;> simp [*]
