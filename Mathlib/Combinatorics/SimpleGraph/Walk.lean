@@ -319,6 +319,9 @@ theorem length_nil {u : V} : (nil : G.Walk u u).length = 0 := rfl
 theorem length_cons {u v w : V} (h : G.Adj u v) (p : G.Walk v w) :
     (cons h p).length = p.length + 1 := rfl
 
+lemma length_pos_of_cons {u v w : V} (h : G.Adj u v) (p : G.Walk v w) :
+    0 < (cons h p).length := Nat.zero_lt_succ p.length
+
 @[simp]
 theorem length_eq_zero_iff {u : V} (p : G.Walk u u) : p = nil ↔ p.length = 0 := by
   cases p <;> simp
@@ -568,17 +571,30 @@ theorem mem_support_nil_iff {u v : V} : u ∈ (nil : G.Walk v v).support ↔ u =
 theorem mem_tail_support_append_iff {t u v w : V} (p : G.Walk u v) (p' : G.Walk v w) :
     t ∈ (p.append p').support.tail ↔ t ∈ p.support.tail ∨ t ∈ p'.support.tail := by
   rw [tail_support_append, List.mem_append]
+variable {u v w : V}
+
+@[elab_as_elim]
+def notNilRec {motive : {u w : V} → (p : G.Walk u w) → (h : 0 < p.length) → Sort*}
+    (cons : {u v w : V} → (h : G.Adj u v) → (q : G.Walk v w) →
+    motive (cons h q) (length_pos_of_cons _ _)) (p : G.Walk u w) :
+    (hp : 0 < p.length) → motive p hp :=
+  match p with
+  | nil => fun hp => by simp at hp
+  | .cons h q => fun _ => cons h q
+
+@[simp]
+lemma notNilRec_cons {motive : {u w : V} → (p : G.Walk u w) → 0 < p.length → Sort*}
+    (cons : {u v w : V} → (h : G.Adj u v) → (q : G.Walk v w) →
+    motive (q.cons h) (length_pos_of_cons _ _)) (h' : G.Adj u v) (q' : G.Walk v w) :
+    @Walk.notNilRec _ _ _ _ _ cons _ _ = cons h' q' := by rfl
+
+@[simp]
+theorem end_mem_tail_support {u v : V} {p : G.Walk u v} (h : 0 < p.length) : v ∈ p.support.tail :=
+  p.notNilRec (by simp) h
 
 @[simp]
 theorem end_mem_tail_support_of_ne {u v : V} (h : u ≠ v) (p : G.Walk u v) : v ∈ p.support.tail := by
-  obtain ⟨_, _, _, rfl⟩ := exists_eq_cons_of_ne h p
-  simp
-
-@[simp]
-theorem end_mem_tail_support_of_length_pos {u v : V} {p : G.Walk u v} (h : 0 < p.length) :
-    v ∈ p.support.tail := by
-  cases p <;> simp_all
-
+  simp [h]
 
 @[simp, nolint unusedHavesSuffices]
 theorem mem_support_append_iff {t u v w : V} (p : G.Walk u v) (p' : G.Walk v w) :
@@ -936,8 +952,8 @@ lemma penultimate_cons_cons {w'} (h : G.Adj u v) (h₂ : G.Adj v w) (p : G.Walk 
     (cons h (cons h₂ p)).penultimate = (cons h₂ p).penultimate := rfl
 
 lemma penultimate_cons_of_not_nil (h : G.Adj u v) (p : G.Walk v w) (hp : 0 < p.length) :
-    (cons h p).penultimate = p.penultimate := by
-  cases p <;> simp [penultimate] at *
+    (cons h p).penultimate = p.penultimate :=
+  p.notNilRec (by simp) hp h
 
 @[simp]
 lemma penultimate_concat {t u v} (p : G.Walk u v) (h : G.Adj v t) :
@@ -1000,10 +1016,8 @@ lemma dropLast_cons_cons {w'} (h : G.Adj u v) (h₂ : G.Adj v w) (p : G.Walk w w
 
 lemma dropLast_cons_of_not_nil (h : G.Adj u v) (p : G.Walk v w) (hp : 0 < p.length) :
     (cons h p).dropLast =
-    cons h (p.dropLast.copy rfl (penultimate_cons_of_not_nil _ _ hp).symm) := by
-cases p
-· simp at hp
-· simp
+    cons h (p.dropLast.copy rfl (penultimate_cons_of_not_nil _ _ hp).symm) :=
+  p.notNilRec (by simp) hp h
 
 @[simp]
 lemma dropLast_concat {t u v} (p : G.Walk u v) (h : G.Adj v t) :
