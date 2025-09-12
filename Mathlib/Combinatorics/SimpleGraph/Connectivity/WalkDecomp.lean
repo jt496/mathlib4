@@ -67,9 +67,7 @@ lemma nil_takeUntil (p : G.Walk u v) (hwp : w ∈ p.support) :
 @[simp]
 lemma not_nil_takeUntil (p : G.Walk u v) (hwp : w ∈ p.support) :
     0 < (p.takeUntil w hwp).length ↔ w ≠ u := by
-  apply Iff.intro <;> intro h
-  · intro hf; rw [← p.nil_takeUntil hwp] at hf; omega
-  · contrapose! h; simp_all
+  simp [Nat.pos_iff_ne_zero]
 
 /-- Given a vertex in the support of a path, give the path from (and including) that vertex to
 the end. In other words, drop vertices from the front of a path until (and not including)
