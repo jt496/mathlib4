@@ -191,9 +191,13 @@ theorem isClique_range_hom_top (f : (⊤ : SimpleGraph β) →g G) :
   rwa [← f.embeddingOfTopHom.coe_toEmbedding, (f.embeddingOfTopHom.apply_eq_iff_eq _ _).ne,
     ← top_adj, ← f.embeddingOfTopHom.map_adj_iff] at nh
 
-/-- The vertices in a copy of `⊤` are a clique. -/
-theorem isClique_range_copy_top (f : Copy (⊤ : SimpleGraph β) G) :
-    G.IsClique (Set.range f) := isClique_range_hom_top f.toHom
+@[deprecated (since := "2025-09-01")]
+alias isClique_range_copy_top := isClique_range_hom_top
+
+
+-- /-- The vertices in a copy of `⊤` are a clique. -/
+-- theorem isClique_range_copy_top (f : Copy (⊤ : SimpleGraph β) G) :
+--     G.IsClique (Set.range f) := isClique_range_hom_top f.toHom
 
 end Clique
 
@@ -347,9 +351,8 @@ theorem IsNClique.not_cliqueFree (hG : G.IsNClique n s) : ¬G.CliqueFree n :=
 theorem not_cliqueFree_of_top_hom {n : ℕ} (f : (⊤ : SimpleGraph (Fin n)) →g G) :
     ¬G.CliqueFree n := (Fintype.card_fin n) ▸ (isNClique_map_hom_top f).not_cliqueFree
 
-@[deprecated SimpleGraph.not_cliqueFree_of_top_hom (since := "2025-09-01")]
-theorem not_cliqueFree_of_top_embedding {n : ℕ} (f : (⊤ : SimpleGraph (Fin n)) ↪g G) :
-     ¬G.CliqueFree n := not_cliqueFree_of_top_hom f
+@[deprecated (since := "2025-09-01")]
+alias not_cliqueFree_of_top_embedding := not_cliqueFree_of_top_hom
 
 /-- An embedding of a complete graph that witnesses the fact that the graph is not clique-free. -/
 noncomputable def topEmbeddingOfNotCliqueFree {n : ℕ} (h : ¬G.CliqueFree n) :
