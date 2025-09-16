@@ -347,9 +347,8 @@ theorem IsNClique.not_cliqueFree (hG : G.IsNClique n s) : ¬G.CliqueFree n :=
 theorem not_cliqueFree_of_top_hom {n : ℕ} (f : (⊤ : SimpleGraph (Fin n)) →g G) :
     ¬G.CliqueFree n := (Fintype.card_fin n) ▸ (isNClique_map_hom_top f).not_cliqueFree
 
-@[deprecated SimpleGraph.not_cliqueFree_of_top_hom (since := "2025-09-01")]
-theorem not_cliqueFree_of_top_embedding {n : ℕ} (f : (⊤ : SimpleGraph (Fin n)) ↪g G) :
-     ¬G.CliqueFree n := not_cliqueFree_of_top_hom f
+@[deprecated (since := "2025-09-16")]
+alias not_cliqueFree_of_top_embedding := not_cliqueFree_of_top_hom
 
 /-- An embedding of a complete graph that witnesses the fact that the graph is not clique-free. -/
 noncomputable def topEmbeddingOfNotCliqueFree {n : ℕ} (h : ¬G.CliqueFree n) :
@@ -376,10 +375,13 @@ theorem cliqueFree_iff_top_free {β : Type*} [Fintype β] :
     isContained_congr (Iso.completeGraph (Fintype.equivFin β)) Iso.refl]
   exact ⟨fun ⟨f⟩ ↦ ⟨f.toCopy⟩, fun ⟨f⟩ ↦ ⟨f.toHom.embeddingOfTopHom⟩⟩
 
-theorem not_cliqueFree_card_of_top_embedding [Fintype α] (f : (⊤ : SimpleGraph α) ↪g G) :
+theorem not_cliqueFree_card_of_top_hom [Fintype α] (f : (⊤ : SimpleGraph α) →g G) :
     ¬G.CliqueFree (card α) := by
   rw [not_cliqueFree_iff]
-  exact ⟨(Iso.completeGraph (Fintype.equivFin α)).symm.toEmbedding.trans f⟩
+  exact ⟨(Iso.completeGraph (Fintype.equivFin α)).symm.toEmbedding.trans f.embeddingOfTopHom⟩
+
+@[deprecated (since := "2025-09-16")]
+alias not_cliqueFree_card_of_top_embedding := not_cliqueFree_card_of_top_hom
 
 @[simp] lemma not_cliqueFree_zero : ¬ G.CliqueFree 0 :=
   fun h ↦ h ∅ <| isNClique_empty.mpr rfl
