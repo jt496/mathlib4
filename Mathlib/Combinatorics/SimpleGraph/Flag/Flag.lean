@@ -57,13 +57,13 @@ def Flag.induce_copy {α ι : Type*} (F : Flag α ι) {s t : Set α} (h : s = t)
   subst_vars; exact F.induce t hs
 
 lemma Flag.induce_copy_eq {α ι : Type*} (F : Flag α ι) {s t : Set α} (h : s = t)
-    (hs : F ⊆ₗs) (ht : F ⊆ₗt) : F.induce t ht = F.induce_copy h hs := by
+    (hs : F ⊆ₗ s) (ht : F ⊆ₗ t) : F.induce t ht = F.induce_copy h hs := by
   subst_vars; rfl
 
-lemma Flag.induce_adj {α ι : Type*} (F : Flag α ι) (t : Set α) (ht : F ⊆ₗt) :
+lemma Flag.induce_adj {α ι : Type*} (F : Flag α ι) (t : Set α) (ht : F ⊆ₗ t) :
     (F.induce t ht).G = (F.G.induce t) := rfl
 
-lemma Flag.induce_labels_eq {α ι : Type*} {F : Flag α ι} (t : Set α) (ht : F ⊆ₗt) {i : ι} :
+lemma Flag.induce_labels_eq {α ι : Type*} {F : Flag α ι} (t : Set α) (ht : F ⊆ₗ t) {i : ι} :
     (F.induce t ht).θ i = F.θ i := rfl
 
 /-- Added to prove `Fintype` instance later -/
@@ -73,7 +73,7 @@ def Flag_equiv_prod (α ι : Type*) : Flag α ι ≃ (SimpleGraph α) × (ι ↪
   left_inv := fun F ↦ by cases F; rfl
   right_inv := fun p ↦ by cases p; rfl
 
-lemma Flag.card_le_card {α ι : Type*} (F : Flag α ι)  [Fintype α] [Fintype ι] : ‖ι‖ ≤ ‖α‖ :=
+lemma Flag.card_le_card {α ι : Type*} (F : Flag α ι) [Fintype α] [Fintype ι] : ‖ι‖ ≤ ‖α‖ :=
   Fintype.card_le_of_embedding F.θ
 
 
@@ -98,11 +98,11 @@ variable {γ : Type*} {F₁ : Flag α ι} {F₂ : Flag β ι} {F₃ : Flag γ ι
 instance : FunLike (F₁ ↪f F₂) α β where
   coe x := x.toFun
   coe_injective' f g h := by
-    ext a; simp [h]
+    ext a; simp
     exact congrFun h a
 
 /-- An isomorphism of flags gives rise to an embedding of flags. -/
-abbrev FlagIso.toEmbedding (f : F₁ ≃f F₂): F₁ ↪f F₂ :=
+abbrev FlagIso.toEmbedding (f : F₁ ≃f F₂) : F₁ ↪f F₂ :=
   ⟨f.toRelEmbedding, by ext x ; simp [f.labels_eq]⟩
 
 /-- The identity isomorphism of a flag with itself. -/
@@ -173,7 +173,7 @@ where the sum is over all injective maps from `ι` to `β` and `β'` respectivel
 -/
 lemma Iso.sum_card_flagEmbedding {α α' β β' ι : Type*} [Fintype β] [Fintype β'] [Fintype ι]
     [Fintype α] [Fintype α'] {F : Flag α ι} {F' : Flag α' ι} {H : SimpleGraph β}
-    {H' : SimpleGraph β'} (e :  H ≃g H') (f : F ≃f F') :
+    {H' : SimpleGraph β'} (e : H ≃g H') (f : F ≃f F') :
     ∑ (θ : ι ↪ β), ‖F ↪f ⟨H, θ⟩‖ = ∑ (θ' : ι ↪ β'), ‖F' ↪f ⟨H', θ'⟩‖ :=
   Fintype.sum_equiv ((Equiv.refl _).embeddingCongr e) _ _
     (fun _ ↦ Fintype.card_congr <| e.flagEmbeddingCongr f)
@@ -222,7 +222,7 @@ def Flag.induceEquiv (F₁ : Flag α ι) (F₂ : Flag β ι) (t : Set β) (h : �
                 by simp [Flag.induce_adj]⟩, by ext i; simp [F₂.induce_labels_eq t h, e.1.labels_eq]⟩
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
-  
+
 variable {β : Type*} {F₁ : Flag β ι} {F₂ : Flag β ι} {F : Flag α ι}
     (e₁ : F₁ ↪f F) (e₂ : F₂ ↪f F) (b : β)
 #check e₁.toRelEmbedding b
@@ -239,7 +239,7 @@ def FlagEmbedding.Compat {β : Type*} {F₁ : Flag β ι} {F₂ : Flag β ι} {F
 omit [Fintype α] [Fintype ι] [DecidableEq α] in
 lemma FlagEmbedding.Compat.symm {β : Type*} {F₁ F₂ : Flag β ι} {F : Flag α ι} {e₁ : F₁ ↪f F}
     {e₂ : F₂ ↪f F} (h : e₁.Compat e₂) : e₂.Compat e₁ := by
-  simp only [FlagEmbedding.Compat, RelEmbedding.coe_toEmbedding] at *
+  simp only [FlagEmbedding.Compat] at *
   intro b₁ b₂ he
   obtain ⟨i, he'⟩ := h _ _ he.symm
   use i, (he ▸ he')
@@ -325,7 +325,7 @@ lemma Flag.sum_card_embeddings_induce_eq'' (F₁ : Flag β ι) (F : Flag α ι) 
   · intro s hs t ht h
     apply Subtype.eq (by simpa using h)
   · intro s t
-    simp_all only [mem_filter, mem_univ, true_and, Subtype.exists]
+    simp_all only [ mem_univ, Subtype.exists]
     use s.val
     simp only [Subtype.coe_eta, exists_prop, and_true]
     simpa [and_comm] using s.2
@@ -333,12 +333,12 @@ lemma Flag.sum_card_embeddings_induce_eq'' (F₁ : Flag β ι) (F : Flag α ι) 
     simp
 
 lemma Flag.sum_card_embeddings_induce_eq' (F : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
-  (hk : ‖β‖ ≤ k) (θ : ι ↪ α): ∑ t : Finset α with #t = k,
+  (hk : ‖β‖ ≤ k) (θ : ι ↪ α) : ∑ t : Finset α with #t = k,
     (if ht : (⟨G, θ⟩ : Flag α ι) ⊆ₗt then ‖F ↪f (⟨G, θ⟩ : Flag α ι).induce t ht‖ else 0)
                               = ‖F ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) :=
   sum_card_embeddings_induce_eq F _ hk
 
-lemma Flag.ave_sum_card_embeddings_induce_eq1  [Fintype β] {j k : ℕ} (hk : ‖β‖ ≤ k) (F : Flag β ι)
+lemma Flag.ave_sum_card_embeddings_induce_eq1 [Fintype β] {j k : ℕ} (hk : ‖β‖ ≤ k) (F : Flag β ι)
     (G : SimpleGraph α) {s : {x : Finset α // #x = j}} {θ : ι ↪ s} :
  (Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖)) *  ‖F ↪f ⟨G, θ.intoType⟩‖
     = ∑ t : {t : Finset α // #t = k ∧ ∀ i, (θ i).1 ∈ t},
@@ -366,7 +366,7 @@ abbrev compat_pairs (F₁₂ : Flag β ι × Flag β ι) (F : Flag α ι) :=
 abbrev compat_pair_to_pair {F₁₂ : Flag β ι × Flag β ι} {F : Flag α ι} :
   F₁₂ ↪f₂ F → (F₁₂.1 ↪f F) × (F₁₂.2 ↪f F) := fun e ↦ e.1
 
-lemma compat_pairs_inj {α β ι : Type*} {F : Flag α ι} {F₁₂ : Flag β ι × Flag β ι}:
+lemma compat_pairs_inj {α β ι : Type*} {F : Flag α ι} {F₁₂ : Flag β ι × Flag β ι} :
   Function.Injective (compat_pair_to_pair : F₁₂ ↪f₂ F → (F₁₂.1 ↪f F) × (F₁₂.2 ↪f F)) := by
   rintro ⟨f, _⟩ ⟨g, _⟩; simp
 
@@ -379,7 +379,7 @@ Compatible pairs of flag embeddings of `(F₁, F₂)` into `F[t]` are equivalent
 of flag embeddings of `(F₁,F₂)` into `F` that map into `t`.
 (Note: that `F[t]` is only defined if all the labels_eq of `F₂` lie in `t`).
 -/
-def Flag₂.induceEquiv (F₁ F₂ : Flag β ι) (F : Flag α ι) (t : Set α ) (h : F ⊆ₗt) :
+def Flag₂.induceEquiv (F₁ F₂ : Flag β ι) (F : Flag α ι) (t : Set α) (h : F ⊆ₗ t) :
     (F₁, F₂) ↪f₂ (F.induce t h) ≃
       {e : (F₁, F₂) ↪f₂ F // Set.range e.1.1.toFun ⊆ t ∧ Set.range e.1.2.toFun ⊆ t}
     where
@@ -413,7 +413,7 @@ def Flag₂.induceEquiv (F₁ F₂ : Flag β ι) (F : Flag α ι) (t : Set α ) 
     refine ⟨(f₁,f₂), ?_⟩
     have : ∀ b₁ b₂, e.1.1.1.toRelEmbedding b₁ = e.1.1.2.toRelEmbedding b₂ →
       ∃ i, F.θ i = e.1.1.1.toRelEmbedding b₁  := e.1.2
-    simp only [Set.mem_setOf_eq, FlagEmbedding.Compat]
+    simp only [FlagEmbedding.Compat]
     have he1: ∀ b, e.1.1.1.toRelEmbedding b = f₁.toRelEmbedding b := by intro b; rfl
     have he2: ∀ b, e.1.1.2.toRelEmbedding b = f₂.toRelEmbedding b := by intro b; rfl
     intro b₁ b₂ hb
@@ -445,7 +445,7 @@ lemma Flag.sum_card_embeddings_induce_eq_compat (F₁ F₂ : Flag β ι) (F : Fl
         Set.range e.1.1.toFun ⊆ t ∧ Set.range e.1.2.toFun ⊆ t) 1 0 := by
     simp_rw [Fintype.card_congr <| Flag₂.induceEquiv .., dite_eq_ite]
     rw [sum_filter];
-    simp only [Set.coe_setOf, FlagEmbedding.Compat, Set.mem_setOf_eq, sum_boole, Nat.cast_id]
+    simp only [FlagEmbedding.Compat, sum_boole, Nat.cast_id]
     congr with t
     split_ifs with h1 h2
     · change ∀ i, F.θ i ∈ t at h2
@@ -466,7 +466,7 @@ lemma Flag.sum_card_embeddings_induce_eq_compat (F₁ F₂ : Flag β ι) (F : Fl
     calc
     _ = #{t : Finset α | #t = k ∧ Set.range e.1.1.toFun ⊆ t
               ∧ Set.range e.1.2.toFun ⊆ t} := by
-      simp only [sum_boole,Set.mem_setOf_eq, FlagEmbedding.Compat, and_self]
+      simp only [sum_boole, FlagEmbedding.Compat]
       congr with t; simp only [and_congr_right_iff, and_iff_right_iff_imp]
       intro hk hs i
       exact hs.1 <| he1 i
