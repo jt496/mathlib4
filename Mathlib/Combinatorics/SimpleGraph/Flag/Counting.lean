@@ -31,8 +31,8 @@ lemma card_supersets [Fintype α] [DecidableEq α] {s : Finset α} (hk : #s ≤ 
   simp_rw [← card_compl, ← card_powersetCard]
   apply card_nbij (i := (· \ s))
   · intro t ht
-    simp only [mem_filter, mem_univ, true_and, mem_powersetCard] at *
-    exact ⟨fun _ ↦ by simp, (ht.1 ▸ card_sdiff ht.2)⟩
+    simp only [coe_filter, mem_univ, true_and, Set.mem_setOf_eq, mem_coe, mem_powersetCard] at *
+    exact ⟨fun _ ↦ by simp, (ht.1 ▸ card_sdiff_of_subset ht.2)⟩
   · intro t₁ ht1 t₂ ht2 he
     dsimp at he
     simp only [coe_filter, mem_univ, true_and, Set.mem_setOf_eq] at ht1 ht2
@@ -54,10 +54,10 @@ lemma card_supersets_inter' [Fintype α] [DecidableEq α] {s u : Finset α} (hu 
   simp_rw [← card_compl, ← card_powersetCard]
   apply card_nbij (i := (· \ u))
   · intro t ht
-    simp only [mem_filter, mem_univ, true_and, mem_powersetCard] at *
+    simp only [coe_filter, mem_univ, true_and, Set.mem_setOf_eq, mem_coe, mem_powersetCard] at *
     exact ⟨fun x hx ↦ by
       rw [mem_compl, mem_sdiff] at *; intro hs; apply hx.2 <| ht.2 ▸ mem_inter.2 ⟨hs, hx.1⟩, by
-      rw [← ht.1]; apply card_sdiff (ht.2 ▸ inter_subset_right)⟩
+      rw [← ht.1, card_sdiff, ← ht.2]; simp⟩
   · intro t₁ ht1 t₂ ht2 he
     dsimp at he
     simp only [coe_filter, mem_univ, true_and, Set.mem_setOf_eq] at ht1 ht2
@@ -80,14 +80,14 @@ lemma card_supersets_inter' [Fintype α] [DecidableEq α] {s u : Finset α} (hu 
 
 /-- The number of ordered pairs of sets of size `k` that meet in exactly the set `u` is
 `choose (‖α‖ - #u) (k - #u) * choose (‖α‖ - k) (k - #u)`. -/
-lemma card_supersets_inter  [Fintype α] [DecidableEq α] (u : Finset α) (hk : #u ≤ k) :
+lemma card_supersets_inter [Fintype α] [DecidableEq α] (u : Finset α) (hk : #u ≤ k) :
     #{(s, t) : Finset α × Finset α | #s = k ∧ #t = k ∧ s ∩ t = u} =
     (‖α‖ - #u).choose (k - #u) * (‖α‖ - k).choose (k - #u) := by
   calc
   _ = ∑ x with #x = k ∧ u ⊆ x, ∑ y with #x = k ∧ #y = k ∧ x ∩ y = u, 1 :=by
     rw [card_eq_sum_ones, sum_filter, Fintype.sum_prod_type]
     simp_rw [sum_ite, sum_const_zero, add_zero, sum_filter]
-    simp only [sum_boole, Nat.cast_id, sum_const, smul_eq_mul, mul_one]
+    simp only [sum_boole, Nat.cast_id]
     congr with a
     simp only [left_eq_ite_iff, not_and]
     intro hx; contrapose! hx
@@ -206,7 +206,7 @@ lemma topAutOfEquiv_surj : Function.Surjective (fun e : α ≃ α ↦ topAutOfEq
   fun e ↦ ⟨e.toEquiv, rfl⟩
 
 /-- Any graph with finite vertex type has finitely many automorphisms -/
-noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableEq α] [Fintype α]:
+noncomputable instance fintypeAut (G : SimpleGraph α) [DecidableEq α] [Fintype α] :
     Fintype (Aut G) := FunLike.fintype (G ≃g G)
 
 lemma card_aut_top {α : Type*} [Fintype α] [DecidableEq α] :
@@ -279,7 +279,7 @@ noncomputable def embeddingsEquivInduceProdAut (G : SimpleGraph α) (H : SimpleG
     ext a
     · simp
     · apply_fun hir.some
-      simp only [RelEmbedding.coe_trans, RelIso.coe_toRelEmbedding, EquivLike.range_comp,
+      simp only [RelEmbedding.coe_trans, RelIso.coe_toRelEmbedding,
                 RelIso.trans_apply, RelIso.apply_symm_apply, e]
       change e.isoInduce a = _
       rw [Subtype.ext_iff, e.isoInduce_apply]
@@ -341,7 +341,7 @@ lemma antitoneOn_div_descFactorial (e : ℕ → ℕ) (k : ℕ)
       (by exact_mod_cast Nat.descFactorial_pos_of_le hₙ)).2
     norm_cast
     simpa [mul_comm]
-  · exact mul_left_mono
+  · exact mul_right_mono
 
 
 
@@ -362,7 +362,7 @@ lemma antitoneOn_div_choose (e : ℕ → ℕ) (k : ℕ)
               (mod_cast Nat.choose_pos (by omega))).2
     norm_cast
     simpa [mul_comm]
-  · exact mul_left_mono
+  · exact mul_right_mono
 
 
 /--
@@ -464,7 +464,7 @@ def topBoolEmbeddingDartsEquiv (G : SimpleGraph α) : ((⊤ : SimpleGraph Bool) 
   right_inv := fun d ↦ rfl
 
 
-lemma card_embedding_top_two_eq_twice_card_edges  [Fintype α] (G : SimpleGraph α)
+lemma card_embedding_top_two_eq_twice_card_edges [Fintype α] (G : SimpleGraph α)
     [DecidableRel G.Adj] : ‖(⊤ : SimpleGraph Bool) ↪g G‖ = 2 * #G.edgeFinset :=
   (Fintype.card_congr G.topBoolEmbeddingDartsEquiv).trans <| dart_card_eq_twice_card_edges _
 
@@ -647,9 +647,9 @@ edges. -/
 theorem isExtremalH_free_iff [Fintype α] :
     G.IsExtremalH H F.Free ↔ F.Free G ∧ ‖H ↪g G‖ = exᵢ (card α) H F := by
   rw [IsExtremalH, and_congr_right_iff, ← extremalInduced_le_iff]
-  exact fun h ↦ ⟨eq_of_le_of_le (card_embeddings_le_extremalInduced h), ge_of_eq⟩
+  exact fun h ↦ ⟨eq_of_le_of_ge (card_embeddings_le_extremalInduced h), ge_of_eq⟩
 
-lemma card_embeddings_of_isExtremalH_free  [Fintype α] (h : G.IsExtremalH H F.Free) :
+lemma card_embeddings_of_isExtremalH_free [Fintype α] (h : G.IsExtremalH H F.Free) :
     ‖H ↪g G‖ = exᵢ (card α) H F := (isExtremalH_free_iff.mp h).2
 
 

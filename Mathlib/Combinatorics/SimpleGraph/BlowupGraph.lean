@@ -28,7 +28,7 @@ Given a family of vertex types indexed by `ι`, pulling back from `H : SimpleGra
 yields the blow-up graph on the family. Two vertices are adjacent if and only if their
 indices are adjacent in `H`.
 -/
-abbrev blowupGraph  : SimpleGraph (Σ i, V i) := SimpleGraph.comap Sigma.fst H
+abbrev blowupGraph : SimpleGraph (Σ i, V i) := SimpleGraph.comap Sigma.fst H
 
 lemma blowupGraph_adj (x y : Σ i, V i) :
     (blowupGraph H V).Adj x y ↔ H.Adj (Sigma.fst x) (Sigma.fst y) := by rfl
@@ -56,7 +56,7 @@ lemma blowupGraph_top : blowupGraph ⊤ V = completeMultipartiteGraph V := rfl
 
 lemma blowupGraph_bot : blowupGraph ⊥ V = ⊥ := rfl
 
-lemma blowupGraph_cliqueFree_iff  {n : ℕ} (f : ∀ i, (V i)) :
+lemma blowupGraph_cliqueFree_iff {n : ℕ} (f : ∀ i, (V i)) :
     H.CliqueFree n ↔ (blowupGraph H V).CliqueFree n := by
   constructor <;> intro h
   · rw [cliqueFree_iff, isEmpty_iff] at *

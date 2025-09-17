@@ -28,11 +28,6 @@ def coloringOfComponents
        ⟨b, ((G.connectedComponentMk a).mem_supp_congr_adj hab).1 rfl⟩ := by simpa using hab
     exact (h _).valid hadj (by convert heq)⟩
 
-theorem colorable_iff_forall_connectedComponents  :
-    G.Colorable n ↔ ∀ c : G.ConnectedComponent, (G.induce c).Colorable n :=
-  ⟨fun ⟨C⟩ _ ↦ ⟨fun v ↦ C v.1, fun h h1 ↦ C.valid h h1⟩,
-     fun h ↦ ⟨coloringOfComponents (fun c ↦ (h c).some)⟩⟩
-
 lemma ConnectedComponent.induce_supp_connected (c : G.ConnectedComponent) :
     (G.induce c).Connected := by
   rw [connected_induce_iff, connected_iff_forall_exists_walk_subgraph]
