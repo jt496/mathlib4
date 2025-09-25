@@ -384,11 +384,11 @@ end unlabelledgraphs
 
 
 open Classical in
-lemma sum_induce (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
-  {k : ℕ} (hk : ‖β‖ ≤ k) :
-    ∑ t : Finset α with #t = k , ‖H ↪g (G.induce t)‖ =
-    ∑ F : SimpleGraph (Fin k), #{t : Finset α | #t = k ∧ G.induces t F} * ‖H ↪g F‖ := by
-  sorry
+-- lemma sum_induce (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
+--   {k : ℕ} (hk : ‖β‖ ≤ k) :
+--     ∑ t : Finset α with #t = k , ‖H ↪g (G.induce t)‖ =
+--     ∑ F : SimpleGraph (Fin k), #{t : Finset α | #t = k ∧ G.induces t F} * ‖H ↪g F‖ := by
+--   sorry
 
 
 
@@ -408,23 +408,21 @@ lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [F
       simp_rw [Fintype.card_congr <| induceEquiv ..]
     _ = ∑ t : Finset α  with t.card = k, ∑ e : H ↪g G,
       ite (Set.range e ⊆ t) 1 0 := by
-      congr; simp only [Set.coe_setOf, sum_boole, Nat.cast_id]
-      ext t; apply Fintype.card_subtype
+      congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
     _ = ∑ e : H ↪g G, ∑ t : Finset α with #t = k,
       ite (Set.range e ⊆ t) 1 0 := Finset.sum_comm
     _ = ∑ e : H ↪g G, ∑ t : Finset α with (#t = k ∧ Set.range e ⊆ t), 1 := by
       simp_rw [sum_ite, sum_const_zero, add_zero]
-      congr; ext e; congr 1; ext s; simp
+      congr with e; congr 1 with s; simp
     _ = _ := by
       simp_rw [← card_eq_sum_ones]
       rw [← card_univ (α := (H ↪g G)), card_eq_sum_ones, sum_mul, one_mul]
-      congr; ext e
+      congr with e
       have hs : #((Set.range e).toFinset) = ‖β‖ := by
         simp_rw [Set.toFinset_range]
         apply card_image_of_injective _ (RelEmbedding.injective e)
       rw [← hs, ← card_supersets (hs ▸ hk)]
-      congr
-      ext t
+      congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun x hx ↦ ht2 (by simpa using hx)⟩
 
 /--
@@ -456,7 +454,7 @@ def topBoolEmbeddingDartsEquiv (G : SimpleGraph α) : ((⊤ : SimpleGraph Bool) 
     | true => d.1.1
     | false => d.1.2,
     fun i j h ↦ by
-    cases i <;> cases j <;> dsimp at h <;> try rfl
+    cases i <;> cases j <;> dsimp only at h <;> try rfl
     · exact (G.loopless _ (h ▸ d.adj)).elim
     · exact (G.loopless _ (h ▸ d.adj)).elim⟩,
     by intro i j; cases i <;> cases j <;> simp [d.adj.symm]⟩
@@ -605,7 +603,6 @@ theorem IsContained.extremalInduced_le {β' : Type*} {F' : SimpleGraph β'} (h :
   rw [← Fintype.card_fin n, extremalInduced_le_iff]
   intro _ _ h'
   contrapose! h'
-  rw [not_not]
   exact h.trans (IsContained.of_extremalInduced_lt_card_embeddings h')
 
 @[congr]
@@ -621,7 +618,6 @@ theorem extremalInduced_congr {n₁ n₂ : ℕ} {β₁ β₂ : Type*} {F₁ : Si
     intro G _ h
     apply card_embeddings_le_extremalInduced
     contrapose! h
-    rw [not_free] at h ⊢
     exact h.trans' ⟨e₁.toCopy⟩
 
 /-- If `H₁ ≃g H₂`, then `exᵢ n H₁ F` equals `exᵢ n H₂ F`. -/

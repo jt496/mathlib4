@@ -4,9 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: John Talbot
 -/
 import Mathlib.Combinatorics.SimpleGraph.Coloring
+import Mathlib.Combinatorics.SimpleGraph.Subgraph
 import Mathlib.Data.Fintype.Perm
 import Mathlib.Combinatorics.SimpleGraph.Flag.Counting
 set_option linter.style.header false
+
 /-!
 ## TODO: --test
   1. Prove that:
@@ -25,8 +27,52 @@ set_option linter.style.header false
 -/
 
 local notation "‖" x "‖" => Fintype.card x
+
+
+universe u
+
+abbrev GraphProp := {V : Type u} → SimpleGraph V → Prop
+
+-- abbrev GraphFun := {V : Type u} → SimpleGraph V → ℕ
+
+def IsInvariant (P : GraphProp) : Prop :=
+  ∀ {V W : Type u}, ∀ {G : SimpleGraph V}, ∀ {H : SimpleGraph W}, Nonempty (G ≃g H) → (P G ↔ P H)
+
+namespace GraphProp
+
+def IsMonotone (P : GraphProp) : Prop :=
+  ∀ {V : Type u}, ∀ (G : SimpleGraph V), ∀ (H : G.Subgraph), P G → P H.coe
+
+def IsHereditary (P : GraphProp) : Prop :=
+  ∀ {V : Type u}, ∀ (G : SimpleGraph V), ∀ (H : G.Subgraph), P G → H.IsInduced  → P H.coe
+
+lemma isMonotone_isHereditary {P : GraphProp} (h : P.IsMonotone) : P.IsHereditary :=
+  fun _ _ hG _ ↦ h _  _ hG
+
+variable {α : Type*}
+
+def Free (A : SimpleGraph α) : GraphProp := fun G ↦ A.Free G
+
+lemma free_isMonotone (A : SimpleGraph α) : IsMonotone (Free A) :=
+  fun _ H hA hf ↦ hA <| hf.trans H.coe_isContained
+
+lemma free_isHereditary (A : SimpleGraph α) : IsHereditary (Free A) :=
+   isMonotone_isHereditary <| free_isMonotone A
+
+lemma free_isInvariant (A : SimpleGraph α) : IsInvariant (Free A) :=
+  fun ⟨e⟩ ↦ SimpleGraph.free_congr_right e
+
+-- TODO Prove that for any invariant hereditary graph property `P`, `n : ℕ` and any graph `F` we
+-- can define `ex P n F ` to be the maximum number of copies of `F` in any `n`-vertex graph
+-- satisfying `P` and `ex P n F / choose n |F|` is monotone decreasing.
+
+
+
+end GraphProp
 namespace SimpleGraph
 variable {α β δ ι : Type*} {k : ℕ} (e : δ ≃ ι) (f : α ≃ β)
+
+
 
 #check e.embeddingCongr f -- (δ ↪ α) ≃ (ι ↪ β) :=
 /--
