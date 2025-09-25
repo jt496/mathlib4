@@ -19,9 +19,7 @@ import Mathlib.Combinatorics.SimpleGraph.DegreeSum
 -/
 namespace SimpleGraph
 
-variable {ι : Type*} (H : SimpleGraph ι) --[DecidableRel H.Adj]
-(V : ι → Type*) --[∀ i, DecidableEq (V i)]
-
+variable {ι : Type*} (H : SimpleGraph ι) (V : ι → Type*)
 
 /--
 Given a family of vertex types indexed by `ι`, pulling back from `H : SimpleGraph ι`

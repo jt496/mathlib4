@@ -53,8 +53,7 @@ def Flag.induce {α ι : Type*} (F : Flag α ι) (t : Set α) (ht : F ⊆ₗ t) 
   ⟨F.G.induce t, ⟨fun i ↦ ⟨F.θ i, ht i⟩, fun h ↦ by simp_all⟩⟩
 
 def Flag.induce_copy {α ι : Type*} (F : Flag α ι) {s t : Set α} (h : s = t) (hs : F ⊆ₗ s) :
-    Flag t ι := by
-  subst_vars; exact F.induce t hs
+    Flag t ι := F.induce t (h ▸ hs)
 
 lemma Flag.induce_copy_eq {α ι : Type*} (F : Flag α ι) {s t : Set α} (h : s = t)
     (hs : F ⊆ₗ s) (ht : F ⊆ₗ t) : F.induce t ht = F.induce_copy h hs := by
@@ -273,29 +272,24 @@ using `#(F₁ ↪f F) * (choose (‖α‖ - ‖β‖) (k - ‖β‖))` is equal 
 `F.induce t`, since any such embedding preserves the labels).
 -/
 lemma Flag.sum_card_embeddings_induce_eq (F₁ : Flag β ι) (F : Flag α ι) [Fintype β] {k : ℕ}
-  (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k,
-    (if ht : F ⊆ₗt then  ‖F₁ ↪f (F.induce t ht)‖ else 0)
+  (hk : ‖β‖ ≤ k) : ∑ t : Finset α with ht : #t = k ∧ F ⊆ₗt, ‖F₁ ↪f (F.induce t ht.2)‖
                               = ‖F₁ ↪f F‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
   classical
   calc
   _ = ∑ t : Finset α , ∑ e : F₁ ↪f F,
           ite (#t = k ∧ (∀ i, F.θ i ∈ t) ∧ Set.range e.toEmbedding ⊆ t) 1 0 := by
-    simp_rw [Fintype.card_congr <| Flag.induceEquiv .., dite_eq_ite, sum_filter, sum_boole,
+    simp_rw [Fintype.card_congr <| Flag.induceEquiv .., dite_eq_ite,  sum_boole,
               Set.coe_setOf, Fintype.card_subtype]
     congr with t
-    split_ifs with h1 h2
+    split_ifs with h1
     · congr with e
       constructor <;> intro he
-      · exact  ⟨h1 , h2, he⟩
+      · exact  ⟨h1.1 , h1.2, he⟩
       · exact he.2.2
-    · contrapose! h2
-      obtain ⟨e, he⟩ := card_ne_zero.1 h2.symm
-      simp only [mem_filter, mem_univ, true_and] at he
-      exact he.2.1
     · contrapose! h1
       obtain ⟨e, he⟩ := card_ne_zero.1 h1.symm
       simp only [mem_filter, mem_univ, true_and] at he
-      exact he.1
+      exact ⟨he.1, he.2.1⟩
   _ = _ := by
     rw [sum_comm, ← card_univ (α := (F₁ ↪f F)), card_eq_sum_ones, sum_mul, one_mul]
     congr with e
@@ -328,13 +322,13 @@ lemma Flag.sum_card_embeddings_induce_eq'' (F₁ : Flag β ι) (F : Flag α ι) 
     simp_all only [ mem_univ, Subtype.exists]
     use s.val
     simp only [Subtype.coe_eta, exists_prop, and_true]
-    simpa [and_comm] using s.2
+    exact ⟨(mem_filter.1 s.2).2.1, ( mem_filter.1 s.2).2.2⟩
   · intro s hs;
     simp
 
 lemma Flag.sum_card_embeddings_induce_eq' (F : Flag β ι) (G : SimpleGraph α) [Fintype β] {k : ℕ}
-  (hk : ‖β‖ ≤ k) (θ : ι ↪ α) : ∑ t : Finset α with #t = k,
-    (if ht : (⟨G, θ⟩ : Flag α ι) ⊆ₗt then ‖F ↪f (⟨G, θ⟩ : Flag α ι).induce t ht‖ else 0)
+  (hk : ‖β‖ ≤ k) (θ : ι ↪ α) : ∑ t : Finset α with ht : #t = k ∧ (⟨G, θ⟩ : Flag α ι) ⊆ₗt,
+     ‖F ↪f (⟨G, θ⟩ : Flag α ι).induce t ht.2‖
                               = ‖F ↪f ⟨G, θ⟩‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) :=
   sum_card_embeddings_induce_eq F _ hk
 
@@ -438,26 +432,21 @@ have image of size `‖β‖`).
 -/
 lemma Flag.sum_card_embeddings_induce_eq_compat (F₁ F₂ : Flag β ι) (F : Flag α ι) [Fintype β]
   {k : ℕ} (hk : 2 * ‖β‖ - ‖ι‖ ≤ k) :
-  ∑ t : Finset α with #t = k, (if ht : F ⊆ₗt then  ‖(F₁, F₂) ↪f₂ (F.induce t ht)‖ else 0)
+  ∑ t : Finset α with ht : #t = k ∧ F ⊆ₗt, ‖(F₁, F₂) ↪f₂ (F.induce t ht.2)‖
               = ‖(F₁, F₂) ↪f₂ F‖ * Nat.choose (‖α‖ - (2 * ‖β‖ - ‖ι‖) ) (k - (2 * ‖β‖ - ‖ι‖)) := by
   calc
   _ = ∑ t : Finset α , ∑ e : ((F₁,F₂) ↪f₂ F), ite (#t = k ∧ (∀ i, F.θ i ∈ t) ∧
         Set.range e.1.1.toFun ⊆ t ∧ Set.range e.1.2.toFun ⊆ t) 1 0 := by
     simp_rw [Fintype.card_congr <| Flag₂.induceEquiv .., dite_eq_ite]
-    rw [sum_filter];
     simp only [FlagEmbedding.Compat, sum_boole, Nat.cast_id]
     congr with t
-    split_ifs with h1 h2
-    · change ∀ i, F.θ i ∈ t at h2
-      simp_rw [h1, h2, Fintype.card_subtype, implies_true, true_and]
+    split_ifs with h1
+    · change #t = k ∧ ∀ i, F.θ i ∈ t at h1
+      simp_rw [h1, Fintype.card_subtype, implies_true, true_and]
     · by_contra! he
       obtain ⟨e, he⟩ := card_ne_zero.1 he.symm
       simp only [mem_filter, mem_univ, true_and] at he
-      exact h2 he.2.1
-    · contrapose! h1
-      obtain ⟨e, he⟩ := card_ne_zero.1 h1.symm
-      simp only [mem_filter, mem_univ, true_and] at he
-      exact he.1
+      exact h1 ⟨he.1, he.2.1⟩
   _ = _ := by
     rw [sum_comm, ← card_univ (α := ((F₁,F₂) ↪f₂ F)), card_eq_sum_ones, sum_mul, one_mul]
     congr with e
