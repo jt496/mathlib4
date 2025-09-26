@@ -31,6 +31,7 @@ local notation "‖" x "‖" => Fintype.card x
 
 
 namespace SimpleGraph
+
 /-- A graph property -/
 abbrev GraphProp := {α : Type} → SimpleGraph α → Prop
 
@@ -53,15 +54,15 @@ lemma isMonotone_isHereditary {P : GraphProp} (h : P.IsMonotone) : P.IsHereditar
   rw [SimpleGraph.induce_eq_coe_induce_top ]
   apply h _ _ hG
 
-variable {α : Type}
+variable {α : Type} {β : Type*}
 
-lemma free_isMonotone (A : SimpleGraph α) : IsMonotone (fun G ↦ A.Free G) :=
+lemma free_isMonotone (A : SimpleGraph β) : IsMonotone (A.Free ·) :=
   fun _ H hA hf ↦ hA <| hf.trans H.coe_isContained
 
-lemma free_isHereditary (A : SimpleGraph α) : IsHereditary (fun G ↦ A.Free G) :=
+lemma free_isHereditary (A : SimpleGraph β) : IsHereditary (A.Free ·) :=
    isMonotone_isHereditary <| free_isMonotone A
 
-lemma free_isInvariant (A : SimpleGraph α) : IsInvariant (fun G ↦ A.Free G) :=
+lemma free_isInvariant (A : SimpleGraph β) : IsInvariant (A.Free ·) :=
   fun ⟨e⟩ ↦ SimpleGraph.free_congr_right e
 
 open Finset Fintype
