@@ -29,46 +29,173 @@ set_option linter.style.header false
 local notation "‖" x "‖" => Fintype.card x
 
 
-universe u
 
-abbrev GraphProp := {V : Type u} → SimpleGraph V → Prop
-
--- abbrev GraphFun := {V : Type u} → SimpleGraph V → ℕ
-
-def IsInvariant (P : GraphProp) : Prop :=
-  ∀ {V W : Type u}, ∀ {G : SimpleGraph V}, ∀ {H : SimpleGraph W}, Nonempty (G ≃g H) → (P G ↔ P H)
+namespace SimpleGraph
+/-- A graph property -/
+abbrev GraphProp := {α : Type} → SimpleGraph α → Prop
 
 namespace GraphProp
 
+/-- A graph property `IsInvariant` if it agrees on isomorphic graphs -/
+def IsInvariant (P : GraphProp) : Prop := ∀ {α β : Type},
+  ∀ {G : SimpleGraph α}, ∀ {H : SimpleGraph β}, Nonempty (G ≃g H) → (P G ↔ P H)
+
+/-- A graph property `IsMonotone` it is closed under taking subgraphs -/
 def IsMonotone (P : GraphProp) : Prop :=
-  ∀ {V : Type u}, ∀ (G : SimpleGraph V), ∀ (H : G.Subgraph), P G → P H.coe
+  ∀ {α : Type}, ∀ (G : SimpleGraph α), ∀ (H : G.Subgraph), P G → P H.coe
 
-def IsHereditary (P : GraphProp) : Prop :=
-  ∀ {V : Type u}, ∀ (G : SimpleGraph V), ∀ (H : G.Subgraph), P G → H.IsInduced  → P H.coe
+/-- A graph property `IsHereditary` if it is closed under taking induced subgraphs -/
+def IsHereditary (P : GraphProp) : Prop := ∀ {α : Type}, ∀ (G : SimpleGraph α),
+  ∀ (t : Set α), P G → P (G.induce t)
 
-lemma isMonotone_isHereditary {P : GraphProp} (h : P.IsMonotone) : P.IsHereditary :=
-  fun _ _ hG _ ↦ h _  _ hG
+lemma isMonotone_isHereditary {P : GraphProp} (h : P.IsMonotone) : P.IsHereditary := by
+  intro V G t hG
+  rw [SimpleGraph.induce_eq_coe_induce_top ]
+  apply h _ _ hG
 
-variable {α : Type*}
+variable {α : Type}
 
-def Free (A : SimpleGraph α) : GraphProp := fun G ↦ A.Free G
-
-lemma free_isMonotone (A : SimpleGraph α) : IsMonotone (Free A) :=
+lemma free_isMonotone (A : SimpleGraph α) : IsMonotone (fun G ↦ A.Free G) :=
   fun _ H hA hf ↦ hA <| hf.trans H.coe_isContained
 
-lemma free_isHereditary (A : SimpleGraph α) : IsHereditary (Free A) :=
+lemma free_isHereditary (A : SimpleGraph α) : IsHereditary (fun G ↦ A.Free G) :=
    isMonotone_isHereditary <| free_isMonotone A
 
-lemma free_isInvariant (A : SimpleGraph α) : IsInvariant (Free A) :=
+lemma free_isInvariant (A : SimpleGraph α) : IsInvariant (fun G ↦ A.Free G) :=
   fun ⟨e⟩ ↦ SimpleGraph.free_congr_right e
 
--- TODO Prove that for any invariant hereditary graph property `P`, `n : ℕ` and any graph `F` we
--- can define `ex P n F ` to be the maximum number of copies of `F` in any `n`-vertex graph
--- satisfying `P` and `ex P n F / choose n |F|` is monotone decreasing.
+open Finset Fintype
+
+open Classical in
+/--
+`exᵢ n H p` is the the maximum number of embeddings of `H` in an `p`-graph on `n`
+vertices, e.g. if `H = K₂` this is twice the maximum number of edges in an `p`-graph on `n`
+vertices.
+-/
+noncomputable def extremalPropInduced (n : ℕ) {γ : Type*} (H : SimpleGraph γ) [Fintype γ]
+    (p : GraphProp) : ℕ := sup {G : SimpleGraph (Fin n) | p G} (fun G ↦ ‖H ↪g G‖)
+
+local notation "exPᵢ" => extremalPropInduced
+
+variable {n : ℕ} [Fintype α] {γ : Type*} [Fintype γ] {G : SimpleGraph α} {H : SimpleGraph γ}
+{p : GraphProp}
+
+open Classical in
+theorem extremalPropInduced_of_fintypeCard_eq (hc : card α = n) (hp : p.IsInvariant) :
+    exPᵢ n H p = sup {G : SimpleGraph α | p G} (fun G ↦ ‖H ↪g G‖) := by
+  let e := Fintype.equivFinOfCardEq hc
+  rw [extremalPropInduced, le_antisymm_iff]
+  and_intros
+  on_goal 1 =>
+    replace e := e.symm
+  all_goals
+  rw [Finset.sup_le_iff]
+  intro G h
+  let G' := G.map e.toEmbedding
+  replace h' : G' ∈ univ.filter (p ·) := by
+    rw [mem_filter, ← hp ⟨(SimpleGraph.Iso.map e G)⟩]
+    simpa using h
+  convert @le_sup _ _ _ _ { G | p G } (fun G ↦ ‖H ↪g G‖) G' h' using 1
+  exact Fintype.card_congr (Iso.embeddings_equiv_of_iso (.map e G) (by rfl))
+
+/--
+If `p G` holds, then `G` has at most `exPᵢ (card α) H p` induced copies of `H`.
+-/
+theorem card_embeddings_le_extremalPropInduced (hp : p.IsInvariant) (h : p G) :
+    ‖H ↪g G‖ ≤ exPᵢ (card α) H p := by
+  rw [extremalPropInduced_of_fintypeCard_eq rfl hp]
+  classical
+  exact @le_sup _ _ _ _ { G | p G } (fun G ↦ ‖H ↪g G‖) G (by simpa using h)
 
 
+/-- If `G` has more than `exᵢ (card V) H p` copies of `H`, then `p G` is false. -/
+theorem extremalPropInduced_lt_card_embeddings (hp : p.IsInvariant)
+    (h : exPᵢ (card α) H p < ‖H ↪g G‖) : ¬ p G := by
+  contrapose! h
+  exact card_embeddings_le_extremalPropInduced hp h
+
+/-- `exPᵢ (card V) H p` is at most `m` if and only if every simple graph `G` satisfying `p G` has
+at most `m` embeddings of `H`. -/
+theorem extremalPropInduced_le_iff (hp : p.IsInvariant) (m : ℕ) :
+    exPᵢ (card α) H p ≤ m ↔ ∀ ⦃G : SimpleGraph α⦄ [DecidableRel G.Adj], p G →  ‖H ↪g G‖ ≤ m := by
+  simp_rw [extremalPropInduced_of_fintypeCard_eq rfl hp, Finset.sup_le_iff, mem_filter, mem_univ,
+    true_and]
+  classical
+  exact ⟨fun h _ _ h' ↦ by convert h _ h', fun h _ h' ↦ h h'⟩
+
+/-- `exᵢ (card V) H p` is greater than `m` if and only if there exists a graph `G` satisfying `p G`
+with more than `m` embeddings of `H`. -/
+theorem lt_extremalPropInduced_iff (hp : p.IsInvariant) (m : ℕ) : m < exPᵢ (card α) H p ↔
+      ∃ G : SimpleGraph α, ∃ _ : DecidableRel G.Adj, p G ∧ m < ‖H ↪g G‖ := by
+  simp_rw [extremalPropInduced_of_fintypeCard_eq rfl hp, Finset.lt_sup_iff, mem_filter, mem_univ,
+    true_and]
+  exact ⟨fun ⟨_, h, h'⟩ ↦ ⟨_, Classical.decRel _, h, h'⟩, fun ⟨_, _, h, h'⟩ ↦ ⟨_, h, by convert h'⟩⟩
+
+variable {R : Type*} [Semiring R] [LinearOrder R] [FloorSemiring R]
+
+theorem extremalPropInduced_le_iff_of_nonneg (hp : p.IsInvariant) {m : R} (h : 0 ≤ m) :
+    exPᵢ (card α) H p ≤ m ↔ ∀ ⦃G : SimpleGraph α⦄ [DecidableRel G.Adj], p G → ‖H ↪g G‖ ≤ m := by
+  simp_rw [← Nat.le_floor_iff h]
+  exact extremalPropInduced_le_iff hp ⌊m⌋₊
+
+theorem lt_extremalPropInduced_iff_of_nonneg (hp : p.IsInvariant) {m : R} (h : 0 ≤ m) :
+    m < exPᵢ (card α) H p ↔ ∃ G : SimpleGraph α, ∃ _ : DecidableRel G.Adj, p G ∧ m < ‖H ↪g G‖ := by
+  simp_rw [← Nat.floor_lt h]
+  exact lt_extremalPropInduced_iff hp ⌊m⌋₊
+
+variable [DecidableRel G.Adj]
+/-- `H`-free extremal graphs are `H`-free simple graphs having `exᵢ (card V) H` many
+edges. -/
+theorem isExtremalPropH_iff (hp : p.IsInvariant) [DecidableRel H.Adj] :
+    G.IsExtremalH H p ↔ p G ∧ ‖H ↪g G‖ = exPᵢ (card α) H p := by
+  rw [IsExtremalH, and_congr_right_iff, ← extremalPropInduced_le_iff hp]
+  exact fun h ↦ ⟨eq_of_le_of_ge (card_embeddings_le_extremalPropInduced hp h), ge_of_eq⟩
+
+lemma card_embeddings_of_isExtremalH (hp : p.IsInvariant) [DecidableRel H.Adj]
+    (h : G.IsExtremalH H p) : ‖H ↪g G‖ = exPᵢ (card α) H p := ((isExtremalPropH_iff hp).mp h).2
+
+/--
+The maximum proportion of embeddings of `H` into an `n`-vertex `p`-graph, is a monotone
+decreasing sequence (if `p` is a hereditary graph property invariant under graph isomorphisms)
+-/
+lemma antitoneOn_extremalInduced_div_choose (hi : p.IsInvariant) (hh : p.IsHereditary) :
+    AntitoneOn (fun n ↦ (exPᵢ n H p / n.descFactorial ‖γ‖ : ℚ)) {x | ‖γ‖ ≤ x} := by
+  apply antitoneOn_div_descFactorial _ ‖γ‖
+  intro n
+  by_cases hn : n < ‖γ‖
+  · have : n + 1 - ‖γ‖ = 0 := by cutsat
+    simp [this]
+  push_neg at hn
+  have hp : 0 < (n : ℚ) + 1 - ‖γ‖ := by
+    rw [← Nat.cast_add_one, ← Nat.cast_sub (by cutsat)]
+    norm_cast; cutsat
+  have : exPᵢ (n + 1) H p ≤ ((((n + 1) * exPᵢ n H p) : ℚ)/(n + 1 - ‖γ‖)) := by
+    rw [← Fintype.card_fin (n + 1)]
+    apply (extremalPropInduced_le_iff_of_nonneg hi (α := (Fin (n + 1))) ?_).2
+    · intro G hG hF
+      rw [le_div_iff₀ hp]
+      rw [← Nat.cast_add_one, ← Nat.cast_sub (by cutsat)]
+      norm_cast
+      calc
+      _ = ∑ t : Finset (Fin (n + 1)) with t.card = n , ‖H ↪g (G.induce t)‖ :=
+          (sum_card_embeddings_induce_n G H).symm
+      _ ≤ _ := by
+        rw [mul_comm]
+        apply (sum_le_card_nsmul {t : Finset (Fin (n + 1)) | t.card = n} _ (exPᵢ n H p) ?_).trans
+        · simp [mul_comm]
+        intro t ht
+        simp only [univ_filter_card_eq, mem_powersetCard, subset_univ, true_and] at ht
+        have : Fintype.card (t.toSet : Type) = n := by simp [ht]
+        simp_rw [← this]
+        apply card_embeddings_le_extremalPropInduced hi <| hh _ _ hF
+    · apply div_nonneg (by norm_cast; cutsat) hp.le
+  rw [← Nat.cast_add_one, ← Nat.cast_sub (by cutsat),
+    le_div_iff₀ (mod_cast (by cutsat)), mul_comm] at this
+  norm_cast at this
 
 end GraphProp
+end SimpleGraph
+
 namespace SimpleGraph
 variable {α β δ ι : Type*} {k : ℕ} (e : δ ≃ ι) (f : α ≃ β)
 

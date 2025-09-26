@@ -522,6 +522,17 @@ noncomputable def extremalInduced (n : ℕ) {β γ : Type*} (H : SimpleGraph γ)
   [Fintype γ] : ℕ :=
   sup { G : SimpleGraph (Fin n) | F.Free G } (fun G ↦ ‖H ↪g G‖)
 
+-- open Classical in
+-- /--
+-- `exᵢ n H F` is the the maximum number of embeddings of `H` in an `F`-free graph on `n`
+-- vertices, e.g. if `H = K₂` this is twice the maximum number of edges in an `F`-free graph on `n`
+-- vertices.
+-- -/
+-- noncomputable def extremalPropInduced (n : ℕ) {γ : Type*} (H : SimpleGraph γ)
+--     (p : GraphProp) [Fintype γ] : ℕ :=
+--   sup { G : SimpleGraph (Fin n) | p G } (fun G ↦ ‖H ↪g G‖)
+
+
 local notation "exᵢ" => extremalInduced
 variable {n : ℕ} {β γ : Type*} [Fintype γ] {G : SimpleGraph α} {F : SimpleGraph β}
 {H : SimpleGraph γ}
@@ -654,7 +665,7 @@ The maximum proportion of embeddings of `H` into an `n`-vertex `F`-free graph is
 decreasing sequence.
 -/
 lemma antitoneOn_extremalInduced_div_choose (H : SimpleGraph γ) (F : SimpleGraph β)
-    [DecidableRel H.Adj] [DecidableRel F.Adj] :
+    [DecidableRel F.Adj] :
     AntitoneOn (fun n ↦ (exᵢ n H F / n.descFactorial ‖γ‖ : ℚ)) {x | ‖γ‖ ≤ x} := by
   apply antitoneOn_div_descFactorial _ ‖γ‖
   intro n
