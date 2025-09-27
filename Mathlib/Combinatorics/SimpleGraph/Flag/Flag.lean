@@ -33,21 +33,22 @@ local notation "‖" x "‖" => Fintype.card x
 namespace SimpleGraph
 
 /-- A graph property -/
-abbrev GraphProp := {α : Type} → SimpleGraph α → Prop
+abbrev GraphProp.{u} := {α : Type u} → Set (SimpleGraph α)
 
+universe u
 namespace GraphProp
 
 /-- A graph property `IsInvariant` if it agrees on isomorphic graphs -/
-def IsInvariant (P : GraphProp) : Prop := ∀ {α β : Type},
+def IsInvariant (P : GraphProp) : Prop := ∀ {α β : Type u},
   ∀ {G : SimpleGraph α}, ∀ {H : SimpleGraph β}, Nonempty (G ≃g H) → (P G ↔ P H)
 
-/-- A graph property `IsMonotone` it is closed under taking subgraphs -/
+/-- A graph property `IsMonotone` if it is closed under taking subgraphs -/
 def IsMonotone (P : GraphProp) : Prop :=
-  ∀ {α : Type}, ∀ (G : SimpleGraph α), ∀ (H : G.Subgraph), P G → P H.coe
+  ∀ {α : Type u}, ∀ (G : SimpleGraph α), ∀ (H : G.Subgraph), P G → P H.coe
 
 /-- A graph property `IsHereditary` if it is closed under taking induced subgraphs -/
-def IsHereditary (P : GraphProp) : Prop := ∀ {α : Type}, ∀ (G : SimpleGraph α),
-  ∀ (t : Set α), P G → P (G.induce t)
+def IsHereditary (P : GraphProp) : Prop :=
+  ∀ {α : Type u}, ∀ (G : SimpleGraph α), ∀ (t : Set α), P G → P (G.induce t)
 
 lemma isMonotone_isHereditary {P : GraphProp} (h : P.IsMonotone) : P.IsHereditary := by
   intro V G t hG

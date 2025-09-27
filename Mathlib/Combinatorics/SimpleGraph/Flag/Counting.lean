@@ -324,7 +324,6 @@ theorem Nat.descFactorial_pos_of_le {n k : ℕ} (h : k ≤ n) : 0 < n.descFactor
   rw [Nat.le_zero] at h
   exact Nat.descFactorial_eq_zero_iff_lt.mp h
 
-
 lemma antitoneOn_div_descFactorial (e : ℕ → ℕ) (k : ℕ)
     (h : ∀ n, (n + 1 - k) * e (n + 1) ≤ (n + 1) * (e n)) :
     AntitoneOn (fun n ↦ (e n / n.descFactorial k : ℚ)) {x | k ≤ x} := by
@@ -342,9 +341,6 @@ lemma antitoneOn_div_descFactorial (e : ℕ → ℕ) (k : ℕ)
     norm_cast
     simpa [mul_comm]
   · exact mul_right_mono
-
-
-
 
 lemma antitoneOn_div_choose (e : ℕ → ℕ) (k : ℕ)
     (h : ∀ n, (n + 1 - k) * e (n + 1) ≤ (n + 1) * (e n)) :
@@ -364,35 +360,17 @@ lemma antitoneOn_div_choose (e : ℕ → ℕ) (k : ℕ)
     simpa [mul_comm]
   · exact mul_right_mono
 
-
 /--
 Embeddings of `H` in `G[t]` are equivalent to embeddings of `H` in `G` that map into `t`.
 -/
-def induceEquiv (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) : H ↪g (G.induce t) ≃
-    {e : H ↪g G | Set.range e ⊆ t} where
+@[simps!]
+def induceEquiv (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
+    H ↪g (G.induce t) ≃ {e : H ↪g G | Set.range e ⊆ t} where
   toFun := fun e ↦ ⟨Embedding.induce _|>.comp e, by rintro x ⟨y , rfl⟩; simp⟩
-  invFun := fun e ↦ ⟨⟨(fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩), fun _ _ _ ↦ e.1.inj' (by aesop)⟩,
+  invFun := fun e ↦ ⟨⟨(fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩), fun _ _ _ ↦ e.1.inj' (by simp_all)⟩,
                      by simp, by simp⟩
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
-
-section unlabelledgraphs
-
-
-
-end unlabelledgraphs
-
-
-open Classical in
--- lemma sum_induce (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
---   {k : ℕ} (hk : ‖β‖ ≤ k) :
---     ∑ t : Finset α with #t = k , ‖H ↪g (G.induce t)‖ =
---     ∑ F : SimpleGraph (Fin k), #{t : Finset α | #t = k ∧ G.induces t F} * ‖H ↪g F‖ := by
---   sorry
-
-
-
-
 
 /-- **The principle of counting induced subgraphs by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then
@@ -400,7 +378,7 @@ If `G` is a graph on `α` and `H` is a graph on `β`, then
 `H ↪g (G.induce t)` over subsets `t` of `α` of size `k`, for any `‖β‖ ≤ k`.
 -/
 lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
-  {k : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖H ↪g (G.induce t)‖
+    {k : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖H ↪g (G.induce t)‖
                               = ‖H ↪g G‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
   classical
   calc
@@ -418,12 +396,11 @@ lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [F
       simp_rw [← card_eq_sum_ones]
       rw [← card_univ (α := (H ↪g G)), card_eq_sum_ones, sum_mul, one_mul]
       congr with e
-      have hs : #((Set.range e).toFinset) = ‖β‖ := by
-        simp_rw [Set.toFinset_range]
-        apply card_image_of_injective _ (RelEmbedding.injective e)
+      have hs : #((Set.range e).toFinset) = ‖β‖ :=
+        (Set.toFinset_range e) ▸ card_image_of_injective _ (RelEmbedding.injective e)
       rw [← hs, ← card_supersets (hs ▸ hk)]
       congr with t
-      constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun x hx ↦ ht2 (by simpa using hx)⟩
+      constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
 
 /--
 The following version yields `(n + 1 - |V(H)|) * exᵢ(n + 1, H) ≤ (n + 1) * exᵢ(n, H)`, where
@@ -444,7 +421,7 @@ lemma sum_card_embeddings_induce_n {n : ℕ} (G : SimpleGraph (Fin (n + 1))) (H 
     have : n + 1 - ‖β‖ = 0 := by omega
     rw [this, mul_zero]
     convert sum_const_zero
-    apply Fintype.card_eq_zero_iff.2 <| isEmpty_iff.2
+    exact Fintype.card_eq_zero_iff.2 <| isEmpty_iff.2
       fun e ↦ (Fintype.card_le_of_embedding e.toEmbedding).not_gt (by simp_all)
 
 def topBoolEmbeddingDartsEquiv (G : SimpleGraph α) : ((⊤ : SimpleGraph Bool) ↪g G) ≃ G.Dart where
