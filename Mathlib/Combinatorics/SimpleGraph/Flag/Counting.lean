@@ -192,6 +192,16 @@ def Iso.isoCongr (e₁ : G ≃g G') (e₂ : H ≃g H') : G ≃g H ≃ G' ≃g H'
 
 abbrev Aut (G : SimpleGraph α) := G ≃g G
 
+def equivOfEmbedding (e : α ↪ α) [Fintype α] : Function.Surjective e := by
+  exact Finite.surjective_of_injective e.inj'
+
+noncomputable def autOfEmbedding {G : SimpleGraph α} [Fintype α] (e : G ↪g G) : G ≃g G where
+  toFun := e
+  invFun := fun a ↦ ((Finite.surjective_of_injective e.inj') a).choose
+  left_inv := fun a ↦ by simp
+  right_inv := fun a ↦ by simpa using ((Finite.surjective_of_injective e.inj') a).choose_spec
+  map_rel_iff' := by  simp_all
+
 lemma top_adj_of_equiv (e : α ≃ α) : ∀ i j, i ≠ j → (⊤ : SimpleGraph α).Adj (e i) (e j) := by
   simp
 
@@ -266,7 +276,7 @@ Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subs
 `G` that induces `H` and `j` is an automorphism of `H`.
 -/
 noncomputable def embeddingsEquivInduceProdAut (G : SimpleGraph α) (H : SimpleGraph β) :
-    H ↪g G ≃ {s : Set α // G.induces s H} × Aut H where
+    H ↪g G ≃ {s : Set α | G.induces s H} × Aut H where
   toFun := fun e ↦ by
     have hiₛ : G.induces (Set.range e) H := ⟨e.isoInduce⟩
     exact ⟨⟨Set.range e, hiₛ⟩, hiₛ.some.symm.comp e.isoInduce⟩
@@ -284,6 +294,29 @@ noncomputable def embeddingsEquivInduceProdAut (G : SimpleGraph α) (H : SimpleG
       change e.isoInduce a = _
       rw [Subtype.ext_iff, e.isoInduce_apply]
       exact induces_eq_apply hts.symm s.2 hir
+
+
+noncomputable def embeddingsEquivCopyProdAut (G : SimpleGraph α) (H : SimpleGraph β) [Fintype β] :
+    Copy H G ≃ {G' : G.Subgraph | Nonempty (H ≃g G'.coe)} × Aut H where
+  toFun := fun c : Copy H G ↦ by
+    have he : Nonempty (H ≃g c.toSubgraph.coe) := ⟨c.isoToSubgraph⟩
+    exact ⟨⟨c.toSubgraph, he⟩, he.some.symm.comp c.isoToSubgraph⟩
+  invFun := fun ⟨⟨G', hG'⟩, e⟩ ↦ ⟨G'.hom.comp (hG'.some.toEmbedding.comp e.toEmbedding), by
+    simpa using (hG'.some.toEmbedding.comp e.toEmbedding).inj'⟩
+  left_inv := fun f ↦ by ext b; simp; rfl;
+  right_inv := fun (⟨G', ⟨f⟩⟩, j) ↦ by
+    ext a
+    · aesop
+      use (j.symm (f.symm ⟨a, a_1⟩))
+
+      sorry
+    · simp
+
+      sorry
+    · simp
+      apply_fun j.symm
+      aesop
+      sorry
 
 @[simp]
 lemma card_induces [Fintype α] [Fintype β] {s : Finset α} (h : G.induces s H) : #s = ‖β‖ := by

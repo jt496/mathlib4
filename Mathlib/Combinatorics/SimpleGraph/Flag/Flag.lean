@@ -33,9 +33,25 @@ local notation "‖" x "‖" => Fintype.card x
 namespace SimpleGraph
 
 /-- A graph property -/
-abbrev GraphProp.{u} := {α : Type u} → Set (SimpleGraph α)
+abbrev GraphProp.{u} := {α : Type u} → SimpleGraph α → Prop
+
+abbrev GraphType := {α : Type*} → [Fintype α] → SimpleGraph α → Type*
 
 universe u
+
+def Finitary (T : GraphType) : Prop :=
+  ∀ {α : Type u}, ∀ [Fintype α], ∀ G : SimpleGraph α, Finite (T G)
+
+def Inducible (T : GraphType) : Prop := ∀ {α : Type u}, ∀ [Fintype α], ∀ G : SimpleGraph α,
+  ∀ t : Set α, ∀ [DecidablePred (· ∈ t)], Nonempty (T (G.induce t) ≃ T G)
+
+
+variable {α β : Type*} [Fintype α] (H : SimpleGraph β) (G : SimpleGraph α)
+
+lemma embedding_finitary {β : Type*} (H : SimpleGraph β) : Finitary (fun G => (H ↪g G)) := by
+  intro α _ G
+  sorry
+
 namespace GraphProp
 
 /-- A graph property `IsInvariant` if it agrees on isomorphic graphs -/
@@ -81,6 +97,8 @@ local notation "exPᵢ" => extremalPropInduced
 
 variable {n : ℕ} [Fintype α] {γ : Type*} [Fintype γ] {G : SimpleGraph α} {H : SimpleGraph γ}
 {p : GraphProp}
+
+#check H ↪g G
 
 open Classical in
 theorem extremalPropInduced_of_fintypeCard_eq (hc : card α = n) (hp : p.IsInvariant) :
