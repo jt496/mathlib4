@@ -274,9 +274,6 @@ lemma Flag.card_le_card {α ι : Type*} (F : Flag α ι) [Fintype α] [Fintype �
 structure FlagEmbedding {α β ι : Type*} (F₁ : Flag α ι) (F₂ : Flag β ι) extends F₁.G ↪g F₂.G where
  labels_eq : F₂.θ = toEmbedding ∘ F₁.θ
 
-
-
-
 /-- An isomorphism of flags is an isomorphism of the underlying graphs that preserves labels. -/
 @[ext]
 structure FlagIso {α β ι : Type*} (F₁ : Flag α ι) (F₂ : Flag β ι) extends F₁.G ≃g F₂.G where

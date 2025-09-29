@@ -276,7 +276,7 @@ Graph embeddings `H ↪g G` are equivalent to pairs `(s, j)` where `s` is a subs
 `G` that induces `H` and `j` is an automorphism of `H`.
 -/
 noncomputable def embeddingsEquivInduceProdAut (G : SimpleGraph α) (H : SimpleGraph β) :
-    H ↪g G ≃ {s : Set α | G.induces s H} × Aut H where
+    H ↪g G ≃ {s : Set α | Nonempty (H ≃g G.induce s)} × Aut H where
   toFun := fun e ↦ by
     have hiₛ : G.induces (Set.range e) H := ⟨e.isoInduce⟩
     exact ⟨⟨Set.range e, hiₛ⟩, hiₛ.some.symm.comp e.isoInduce⟩
@@ -393,11 +393,40 @@ lemma antitoneOn_div_choose (e : ℕ → ℕ) (k : ℕ)
     simpa [mul_comm]
   · exact mul_right_mono
 
+
+
+/--
+Homomorphisms of `H` in `G[t]` are equivalent to homomorphisms of `H` in `G` that map into `t`.
+-/
+@[simps!]
+def induceEquivHom (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
+    H →g (G.induce t) ≃ {e : H →g G | Set.range e ⊆ t} where
+  toFun := fun e ↦ ⟨(Embedding.induce _).toHom.comp e, by rintro x ⟨y , rfl⟩; simp⟩
+  invFun := fun e ↦ ⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.map_adj hab⟩
+  left_inv := fun e ↦ by ext; simp
+  right_inv := fun e ↦ by ext; simp
+
+
+/--
+Copies of `H` in `G[t]` are equivalent to Copies of `H` in `G` whose vertices lie in `t`.
+-/
+@[simps!]
+def induceEquivCopy (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
+    Copy H (G.induce t) ≃ {e : Copy H G | Set.range e ⊆ t} where
+  toFun := fun e ↦ ⟨⟨(Embedding.induce _).toHom.comp e.toHom, by simpa using e.injective'⟩,
+    by rintro x ⟨y , rfl⟩; simp⟩
+  invFun := fun e ↦ ⟨⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.toHom.map_adj hab⟩,
+  fun x y hxy ↦ e.1.injective' (by simpa using hxy)⟩
+  left_inv := fun e ↦ by ext; simp
+  right_inv := fun e ↦ by ext; simp
+
+
+
 /--
 Embeddings of `H` in `G[t]` are equivalent to embeddings of `H` in `G` that map into `t`.
 -/
 @[simps!]
-def induceEquiv (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
+def induceEquivEmbedding (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
     H ↪g (G.induce t) ≃ {e : H ↪g G | Set.range e ⊆ t} where
   toFun := fun e ↦ ⟨Embedding.induce _|>.comp e, by rintro x ⟨y , rfl⟩; simp⟩
   invFun := fun e ↦ ⟨⟨(fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩), fun _ _ _ ↦ e.1.inj' (by simp_all)⟩,
@@ -416,7 +445,7 @@ lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [F
   classical
   calc
     _ = ∑ t : Finset α with t.card = k , ‖{e : H ↪g G | Set.range e ⊆ t}‖  := by
-      simp_rw [Fintype.card_congr <| induceEquiv ..]
+      simp_rw [Fintype.card_congr <| induceEquivEmbedding ..]
     _ = ∑ t : Finset α  with t.card = k, ∑ e : H ↪g G,
       ite (Set.range e ⊆ t) 1 0 := by
       congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
