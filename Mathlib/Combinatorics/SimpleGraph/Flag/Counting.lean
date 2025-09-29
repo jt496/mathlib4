@@ -454,19 +454,17 @@ lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [F
       congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
 
-
+open Classical in
 /-- **The principle of counting copies by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then
 `#(Copy H G) * (choose (‖α‖ - ‖β‖) (k - ‖β‖))` is equal to the sum of the number of embeddings
 `Copy H (G.induce t)` over subsets `t` of `α` of size `k`, for any `‖β‖ ≤ k`.
 -/
 lemma sum_card_copies_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
-    {k : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , labelledCopyCount (G.induce t) H
-                              = (labelledCopyCount G H) * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
-  classical
+    {k : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖Copy H (G.induce t)‖
+                              = ‖Copy H G‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
   calc
-    _ = ∑ t : Finset α with t.card = k , ‖{e : Copy H G | Set.range e ⊆ t}‖  := by
-      unfold labelledCopyCount
+    _ = ∑ t : Finset α with t.card = k , ‖{e : Copy H G | Set.range e ⊆ t}‖ := by
       simp_rw [Fintype.card_congr <| induceEquivCopy ..]
     _ = ∑ t : Finset α  with t.card = k, ∑ e : Copy H G,
       ite (Set.range e ⊆ t) 1 0 := by
@@ -478,7 +476,6 @@ lemma sum_card_copies_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Finty
       congr with e; congr 1 with s; simp
     _ = _ := by
       simp_rw [← card_eq_sum_ones]
-      unfold labelledCopyCount
       rw [← card_univ (α := (Copy H G)), card_eq_sum_ones, sum_mul, one_mul]
       congr with e
       have hs : #((Set.range e).toFinset) = ‖β‖ :=
@@ -486,6 +483,37 @@ lemma sum_card_copies_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Finty
       rw [← hs, ← card_supersets (hs ▸ hk)]
       congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
+
+
+open Classical in
+/-- **The principle of counting homomorphisms by averaging**
+If `G` is a graph on `α` and `H` is a graph on `β`, then the sum of the number of homomorphisms
+`H →g (G.induce t)` over subsets `t` of `α` of size `k`, for any `‖β‖ ≤ k` is the same as the sum
+over all `e : H →g G`, where each `e` is counted according the size of its image :
+`choose (‖α‖ - ‖(Set.range e)‖) (k - ‖(Set.range e)‖)`.
+-/
+lemma sum_card_hom_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β] {k : ℕ}
+    (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖H →g (G.induce t)‖  = ∑ e : H →g G,
+    Nat.choose (‖α‖ - ‖(Set.range e)‖) (k - ‖(Set.range e)‖) := by
+  calc
+    _ = ∑ t : Finset α with t.card = k , ‖{e : H →g G | Set.range e ⊆ t}‖ := by
+      simp_rw [Fintype.card_congr <| induceEquivHom ..]
+    _ = ∑ t : Finset α  with t.card = k, ∑ e : H →g G,
+      ite (Set.range e ⊆ t) 1 0 := by
+      congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
+    _ = ∑ e : H →g G, ∑ t : Finset α with #t = k,
+      ite (Set.range e ⊆ t) 1 0 := Finset.sum_comm
+    _ = ∑ e : H →g G, ∑ t : Finset α with (#t = k ∧ Set.range e ⊆ t), 1 := by
+      simp_rw [sum_ite, sum_const_zero, add_zero]
+      congr with e; congr 1 with s; simp
+    _ = _ := by
+      simp_rw [← card_eq_sum_ones]
+      congr with e
+      have hs : ‖(Set.range e)‖ ≤ k := (Fintype.card_range_le _).trans hk
+      simp_rw [← Set.toFinset_card, ← card_supersets hs] at *
+      congr with t
+      constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
+
 
 
 /--
