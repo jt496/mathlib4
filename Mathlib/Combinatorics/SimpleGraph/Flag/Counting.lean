@@ -420,8 +420,6 @@ def induceEquivCopy (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
 
-
-
 /--
 Embeddings of `H` in `G[t]` are equivalent to embeddings of `H` in `G` that map into `t`.
 -/
@@ -463,6 +461,40 @@ lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [F
       rw [← hs, ← card_supersets (hs ▸ hk)]
       congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
+
+
+/-- **The principle of counting copies by averaging**
+If `G` is a graph on `α` and `H` is a graph on `β`, then
+`#(Copy H G) * (choose (‖α‖ - ‖β‖) (k - ‖β‖))` is equal to the sum of the number of embeddings
+`Copy H (G.induce t)` over subsets `t` of `α` of size `k`, for any `‖β‖ ≤ k`.
+-/
+lemma sum_card_copies_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
+    {k : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , labelledCopyCount (G.induce t) H
+                              = (labelledCopyCount G H) * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
+  classical
+  calc
+    _ = ∑ t : Finset α with t.card = k , ‖{e : Copy H G | Set.range e ⊆ t}‖  := by
+      unfold labelledCopyCount
+      simp_rw [Fintype.card_congr <| induceEquivCopy ..]
+    _ = ∑ t : Finset α  with t.card = k, ∑ e : Copy H G,
+      ite (Set.range e ⊆ t) 1 0 := by
+      congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
+    _ = ∑ e : Copy H G, ∑ t : Finset α with #t = k,
+      ite (Set.range e ⊆ t) 1 0 := Finset.sum_comm
+    _ = ∑ e : Copy H G, ∑ t : Finset α with (#t = k ∧ Set.range e ⊆ t), 1 := by
+      simp_rw [sum_ite, sum_const_zero, add_zero]
+      congr with e; congr 1 with s; simp
+    _ = _ := by
+      simp_rw [← card_eq_sum_ones]
+      unfold labelledCopyCount
+      rw [← card_univ (α := (Copy H G)), card_eq_sum_ones, sum_mul, one_mul]
+      congr with e
+      have hs : #((Set.range e).toFinset) = ‖β‖ :=
+        (Set.toFinset_range e) ▸ card_image_of_injective _ e.injective'
+      rw [← hs, ← card_supersets (hs ▸ hk)]
+      congr with t
+      constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
+
 
 /--
 The following version yields `(n + 1 - |V(H)|) * exᵢ(n + 1, H) ≤ (n + 1) * exᵢ(n, H)`, where
