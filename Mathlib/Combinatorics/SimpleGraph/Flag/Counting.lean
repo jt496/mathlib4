@@ -406,7 +406,7 @@ Homomorphisms of `H` in `G[t]` are equivalent to homomorphisms of `H` in `G` tha
 noncomputable def induceEquivHomRange (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) (l : ℕ)
     [Fintype α] : {e : H →g (G.induce t) // ‖Set.range e‖ = l} ≃
     {e : {e : H →g G // ‖Set.range e‖ = l}| Set.range e.1 ⊆ t} where
-  toFun := sorry--  fun e ↦ ⟨(Embedding.induce _).toHom.comp e, by rintro x ⟨y , rfl⟩; simp⟩
+  toFun := fun e ↦ ⟨⟨(Embedding.induce _).toHom.comp e.1, by sorry⟩, by rintro x ⟨y , rfl⟩; simp⟩
   invFun := sorry --fun e ↦ ⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.map_adj hab⟩
   left_inv := sorry --fun e ↦ by ext; simp
   right_inv := sorry --fun e ↦ by ext; simp
