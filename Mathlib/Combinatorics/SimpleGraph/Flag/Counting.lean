@@ -306,17 +306,9 @@ noncomputable def embeddingsEquivCopyProdAut (G : SimpleGraph α) (H : SimpleGra
   left_inv := fun f ↦ by ext b; simp; rfl;
   right_inv := fun (⟨G', ⟨f⟩⟩, j) ↦ by
     ext a
-    · aesop
-      use (j.symm (f.symm ⟨a, a_1⟩))
-
-      sorry
-    · simp
-
-      sorry
-    · simp
-      apply_fun j.symm
-      aesop
-      sorry
+    · sorry
+    · sorry
+    · sorry
 
 @[simp]
 lemma card_induces [Fintype α] [Fintype β] {s : Finset α} (h : G.induces s H) : #s = ‖β‖ := by
