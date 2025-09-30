@@ -398,13 +398,13 @@ def induceEquivHom (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
   invFun := fun e ↦ ⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.map_adj hab⟩
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
-#check induceEquivHom_apply_coe_apply
+
 open Classical in
 /--
 Homomorphisms of `H` into `G[t]`  with range of size `l` are equivalent to homomorphisms of `H` in
 `G` that map into `t` with range size `l`.
 -/
---@[simps!]
+@[simps!]
 noncomputable def induceEquivHomRange (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) (l : ℕ)
     [Fintype α] : {e : H →g (G.induce t) // ‖Set.range e‖ = l} ≃
   {e : H →g G // ‖Set.range e‖ = l ∧ Set.range e ⊆ t} where
@@ -413,18 +413,17 @@ noncomputable def induceEquivHomRange (G : SimpleGraph α) (H : SimpleGraph β) 
     constructor
     · simp_rw [← e.2]
       simp only [Fintype.card_ofFinset]
-      refine Eq.symm (Set.BijOn.finsetCard_eq ?_ ?_)
-      · exact fun ⟨a, ht⟩ ↦ a
-      · simp only [coe_filter, mem_univ, Set.mem_range, true_and, Function.comp_apply,
-        Embedding.comap_apply, Function.Embedding.subtype_apply]
-        constructor
-        · intro x hx; simp_all
-          obtain ⟨y, rfl⟩ := hx
-          use y
-        · constructor
-          · exact Set.injOn_subtype_val
-          · intro a ha
-            simp_all
+      apply Eq.symm (Set.BijOn.finsetCard_eq (fun ⟨a, ht⟩ ↦ a) _)
+      simp only [coe_filter, mem_univ, Set.mem_range, true_and, Function.comp_apply,
+      Embedding.comap_apply, Function.Embedding.subtype_apply]
+      constructor
+      · intro x hx
+        obtain ⟨y, rfl⟩ := Set.mem_setOf_eq ▸ hx
+        use y
+      · constructor
+        · exact Set.injOn_subtype_val
+        · intro a ha
+          simp_all
     · intro a ha; simp only [Set.mem_range, Function.comp_apply, Embedding.comap_apply,
       Function.Embedding.subtype_apply] at ha
       obtain ⟨y, rfl⟩ := ha
@@ -432,18 +431,17 @@ noncomputable def induceEquivHomRange (G : SimpleGraph α) (H : SimpleGraph β) 
   invFun := fun e => ⟨⟨fun b => ⟨e.1 b, e.2.2 ⟨b, rfl⟩⟩, fun hab => by simpa using e.1.map_adj hab⟩,
     by
       simp_rw [← e.2.1]
-      simp_all only [RelHom.coeFn_mk, Fintype.card_ofFinset]
-      refine Set.BijOn.finsetCard_eq ?_ ?_
-      · exact fun ⟨a, ht⟩ ↦ a
-      · simp only [coe_filter, mem_univ, Set.mem_range, true_and]
-        constructor
-        · intro x hx; simp_all
-          obtain ⟨y, rfl⟩ := hx
-          use y
-        · constructor
-          · exact Set.injOn_subtype_val
-          · intro a ha
-            simp_all⟩
+      simp only [RelHom.coeFn_mk, Fintype.card_ofFinset]
+      apply Set.BijOn.finsetCard_eq (fun ⟨a, ht⟩ ↦ a)
+      simp only [coe_filter, mem_univ, Set.mem_range, true_and]
+      constructor
+      · intro x hx
+        obtain ⟨y, rfl⟩ := Set.mem_setOf_eq ▸ hx
+        use y
+      · constructor
+        · exact Set.injOn_subtype_val
+        · intro a ha
+          simp_all⟩
   left_inv := fun e => by ext; rfl
   right_inv := fun e => by ext; rfl
 
