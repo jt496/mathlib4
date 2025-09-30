@@ -296,19 +296,20 @@ noncomputable def embeddingsEquivInduceProdAut (G : SimpleGraph α) (H : SimpleG
       exact induces_eq_apply hts.symm s.2 hir
 
 
-noncomputable def embeddingsEquivCopyProdAut (G : SimpleGraph α) (H : SimpleGraph β) [Fintype β] :
-    Copy H G ≃ {G' : G.Subgraph | Nonempty (H ≃g G'.coe)} × Aut H where
-  toFun := fun c : Copy H G ↦ by
-    have he : Nonempty (H ≃g c.toSubgraph.coe) := ⟨c.isoToSubgraph⟩
-    exact ⟨⟨c.toSubgraph, he⟩, he.some.symm.comp c.isoToSubgraph⟩
-  invFun := fun ⟨⟨G', hG'⟩, e⟩ ↦ ⟨G'.hom.comp (hG'.some.toEmbedding.comp e.toEmbedding), by
-    simpa using (hG'.some.toEmbedding.comp e.toEmbedding).inj'⟩
-  left_inv := fun f ↦ by ext b; simp; rfl;
-  right_inv := fun (⟨G', ⟨f⟩⟩, j) ↦ by
-    ext a
-    · sorry
-    · sorry
-    · sorry
+-- noncomputable
+-- def embeddingsEquivCopyProdAut (G : SimpleGraph α) (H : SimpleGraph β) [Fintype β] :
+--     Copy H G ≃ {G' : G.Subgraph | Nonempty (H ≃g G'.coe)} × Aut H where
+--   toFun := fun c : Copy H G ↦ by
+--     have he : Nonempty (H ≃g c.toSubgraph.coe) := ⟨c.isoToSubgraph⟩
+--     exact ⟨⟨c.toSubgraph, he⟩, he.some.symm.comp c.isoToSubgraph⟩
+--   invFun := fun ⟨⟨G', hG'⟩, e⟩ ↦ ⟨G'.hom.comp (hG'.some.toEmbedding.comp e.toEmbedding), by
+--     simpa using (hG'.some.toEmbedding.comp e.toEmbedding).inj'⟩
+--   left_inv := fun f ↦ by ext b; simp; rfl;
+--   right_inv := fun (⟨G', ⟨f⟩⟩, j) ↦ by
+--     ext a
+--     · sorry
+--     · sorry
+--     · sorry
 
 @[simp]
 lemma card_induces [Fintype α] [Fintype β] {s : Finset α} (h : G.induces s H) : #s = ‖β‖ := by
@@ -392,34 +393,67 @@ Homomorphisms of `H` in `G[t]` are equivalent to homomorphisms of `H` in `G` tha
 -/
 @[simps!]
 def induceEquivHom (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
-    H →g (G.induce t) ≃ {e : H →g G | Set.range e ⊆ t} where
+    H →g (G.induce t) ≃ {e : H →g G // Set.range e ⊆ t} where
   toFun := fun e ↦ ⟨(Embedding.induce _).toHom.comp e, by rintro x ⟨y , rfl⟩; simp⟩
   invFun := fun e ↦ ⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.map_adj hab⟩
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
-
+#check induceEquivHom_apply_coe_apply
 open Classical in
 /--
 Homomorphisms of `H` into `G[t]`  with range of size `l` are equivalent to homomorphisms of `H` in
 `G` that map into `t` with range size `l`.
 -/
-@[simps!]
+--@[simps!]
 noncomputable def induceEquivHomRange (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) (l : ℕ)
     [Fintype α] : {e : H →g (G.induce t) // ‖Set.range e‖ = l} ≃
-    {e : H →g G // ‖Set.range e‖ = l ∧ Set.range e ⊆ t} where
-  toFun := fun e ↦ ⟨⟨(Embedding.induce _).toHom.comp e.1, by
-    sorry⟩, by sorry⟩
-  invFun := fun e ↦ by sorry
-    --⟨fun b ↦ ⟨_, e.2.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.1.map_adj hab⟩
-  left_inv := sorry --fun e ↦ by ext; simp
-  right_inv := sorry --fun e ↦ by ext; simp
+  {e : H →g G // ‖Set.range e‖ = l ∧ Set.range e ⊆ t} where
+  toFun := fun e => ⟨(Embedding.induce _).toHom.comp e.1, by
+    simp only [Hom.coe_comp, RelEmbedding.coe_toRelHom, Fintype.card_ofFinset]
+    constructor
+    · simp_rw [← e.2]
+      simp only [Fintype.card_ofFinset]
+      refine Eq.symm (Set.BijOn.finsetCard_eq ?_ ?_)
+      · exact fun ⟨a, ht⟩ ↦ a
+      · simp only [coe_filter, mem_univ, Set.mem_range, true_and, Function.comp_apply,
+        Embedding.comap_apply, Function.Embedding.subtype_apply]
+        constructor
+        · intro x hx; simp_all
+          obtain ⟨y, rfl⟩ := hx
+          use y
+        · constructor
+          · exact Set.injOn_subtype_val
+          · intro a ha
+            simp_all
+    · intro a ha; simp only [Set.mem_range, Function.comp_apply, Embedding.comap_apply,
+      Function.Embedding.subtype_apply] at ha
+      obtain ⟨y, rfl⟩ := ha
+      simp⟩
+  invFun := fun e => ⟨⟨fun b => ⟨e.1 b, e.2.2 ⟨b, rfl⟩⟩, fun hab => by simpa using e.1.map_adj hab⟩,
+    by
+      simp_rw [← e.2.1]
+      simp_all only [RelHom.coeFn_mk, Fintype.card_ofFinset]
+      refine Set.BijOn.finsetCard_eq ?_ ?_
+      · exact fun ⟨a, ht⟩ ↦ a
+      · simp only [coe_filter, mem_univ, Set.mem_range, true_and]
+        constructor
+        · intro x hx; simp_all
+          obtain ⟨y, rfl⟩ := hx
+          use y
+        · constructor
+          · exact Set.injOn_subtype_val
+          · intro a ha
+            simp_all⟩
+  left_inv := fun e => by ext; rfl
+  right_inv := fun e => by ext; rfl
+
 
 /--
 Copies of `H` in `G[t]` are equivalent to Copies of `H` in `G` whose vertices lie in `t`.
 -/
 @[simps!]
 def induceEquivCopy (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
-    Copy H (G.induce t) ≃ {e : Copy H G | Set.range e ⊆ t} where
+    Copy H (G.induce t) ≃ {e : Copy H G // Set.range e ⊆ t} where
   toFun := fun e ↦ ⟨⟨(Embedding.induce _).toHom.comp e.toHom, by simpa using e.injective'⟩,
     by rintro x ⟨y , rfl⟩; simp⟩
   invFun := fun e ↦ ⟨⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.toHom.map_adj hab⟩,
@@ -432,7 +466,7 @@ Embeddings of `H` in `G[t]` are equivalent to embeddings of `H` in `G` that map 
 -/
 @[simps!]
 def induceEquivEmbedding (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
-    H ↪g (G.induce t) ≃ {e : H ↪g G | Set.range e ⊆ t} where
+    H ↪g (G.induce t) ≃ {e : H ↪g G // Set.range e ⊆ t} where
   toFun := fun e ↦ ⟨Embedding.induce _|>.comp e, by rintro x ⟨y , rfl⟩; simp⟩
   invFun := fun e ↦ ⟨⟨(fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩), fun _ _ _ ↦ e.1.inj' (by simp_all)⟩,
                      by simp, by simp⟩
@@ -449,11 +483,11 @@ lemma sum_card_embeddings_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [F
                               = ‖H ↪g G‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
   classical
   calc
-    _ = ∑ t : Finset α with t.card = k , ‖{e : H ↪g G | Set.range e ⊆ t}‖  := by
+    _ = ∑ t : Finset α with t.card = k , ‖{e : H ↪g G // Set.range e ⊆ t}‖  := by
       simp_rw [Fintype.card_congr <| induceEquivEmbedding ..]
     _ = ∑ t : Finset α  with t.card = k, ∑ e : H ↪g G,
       ite (Set.range e ⊆ t) 1 0 := by
-      congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
+      congr with t; simp_rw [sum_boole, Nat.cast_id, Fintype.card_subtype]
     _ = ∑ e : H ↪g G, ∑ t : Finset α with #t = k,
       ite (Set.range e ⊆ t) 1 0 := Finset.sum_comm
     _ = ∑ e : H ↪g G, ∑ t : Finset α with (#t = k ∧ Set.range e ⊆ t), 1 := by
@@ -479,11 +513,11 @@ lemma sum_card_copies_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Finty
     {k : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖Copy H (G.induce t)‖
                               = ‖Copy H G‖ * Nat.choose (‖α‖ - ‖β‖) (k - ‖β‖) := by
   calc
-    _ = ∑ t : Finset α with t.card = k , ‖{e : Copy H G | Set.range e ⊆ t}‖ := by
+    _ = ∑ t : Finset α with t.card = k , ‖{e : Copy H G // Set.range e ⊆ t}‖ := by
       simp_rw [Fintype.card_congr <| induceEquivCopy ..]
     _ = ∑ t : Finset α  with t.card = k, ∑ e : Copy H G,
       ite (Set.range e ⊆ t) 1 0 := by
-      congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
+      congr with t; simp_rw [sum_boole, Nat.cast_id, Fintype.card_subtype]
     _ = ∑ e : Copy H G, ∑ t : Finset α with #t = k,
       ite (Set.range e ⊆ t) 1 0 := Finset.sum_comm
     _ = ∑ e : Copy H G, ∑ t : Finset α with (#t = k ∧ Set.range e ⊆ t), 1 := by
@@ -511,11 +545,11 @@ lemma sum_card_hom_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype 
     (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖H →g (G.induce t)‖  = ∑ e : H →g G,
     Nat.choose (‖α‖ - ‖(Set.range e)‖) (k - ‖(Set.range e)‖) := by
   calc
-    _ = ∑ t : Finset α with t.card = k , ‖{e : H →g G | Set.range e ⊆ t}‖ := by
+    _ = ∑ t : Finset α with t.card = k , ‖{e : H →g G // Set.range e ⊆ t}‖ := by
       simp_rw [Fintype.card_congr <| induceEquivHom ..]
     _ = ∑ t : Finset α  with t.card = k, ∑ e : H →g G,
       ite (Set.range e ⊆ t) 1 0 := by
-      congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
+      congr with t; simp_rw [sum_boole, Nat.cast_id, Fintype.card_subtype]
     _ = ∑ e : H →g G, ∑ t : Finset α with #t = k,
       ite (Set.range e ⊆ t) 1 0 := Finset.sum_comm
     _ = ∑ e : H →g G, ∑ t : Finset α with (#t = k ∧ Set.range e ⊆ t), 1 := by
@@ -532,15 +566,14 @@ lemma sum_card_hom_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype 
 open Classical in
 /-- **The principle of counting homomorphisms by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then the sum of the number of homomorphisms
-whose range has cardinality `l` into
-`H →g (G.induce t)` over subsets `t` of `α` of size `k`, for any `‖β‖ ≤ k` is the same as the sum
-over all `e : H →g G`, where each `e` is counted according the size of its image :
-`choose (‖α‖ - ‖(Set.range e)‖) (k - ‖(Set.range e)‖)`.
+whose range has cardinality `l` into `H →g (G.induce t)` over subsets `t` of `α` of size `k`,
+for any `‖β‖ ≤ k` is the same as the sum over all `e : H →g G` whose range has cardinality `l`,
+where each `e` is counted `choose (‖α‖ - l) (k - l)` times.
 -/
 lemma sum_card_hom_induce_eq' (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
     {k l : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k ,
-    ‖{e : H →g (G.induce t) // ‖(Set.range e)‖ = l}‖
-    = ∑  _ : {e : H →g G // ‖(Set.range e)‖ = l}, Nat.choose (‖α‖ - l) (k - l) := by
+    ‖{e : H →g (G.induce t) // ‖(Set.range e)‖ = l}‖ =
+    ‖{e : H →g G // ‖(Set.range e)‖ = l}‖ * Nat.choose (‖α‖ - l) (k - l) := by
   calc
     _ = ∑ t : Finset α with #t = k ,
     ‖{e : H →g G // ‖(Set.range e)‖ = l ∧ Set.range e.1 ⊆ t}‖ := by
@@ -558,7 +591,8 @@ lemma sum_card_hom_induce_eq' (G : SimpleGraph α) (H : SimpleGraph β) [Fintype
       simp_rw [sum_ite, sum_const_zero, add_zero]
       congr with e; congr 1 with s; simp
     _ = _ := by
-      simp_rw [← card_eq_sum_ones]
+      rw [← Finset.card_univ]
+      simp_rw [card_eq_sum_ones, sum_mul, one_mul, ← card_eq_sum_ones]
       congr with e
       have hs : ‖(Set.range e.1)‖ ≤ k := (Fintype.card_range_le _).trans hk
       simp_rw [← e.2, ← Set.toFinset_card, ← card_supersets hs] at *
