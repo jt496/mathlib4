@@ -400,14 +400,17 @@ def induceEquivHom (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
 
 open Classical in
 /--
-Homomorphisms of `H` in `G[t]` are equivalent to homomorphisms of `H` in `G` that map into `t`.
+Homomorphisms of `H` into `G[t]`  with range of size `l` are equivalent to homomorphisms of `H` in
+`G` that map into `t` with range size `l`.
 -/
 @[simps!]
 noncomputable def induceEquivHomRange (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) (l : ℕ)
     [Fintype α] : {e : H →g (G.induce t) // ‖Set.range e‖ = l} ≃
-    {e : {e : H →g G // ‖Set.range e‖ = l}| Set.range e.1 ⊆ t} where
-  toFun := fun e ↦ ⟨⟨(Embedding.induce _).toHom.comp e.1, by sorry⟩, by rintro x ⟨y , rfl⟩; simp⟩
-  invFun := sorry --fun e ↦ ⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.map_adj hab⟩
+    {e : H →g G // ‖Set.range e‖ = l ∧ Set.range e ⊆ t} where
+  toFun := fun e ↦ ⟨⟨(Embedding.induce _).toHom.comp e.1, by
+    sorry⟩, by sorry⟩
+  invFun := fun e ↦ by sorry
+    --⟨fun b ↦ ⟨_, e.2.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.1.map_adj hab⟩
   left_inv := sorry --fun e ↦ by ext; simp
   right_inv := sorry --fun e ↦ by ext; simp
 
@@ -526,7 +529,6 @@ lemma sum_card_hom_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype 
       congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
 
-
 open Classical in
 /-- **The principle of counting homomorphisms by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then the sum of the number of homomorphisms
@@ -536,17 +538,19 @@ over all `e : H →g G`, where each `e` is counted according the size of its ima
 `choose (‖α‖ - ‖(Set.range e)‖) (k - ‖(Set.range e)‖)`.
 -/
 lemma sum_card_hom_induce_eq' (G : SimpleGraph α) (H : SimpleGraph β) [Fintype α] [Fintype β]
-    {k l : ℕ}
-    (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k , ‖{e : H →g (G.induce t) // ‖(Set.range e)‖ = l}‖
-      = ∑  _ : {e : H →g G // ‖(Set.range e)‖ = l}, Nat.choose (‖α‖ - l) (k - l) := by
+    {k l : ℕ} (hk : ‖β‖ ≤ k) : ∑ t : Finset α with #t = k ,
+    ‖{e : H →g (G.induce t) // ‖(Set.range e)‖ = l}‖
+    = ∑  _ : {e : H →g G // ‖(Set.range e)‖ = l}, Nat.choose (‖α‖ - l) (k - l) := by
   calc
     _ = ∑ t : Finset α with #t = k ,
-    ‖{e : {e : H →g G // ‖(Set.range e)‖ = l} | Set.range e.1 ⊆ t}‖ := by
+    ‖{e : H →g G // ‖(Set.range e)‖ = l ∧ Set.range e.1 ⊆ t}‖ := by
       congr with t
       convert Fintype.card_congr (induceEquivHomRange G H t l)
     _ = ∑ t : Finset α  with #t = k, ∑ e : {e : H →g G // ‖(Set.range e)‖ = l},
       ite (Set.range e.1 ⊆ t) 1 0 := by
-      congr with t; simp_rw [Set.coe_setOf, sum_boole, Nat.cast_id, Fintype.card_subtype]
+      congr with t;
+      simp_rw [sum_boole, Nat.cast_id, ← Fintype.card_subtype]
+      apply Fintype.card_congr (Equiv.subtypeSubtypeEquivSubtypeInter ..).symm
     _ = ∑ e : {e : H →g G // ‖(Set.range e)‖ = l}, ∑ t : Finset α with #t = k,
       ite (Set.range e.1 ⊆ t) 1 0 := Finset.sum_comm
     _ = ∑ e : {e : H →g G // ‖(Set.range e)‖ = l}, ∑ t : Finset α with (#t = k ∧ Set.range e.1 ⊆ t),
