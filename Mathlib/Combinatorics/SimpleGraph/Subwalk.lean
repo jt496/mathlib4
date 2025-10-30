@@ -21,6 +21,7 @@ Prefix/Suffix/Infix of `q.support`.
 This doesn't hold for `Subwalks` but we do have `p` is a Subwalk of `q` iff `p.darts` is a sublist
 of `q.darts` (for `p ≠ nil`).
 -/
+
 variable {V : Type*} {u v w x y z a u₁ u₂ u₃ v₁ v₂ v₃ : V} {G : SimpleGraph V}
 
 namespace SimpleGraph.Walk
