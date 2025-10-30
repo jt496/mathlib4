@@ -399,6 +399,7 @@ def induceEquivHom (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
 
+
 open Classical in
 /--
 Homomorphisms of `H` into `G[t]`  with range of size `l` are equivalent to homomorphisms of `H` in
@@ -471,6 +472,21 @@ def induceEquivEmbedding (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) 
   left_inv := fun e ↦ by ext; simp
   right_inv := fun e ↦ by ext; simp
 
+def induceHom_toHom {G : SimpleGraph α} {H : SimpleGraph β} {t : Set α} (e : H →g (G.induce t)) :
+    {e : H →g G // Set.range e ⊆ t} :=
+  ⟨(Embedding.induce t).toHom.comp e, by rintro x ⟨y , rfl⟩; simp⟩
+
+@[simps!]
+def induceEquivHomSubtype (G : SimpleGraph α) (H : SimpleGraph β) (t : Set α) :
+    H →g (G.induce t) ≃ {e : H →g G // Set.range e ⊆ t} where
+  toFun := fun e ↦ ⟨(Embedding.induce _).toHom.comp e, by rintro x ⟨y , rfl⟩; simp⟩
+  invFun := fun e ↦ ⟨fun b ↦ ⟨_, e.2 ⟨b , rfl⟩⟩, fun hab ↦ by simpa using e.1.map_adj hab⟩
+  left_inv := fun e ↦ by ext; simp
+  right_inv := fun e ↦ by ext; simp
+
+
+
+
 /-- **The principle of counting induced subgraphs by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then
 `#(H ↪g G) * (choose (‖α‖ - ‖β‖) (k - ‖β‖))` is equal to the sum of the number of embeddings
@@ -531,7 +547,6 @@ lemma sum_card_copies_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Finty
       congr with t
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
 
-
 open Classical in
 /-- **The principle of counting homomorphisms by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then the sum of the number of homomorphisms
@@ -562,7 +577,7 @@ lemma sum_card_hom_induce_eq (G : SimpleGraph α) (H : SimpleGraph β) [Fintype 
       constructor <;> intro ⟨ht1, ht2⟩ <;> exact ⟨ht1, fun _ hx ↦ ht2 (by simpa using hx)⟩
 
 open Classical in
-/-- **The principle of counting homomorphisms by averaging**
+/-- **The principle of counting homomorphisms with with fixed size range by averaging**
 If `G` is a graph on `α` and `H` is a graph on `β`, then the sum of the number of homomorphisms
 whose range has cardinality `l` into `H →g (G.induce t)` over subsets `t` of `α` of size `k`,
 for any `‖β‖ ≤ k` is the same as the sum over all `e : H →g G` whose range has cardinality `l`,

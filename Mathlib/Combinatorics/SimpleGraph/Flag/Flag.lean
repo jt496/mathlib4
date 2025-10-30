@@ -32,25 +32,23 @@ open Finset
 
 namespace SimpleGraph
 
+structure GraphProperty where
+ofN : {n : ℕ} → Set (SimpleGraph (Fin n))
+invariant : ∀ m n : ℕ, ∀ G : SimpleGraph (Fin m), ∀ H : SimpleGraph (Fin n),
+  G ∈ ofN → Nonempty (G ≃g H) → H ∈ ofN
+
+
+#check GraphProperty
+
+
 /-- A graph property -/
 abbrev GraphProp.{u} := {α : Type u} → SimpleGraph α → Prop
 
-abbrev GraphType := {α  β : Type*} → [Fintype α] → SimpleGraph α → SimpleGraph β → Type*
 
 universe u
 
--- def Finitary (T : GraphType) : Prop :=
---   ∀ {α : Type u}, ∀ [Fintype α], ∀ G : SimpleGraph α, Finite (T G)
-
-def Inducible (T : GraphType) : Prop := ∀ {α β : Type*}, ∀ [Fintype α], ∀ G : SimpleGraph α,
-  ∀ H : SimpleGraph β, ∀ [Fintype (T G H)], ∀ [∀ t : Finset α, Fintype (T (G.induce t) H)],
-    ∃ k l : ℕ, ∑ t : Finset α with #t = k, ‖T (G.induce t) H‖ = l * ‖T G H‖
 
 variable {α β : Type*} [Fintype α] (H : SimpleGraph β) (G : SimpleGraph α)
-
--- lemma embedding_finitary {β : Type*} (H : SimpleGraph β) : Finitary (fun G => (H ↪g G)) := by
---   intro α _ G
---   sorry
 
 namespace GraphProp
 
