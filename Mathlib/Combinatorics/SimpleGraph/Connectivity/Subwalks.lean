@@ -69,9 +69,9 @@ lemma append_right_inj {u₁ u₂ v} {p : G.Walk u₁ u₂} {q₁ q₂ : G.Walk 
 
 /-! ## Subwalks -/
 
-/-- `p.Subwalk q` if `p` is a (not necessarily contiguous) subwalk of `q`
-(This definition is modelled on `List.Sublist`.) -/
-inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v → G.Walk x y → Prop
+/--
+`p.Subwalk q` if `p` is a (not necessarily contiguous) subwalk of `q` -/
+inductive Subwalk {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v → G.Walk x y → Prop
   /-- The nil walk `u` is a Subwalk of any `u - v` walk. -/
   | nil {u v: V} {q : G.Walk u v} : (Walk.nil' u).Subwalk q
   /-- If `p` is a Subwalk of `q`, then it is also a Subwalk of `q.cons h`. -/
@@ -87,17 +87,17 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} : ∀ {u v x y}, G.Walk u v �
 /-- The support of a Subwalk is a Sublist of the support -/
 lemma Subwalk.support {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.support <+ q.support :=
-  Subwalk.rec (by simp) (by simp_all) (by simp) hs
+  hs.rec (by simp) (by simp_all) (by simp)
 
 /-- The darts of a Subwalk are a Sublist of the darts -/
 lemma Subwalk.darts {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.darts <+ q.darts :=
-  Subwalk.rec (by simp) (by simp_all) (by simp) hs
+  hs.rec (by simp) (by simp_all) (by simp)
 
 /-- The edges of a Subwalk are a Sublist of the edges -/
 lemma Subwalk.edges {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.edges <+ q.edges :=
-  Subwalk.rec (by simp) (by simp_all) (by simp) hs
+  hs.rec (by simp) (by simp_all) (by simp)
 
 lemma Subwalk.length_le  {u v x y : V} {p : G.Walk u v} {q : G.Walk x y}
     (hs : p.Subwalk q) : p.length ≤ q.length := by
@@ -120,7 +120,8 @@ lemma IsCircuit.of_subwalk {u x y : V} {p : G.Walk u u} {q : G.Walk x y} (h : p.
 
 /-- Any Subwalk of a path is a path -/
 lemma IsPath.of_subwalk {u v x y : V} {p : G.Walk u v} {q : G.Walk x y} (h : p.Subwalk q)
-    (ht : q.IsPath) : p.IsPath := IsPath.mk' <| h.support.nodup ht.support_nodup
+    (ht : q.IsPath) : p.IsPath :=
+  IsPath.mk' <| h.support.nodup ht.support_nodup
 
 /-- `p <+ p` -/
 @[refl, simp]

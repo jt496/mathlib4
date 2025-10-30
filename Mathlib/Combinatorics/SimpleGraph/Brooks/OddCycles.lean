@@ -211,7 +211,7 @@ lemma Walk.shortCut_not_nil (w : G.Walk u v) (hx : x ∈ w.support) (hu : x ≠ 
 
 lemma Walk.shortCut_count_le {y : α} (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortCut hx).support.count y ≤ w.support.count y :=
-  List.Sublist.count_le _ (w.shortCut_subwalk hx).support_sublist
+  List.Sublist.count_le _ (w.shortCut_subwalk hx).support
 
 lemma Walk.not_mem_support_reverse_tail_takeUntil (w : G.Walk u v) (hx : x ∈ w.support) :
     x ∉ (w.takeUntil x hx).support.reverse.tail := by
