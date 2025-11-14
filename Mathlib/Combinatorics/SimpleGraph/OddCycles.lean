@@ -62,12 +62,6 @@ namespace SimpleGraph
 variable {α : Type*} {u v x y z : α} {G : SimpleGraph α}
 namespace Walk
 open List
-theorem support_eq_concat (p : G.Walk u v) : p.support = p.support.dropLast ++ [v] := by
-  cases p with
-  | nil => rfl
-  | cons h p =>
-    obtain ⟨x, q, h',h2⟩ := exists_cons_eq_concat h p
-    simp [h2]
 
 lemma mem_support_reverse (p : G.Walk u v) : x ∈ p.reverse.support ↔ x ∈ p.support := by simp [*]
 
@@ -136,18 +130,6 @@ lemma length_takeUntil_add_dropUntil {p : G.Walk u v} (hx : x ∈ p.support) :
     (p.takeUntil x hx).length + (p.dropUntil x hx).length = p.length := by
   rw [← length_append, take_spec]
 
-lemma takeUntil_append_of_mem_left (p : G.Walk u v) (q : G.Walk v z) (hx : x ∈ p.support) :
-    (p ++ q).takeUntil x (subset_support_append_left _ _ hx) = p.takeUntil _ hx  := by
-  induction p with
-  | nil => rw [mem_support_nil_iff] at hx; subst_vars; simp
-  | @cons u _ _ _ p ih =>
-    rw [support_cons] at hx
-    by_cases hxu : u = x
-    · subst_vars; simp
-    · have := List.mem_of_ne_of_mem (fun hf ↦ hxu hf.symm) hx
-      simp_rw [takeUntil_cons this hxu, cons_append]
-      rw [takeUntil_cons (subset_support_append_left _ _ this) hxu]
-      simpa using ih _ this
 
 lemma support_tail_nodup_iff_count_le (w : G.Walk u v) : w.support.tail.Nodup ↔
     w.support.count u ≤ 2 ∧ ∀ x ∈ w.support, u ≠ x → count x w.support ≤ 1 := by
@@ -230,15 +212,15 @@ lemma shortClosed_not_nil_of_one_lt_count (w : G.Walk u v) (hx : x ∈ w.support
   intro h
   have : w.dropUntil x hx = (w.reverse.takeUntil x (w.mem_support_reverse.2 hx)).reverse := by
     simp [← dropUntil_spec w hx, h.eq_nil]
-  have hw :=  congr_arg (count x) <| congr_arg support <| take_spec w hx
+  have hw := congr_arg (count x) <| congr_arg support <| take_spec w hx
   rw [this, support_append, count_append, count_support_takeUntil_eq_one, support_reverse] at hw
-  exact (w.reverse.notMem_support_reverse_tail_takeUntil (by simpa)) <| count_pos_iff.1 (by omega)
+  exact (w.reverse.notMem_support_reverse_tail_takeUntil (by simpa)) <| count_pos_iff.1 (by cutsat)
 
 lemma length_shortCut_add_shortClosed (w : G.Walk u v) (hx : x ∈ w.support) :
     (w.shortCut hx).length + (w.shortClosed hx).length = w.length := by
   simp_rw [← length_takeUntil_add_dropUntil hx, ← w.dropUntil_spec hx, shortClosed, shortCut,
             length_append, length_reverse]
-  omega
+  cutsat
 
 lemma length_shortClosed_lt_length {p : G.Walk u u} (hx : x ∈ p.support) (hne : u ≠ x) :
     (p.shortClosed hx).length < p.length := by
@@ -321,13 +303,13 @@ lemma length_shorterOdd_lt_length {p : G.Walk u u} (h2 : 2 < p.support.count u) 
   · simp only [lt_add_iff_pos_right, ← not_nil_iff_lt_length]
     exact dropUntilNext_not_nil_of_two_lt_count h2
   · simp only [lt_add_iff_pos_left, ← not_nil_iff_lt_length]
-    exact takeUntilNext_not_nil_of_not_nil (not_nil_of_one_lt_count u (by omega) )
+    exact takeUntilNext_not_nil_of_not_nil (not_nil_of_one_lt_count u (by cutsat) )
 
 /--
-If `G` contains a closed odd walk `w` then there is an odd cycle `c` that is a subwalk of `w`
+If `w` is an odd length closed walk in `G` then `w` contains an odd cycle `c` as a subwalk
 -/
 theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
-    ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length  ∧ c <+ w := by
+    ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length ∧ c <+ w := by
   by_cases h2 : 2 < w.support.count u
   · have := length_shorterOdd_lt_length h2
     obtain ⟨x, c', hc1, hc2, hc3⟩:= exists_odd_cycle_subwalk (length_shorterOdd_odd ho)
@@ -348,46 +330,7 @@ theorem exists_odd_cycle_subwalk {u : α} {w : G.Walk u u} (ho : Odd w.length) :
       have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
       use u, w
   termination_by w.length
-end Walk
 
-
--- Below mainly from #25837
-variable {β : Type*}
-/-- Given graph homomorphisms from each connected component of `G` to `H` this is the `G →g H` -/
-def homOfConnectedComponents (G : SimpleGraph α) {H : SimpleGraph β}
-    (C : (c : G.ConnectedComponent) → (c.toSimpleGraph) →g H) : G →g H where
-  toFun := fun x ↦ (C (G.connectedComponentMk _)) _
-  map_rel' := fun hab ↦ by
-    have h : (G.connectedComponentMk _).toSimpleGraph.Adj ⟨_, rfl⟩
-        ⟨_, ((G.connectedComponentMk _).mem_supp_congr_adj hab).1 rfl⟩ := by simpa using hab
-    convert (C (G.connectedComponentMk _)).map_rel h using 3 <;>
-      rw [ConnectedComponent.connectedComponentMk_eq_of_adj hab]
-
-theorem colorable_iff_forall_connectedComponents {n : ℕ} :
-    G.Colorable n ↔ ∀ c : G.ConnectedComponent, (c.toSimpleGraph).Colorable n :=
-  ⟨fun ⟨C⟩ _ ↦ ⟨fun v ↦ C v, fun h h1 ↦ C.valid h h1⟩,
-   fun h ↦ ⟨G.homOfConnectedComponents (fun c ↦ (h c).some)⟩⟩
-
-open Walk
-lemma two_colorable_iff_forall_loop_even {α : Type*} {G : SimpleGraph α} :
-    G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), Even w.length := by
-  simp_rw [← Nat.not_odd_iff_even]
-  constructor <;> intro h
-  · intro _ w ho
-    have := (w.three_le_chromaticNumber_of_odd_loop ho).trans h.chromaticNumber_le
-    norm_cast
-  · apply colorable_iff_forall_connectedComponents.2
-    intro c
-    obtain ⟨_, hv⟩ := c.nonempty_supp
-    use fun a ↦ Fin.ofNat 2 (c.connected_toSimpleGraph ⟨_, hv⟩ a).some.length
-    intro a b hab he
-    apply h _ <| (((c.connected_toSimpleGraph ⟨_, hv⟩ a).some.concat hab) ++
-                 (c.connected_toSimpleGraph ⟨_, hv⟩ b).some.reverse).map c.toSimpleGraph_hom
-    rw [length_map, length_append, length_concat, length_reverse, add_right_comm]
-    have : ((Nonempty.some (c.connected_toSimpleGraph ⟨_, hv⟩ a)).length) % 2 =
-        (Nonempty.some (c.connected_toSimpleGraph ⟨_, hv⟩ b)).length % 2 := by
-      simp_rw [← Fin.val_natCast, ← Fin.ofNat_eq_cast, he]
-    exact (Nat.even_iff.mpr (by omega)).add_one
 
 lemma two_colorable_iff_forall_isCycle_even {α : Type*} {G : SimpleGraph α} :
     G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), w.IsCycle → Even w.length := by
@@ -399,5 +342,6 @@ lemma two_colorable_iff_forall_isCycle_even {α : Type*} {G : SimpleGraph α} :
     use x, c, hc
     simpa using ho
 
+end Walk
 
 end SimpleGraph

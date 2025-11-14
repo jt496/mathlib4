@@ -3114,6 +3114,7 @@ import Mathlib.Combinatorics.SimpleGraph.LineGraph
 import Mathlib.Combinatorics.SimpleGraph.Maps
 import Mathlib.Combinatorics.SimpleGraph.Matching
 import Mathlib.Combinatorics.SimpleGraph.Metric
+import Mathlib.Combinatorics.SimpleGraph.OddCycles
 import Mathlib.Combinatorics.SimpleGraph.Operations
 import Mathlib.Combinatorics.SimpleGraph.Partition
 import Mathlib.Combinatorics.SimpleGraph.Path

@@ -34,7 +34,7 @@ walks
 -/
 
 -- TODO: split
-
+set_option linter.style.longFile 1700
 open Function
 
 universe u v w
@@ -209,11 +209,11 @@ theorem nil_append {u v : V} (p : G.Walk u v) : (nil : G.Walk u u) ++ p = p :=
   rfl
 
 @[simp]
-theorem append_nil {u v : V} (p : G.Walk u v) : p.append nil = p := by
+theorem append_nil {u v : V} (p : G.Walk u v) : p ++ (nil : G.Walk v v) = p := by
   induction p <;> simp [*]
 
 theorem append_assoc {u v w x : V} (p : G.Walk u v) (q : G.Walk v w) (r : G.Walk w x) :
-    p.append (q.append r) = (p.append q).append r := by
+    p ++ (q ++ r) = (p ++ q) ++ r := by
   induction p <;> simp [*]
 
 @[simp]
@@ -329,7 +329,7 @@ theorem length_copy {u v u' v'} (p : G.Walk u v) (hu : u = u') (hv : v = v') :
 
 @[simp]
 theorem length_append {u v w : V} (p : G.Walk u v) (q : G.Walk v w) :
-    (p.append q).length = p.length + q.length := by
+    (p ++ q).length = p.length + q.length := by
   induction p <;> simp [*, add_comm, add_assoc]
 
 @[simp]
@@ -369,7 +369,7 @@ lemma exists_length_eq_one_iff {u v : V} : (∃ (p : G.Walk u v), p.length = 1) 
 theorem length_eq_zero_iff {u : V} {p : G.Walk u u} : p.length = 0 ↔ p = nil := by cases p <;> simp
 
 theorem getVert_append {u v w : V} (p : G.Walk u v) (q : G.Walk v w) (i : ℕ) :
-    (p.append q).getVert i = if i < p.length then p.getVert i else q.getVert (i - p.length) := by
+    (p ++ q).getVert i = if i < p.length then p.getVert i else q.getVert (i - p.length) := by
   induction p generalizing i <;> cases i <;> simp [*]
 
 theorem getVert_reverse {u v : V} (p : G.Walk u v) (i : ℕ) :
@@ -489,7 +489,7 @@ theorem support_reverse {u v : V} (p : G.Walk u v) : p.reverse.support = p.suppo
 theorem support_ne_nil {u v : V} (p : G.Walk u v) : p.support ≠ [] := by cases p <;> simp
 
 theorem support_append_eq_support_dropLast_append {u v w : V} (p : G.Walk u v) (p' : G.Walk v w) :
-    (p.append p').support = p.support.dropLast ++ p'.support := by
+    (p ++ p').support = p.support.dropLast ++ p'.support := by
   induction p <;> simp_all [List.dropLast_cons_of_ne_nil]
 
 @[simp]
@@ -562,12 +562,12 @@ theorem support_subset_support_concat {u v w : V} (p : G.Walk u v) (hadj : G.Adj
 
 @[simp]
 theorem subset_support_append_left {V : Type u} {G : SimpleGraph V} {u v w : V}
-    (p : G.Walk u v) (q : G.Walk v w) : p.support ⊆ (p.append q).support := by
+    (p : G.Walk u v) (q : G.Walk v w) : p.support ⊆ (p ++ q).support := by
   simp [support_append]
 
 @[simp]
 theorem subset_support_append_right {V : Type u} {G : SimpleGraph V} {u v w : V}
-    (p : G.Walk u v) (q : G.Walk v w) : q.support ⊆ (p.append q).support := by
+    (p : G.Walk u v) (q : G.Walk v w) : q.support ⊆ (p ++ q).support := by
   intro
   simp +contextual [mem_support_append_iff]
 
@@ -579,7 +579,7 @@ theorem coe_support_append {u v w : V} (p : G.Walk u v) (p' : G.Walk v w) :
   rw [support_append, ← Multiset.coe_add, coe_support]
 
 theorem coe_support_append' [DecidableEq V] {u v w : V} (p : G.Walk u v) (p' : G.Walk v w) :
-    ((p.append p').support : Multiset V) = p.support + p'.support - {v} := by
+    ((p ++ p').support : Multiset V) = p.support + p'.support - {v} := by
   simp_rw [support_append, ← Multiset.coe_add, coe_support, add_comm ({v} : Multiset V),
     ← add_assoc, add_tsub_cancel_right]
 
@@ -1040,9 +1040,6 @@ lemma penultimate_reverse (p : G.Walk u v) : p.reverse.penultimate = p.snd := by
 /-- The walk obtained by removing the first dart of a walk. A nil walk stays nil. -/
 def tail (p : G.Walk u v) : G.Walk (p.snd) v := p.drop 1
 
-lemma drop_zero {u v} (p : G.Walk u v) :
-    p.drop 0 = p.copy (getVert_zero p).symm rfl := by
-  cases p <;> simp [Walk.drop]
 
 lemma drop_support_eq_support_drop_min {u v} (p : G.Walk u v) (n : ℕ) :
     (p.drop n).support = p.support.drop (n ⊓ p.length) := by
@@ -1450,7 +1447,7 @@ variable {V : Type*} {G : SimpleGraph V}
 
 /-- `p.IsSubwalk q` means that the walk `p` is a contiguous subwalk of the walk `q`. -/
 def IsSubwalk {u₁ v₁ u₂ v₂} (p : G.Walk u₁ v₁) (q : G.Walk u₂ v₂) : Prop :=
-  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru.append p).append rv
+  ∃ (ru : G.Walk u₂ u₁) (rv : G.Walk v₁ v₂), q = (ru ++ p) ++ rv
 
 @[refl, simp]
 lemma isSubwalk_rfl {u v} (p : G.Walk u v) : p.IsSubwalk p :=
@@ -1475,7 +1472,7 @@ lemma IsSubwalk.trans {u₁ v₁ u₂ v₂ u₃ v₃} {p₁ : G.Walk u₁ v₁} 
     p₁.IsSubwalk p₃ := by
   obtain ⟨q₁, r₁, rfl⟩ := h₁
   obtain ⟨q₂, r₂, rfl⟩ := h₂
-  use q₂.append q₁, r₁.append r₂
+  use q₂ ++ q₁, r₁ ++ r₂
   simp only [append_assoc]
 
 lemma isSubwalk_nil_iff {u v u'} (p : G.Walk u v) :
@@ -1494,7 +1491,7 @@ lemma isSubwalk_nil_iff {u v u'} (p : G.Walk u v) :
 
 lemma nil_isSubwalk_iff_exists {u' u v} (q : G.Walk u v) :
     (Walk.nil : G.Walk u' u').IsSubwalk q ↔
-      ∃ (ru : G.Walk u u') (rv : G.Walk u' v), q = ru.append rv := by
+      ∃ (ru : G.Walk u u') (rv : G.Walk u' v), q = ru ++ rv := by
   simp [IsSubwalk]
 
 lemma length_le_of_isSubwalk {u₁ v₁ u₂ v₂} {q : G.Walk u₁ v₁} {p : G.Walk u₂ v₂}
@@ -1502,11 +1499,11 @@ lemma length_le_of_isSubwalk {u₁ v₁ u₂ v₂} {q : G.Walk u₁ v₁} {p : G
   grind [IsSubwalk, length_append]
 
 lemma isSubwalk_of_append_left {v w u : V} {p₁ : G.Walk v w} {p₂ : G.Walk w u} {p₃ : G.Walk v u}
-    (h : p₃ = p₁.append p₂) : p₁.IsSubwalk p₃ :=
+    (h : p₃ = p₁ ++ p₂) : p₁.IsSubwalk p₃ :=
   ⟨nil, p₂, h⟩
 
 lemma isSubwalk_of_append_right {v w u : V} {p₁ : G.Walk v w} {p₂ : G.Walk w u} {p₃ : G.Walk v u}
-    (h : p₃ = p₁.append p₂) : p₂.IsSubwalk p₃ :=
+    (h : p₃ = p₁ ++ p₂) : p₂.IsSubwalk p₃ :=
   ⟨p₁, nil, append_nil _ ▸ h⟩
 
 theorem isSubwalk_iff_support_isInfix {v w v' w' : V} {p₁ : G.Walk v w} {p₂ : G.Walk v' w'} :

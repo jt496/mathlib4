@@ -188,7 +188,7 @@ theorem length_dropUntil_le {u v w : V} (p : G.Walk v w) (h : u ∈ p.support) :
   exact Nat.le.intro this
 
 lemma takeUntil_append_of_mem_left {x : V} (p : G.Walk u v) (q : G.Walk v w) (hx : x ∈ p.support) :
-    (p.append q).takeUntil x (subset_support_append_left _ _ hx) = p.takeUntil _ hx  := by
+    (p ++ q).takeUntil x (subset_support_append_left _ _ hx) = p.takeUntil _ hx  := by
   induction p with
   | nil => rw [mem_support_nil_iff] at hx; subst_vars; simp
   | @cons u _ _ _ _ ih =>
@@ -294,7 +294,7 @@ lemma length_rotate {v : V} {c : G.Walk u u} (h : v ∈ c.support) :
   rw [rotate, length_append] at *
   rwa [add_comm]
 
-lemma mem_support_rotate_iff  {u v x} {c : G.Walk u u} (h : v ∈ c.support) :
+lemma mem_support_rotate_iff {u v x} {c : G.Walk u u} (h : v ∈ c.support) :
     x ∈ (c.rotate h).support ↔ x ∈ c.support := by
   constructor <;> intro h' <;> rw [support_eq_cons] at h'
   · cases h' with

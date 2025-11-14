@@ -13,7 +13,7 @@ We introduce `Subwalk` with `Prefix, Suffix, Infix` as special cases
 Names and definitions in this file (mainly) mimic the analogous parts of the `List` API.
 
 For example we have `Walk.Subwalk` as the logical model of not-necessarily contiguous subwalks and
-`Walk.IsSubwalk` as the `Bool` valued computable version.
+`Walk.IsSubwalk'` as the `Bool` valued computable version.
 
 If `p` and `q` are walks then we have `p` is a Prefix/Suffix/Infix of `q` iff `p.support` is a
 Prefix/Suffix/Infix of `q.support`.
@@ -44,12 +44,12 @@ inductive Subwalk {V : Type*} {G : SimpleGraph V} :
 attribute [simp] Subwalk.nil Subwalk.cons Subwalk.cons₂
 
 /-- See `isSubwalk_iff_subwalk` for equivalence with `Subwalk` -/
-def IsSubwalk {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
+def IsSubwalk' {V : Type*} {G : SimpleGraph V} [DecidableEq V] {u v x y} :
     G.Walk u v → G.Walk x y → Bool
   | nil, q => u ∈ q.support
   | cons h p, nil => false
   | cons' u w _ h p, cons' x z _ _ q =>
-      if u ≠ x ∨ u = x ∧ w ≠ z then (cons h p).IsSubwalk q else p.IsSubwalk q
+      if u ≠ x ∨ u = x ∧ w ≠ z then (cons h p).IsSubwalk' q else p.IsSubwalk' q
 
 /-- `p.Prefix q` means that the walk `q` starts with the walk `p`, denoted `p <+: q` -/
 def Prefix (p : G.Walk u v₁) (q : G.Walk u v₂) : Prop :=
@@ -312,14 +312,14 @@ theorem Subwalk.trans {p₁ : G.Walk u₁ v₁} {p₂ : G.Walk u₂ v₂} {p₃ 
     · exact (ih <| h₁.of_cons_of_ne _ hud).cons _
 
 lemma Subwalk.isSubwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p <+ q) :
-    p.IsSubwalk q := by
+    p.IsSubwalk' q := by
   induction q generalizing p u with
-  | nil => cases p <;> simp_all [IsSubwalk]
+  | nil => cases p <;> simp_all [IsSubwalk']
   | @cons x z y hq q ih =>
     cases p with
-    | nil => simp_all [IsSubwalk]
+    | nil => simp_all [IsSubwalk']
     | @cons _ d _ h' p =>
-      rw [IsSubwalk]
+      rw [IsSubwalk']
       split_ifs with h1
       · obtain (h1 | ⟨rfl, h1⟩) := h1
         · exact ih <| hs.of_cons_of_ne _ h1
@@ -327,22 +327,22 @@ lemma Subwalk.isSubwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : 
       · obtain ⟨rfl, rfl⟩ : u = x ∧ d = z := by simp_all
         exact ih <| hs.of_cons₂ _
 
-lemma IsSubwalk.subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsSubwalk q) :
+lemma IsSubwalk'.subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} (hs : p.IsSubwalk' q) :
     p <+ q := by
   induction q generalizing p u with
-  | nil => cases p <;> simp_all [IsSubwalk]
+  | nil => cases p <;> simp_all [IsSubwalk']
   | @cons x z y hq q ih =>
     cases p with
-    | nil => simp_all [IsSubwalk]
+    | nil => simp_all [IsSubwalk']
     | @cons _ d _ h' p =>
-    rw [IsSubwalk] at hs
+    rw [IsSubwalk'] at hs
     split_ifs at hs with h1
     · obtain (h1 | ⟨rfl, h1⟩) := h1 <;> exact (ih hs).cons _
     · obtain ⟨rfl, rfl⟩ : u = x ∧ d = z := by simp_all
       exact (ih hs).cons₂ _
 
 lemma isSubwalk_iff_subwalk [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} :
-    p.IsSubwalk q ↔ p <+ q := Iff.intro IsSubwalk.subwalk Subwalk.isSubwalk
+    p.IsSubwalk' q ↔ p <+ q := Iff.intro IsSubwalk'.subwalk Subwalk.isSubwalk
 
 instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} : Decidable (p <+ q) :=
   decidable_of_iff _ isSubwalk_iff_subwalk
@@ -554,7 +554,7 @@ lemma Infix.subwalk {p : G.Walk u₁ v₁} {q : G.Walk u₂ v₂} (h : p <:+: q)
   rw [← append_assoc] at h
   exact h ▸ ((Subwalk.refl p).append_right s).append_left r
 
-@[simp,refl]
+@[simp, refl]
 lemma Infix.refl (p : G.Walk u₁ v₁) : p <:+: p := ⟨nil' u₁, nil' v₁, by simp⟩
 
 @[simp]
@@ -573,7 +573,7 @@ lemma infix_nil_iff {q : G.Walk u v} : q <:+: (nil' x) ↔ q.Nil ∧ u = x ∧ v
     have := hq.eq_nil
     subst this; rfl
 
-@[simp,refl]
+@[simp, refl]
 lemma Prefix.refl (p : G.Walk u₁ v₁) : p <+: p := ⟨nil' v₁, by simp⟩
 
 lemma Prefix.infix {p : G.Walk u v₁} {q : G.Walk u v₂} (h : p <+: q) : p <:+: q := by
@@ -770,13 +770,13 @@ local infixl:80 " ::: " => Walk.cons
 Sanity check that in a triangle `x y z`, one edge is not a subwalk of the path formed by the other
 two edges
 -/
-lemma not_xz_subwalk_xyz [DecidableEq V] (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 : G.Adj x z):
+lemma not_xz_subwalk_xyz [DecidableEq V] (h1 : G.Adj x y) (h2 : G.Adj y z) (h3 : G.Adj x z) :
     ¬ h3 ::: nil' z <+ h1 ::: (h2 ::: nil' z) := by
   intro hf
   have := h1.ne
   have := h2.ne
   have := hf.isSubwalk
-  simp_all [IsSubwalk]
+  simp_all [IsSubwalk']
 
 end cons_notation
 
@@ -857,7 +857,7 @@ lemma support_reverse_dropLast (p : G.Walk u v) :
     simp
 
 lemma IsCircuit.reverse {c : G.Walk x x} (hc : c.IsCircuit) : c.reverse.IsCircuit := by
-  apply IsCircuit.mk hc.toIsTrail.reverse
+  apply IsCircuit.mk hc.isTrail.reverse
   intro hf
   rw [← nil_iff_eq_nil, nil_reverse] at hf
   exact hc.not_nil hf
@@ -995,24 +995,6 @@ lemma isInfix_iff_infix {p : G.Walk u v} {q : G.Walk x y} : p.IsInfix q ↔ p <:
 instance [DecidableEq V] {p : G.Walk u v} {q : G.Walk x y} : Decidable (p <:+: q) :=
   decidable_of_iff _ isInfix_iff_infix
 
-/- Tests -/
-
-/-- Given a valid list of vertices in Kₙ produce a walk -/
-private def top_walk {n : ℕ} (l : List (Fin n)) (u v : Fin n) (h : (u :: l ++ [v]).Chain' (· ≠ ·)) :
-    (⊤ : SimpleGraph (Fin n)).Walk u v :=
-  match l with
-  | [] => nil.cons (by aesop)
-  | a :: l => by
-    have h : (a :: l ++ [v]).Chain' (· ≠ ·) := by aesop
-    have : (⊤ : SimpleGraph (Fin n)).Adj u a := by aesop
-    exact (top_walk _ _ _ h).cons this
-
--- [0, 2, 3, 5, 6] <+ [0, 1, "0, 2, 3", 4, 6, "3, 5",1, "5, 6"]
-#eval (top_walk ([2, 3, 5] : List (Fin 7)) 0 6 (by aesop)) <+
-  (top_walk ([1, 0, 2, 3, 4, 6, 3, 5,1, 5] : List (Fin 7)) 0 6 (by aesop))
-
-/-  End Tests -/
-
 lemma takeUntil_prefix {p : G.Walk u v} (hx : x ∈ p.support) :
     p.takeUntil _ hx <+: p := ⟨_, (take_spec p hx).symm⟩
 
@@ -1098,7 +1080,7 @@ lemma IsRotatedSubwalk.edges_subset_rotate {p : G.Walk u u} {q : G.Walk v v} (hy
   h.edges_subset.trans (fun _ hz ↦ (rotate_edges _ hy).symm.mem_iff.2 hz)
 
 lemma IsRotatedSubwalk.length_le_rotate {p : G.Walk u u} {q : G.Walk v v} (hy : y ∈ q.support)
-    (h : p.IsRotatedSubwalk (q.rotate hy)): p.length ≤ q.length :=
+    (h : p.IsRotatedSubwalk (q.rotate hy)) : p.length ≤ q.length :=
   length_rotate hy ▸ h.length_le
 
 end Rotated
@@ -1144,7 +1126,7 @@ lemma append_inj' {p₁ : G.Walk u u₁} {p₂ : G.Walk u₁ v} {q₁ : G.Walk u
   simp_rw [length_append] at hp
   omega
 
-lemma append_left_inj {p₁ p₂: G.Walk u v₁} {q : G.Walk v₁ v₂} :
+lemma append_left_inj {p₁ p₂ : G.Walk u v₁} {q : G.Walk v₁ v₂} :
     p₁ ++ q = p₂ ++ q ↔ p₁ = p₂ := by
   constructor <;> intro heq
   · obtain ⟨_, h1, h2⟩ := append_inj heq (by apply_fun length at heq; simpa using heq)
@@ -1182,7 +1164,7 @@ lemma nodupPrefix_of_cons_ne_nil {a : V} {l : List V} :
   rw [nodupPrefix]
   split_ifs with h1 <;> simp
 
-lemma notMem_take_idxOf  (a : V) (l : List V) : a ∉ l.take (l.idxOf a) := by
+lemma notMem_take_idxOf (a : V) (l : List V) : a ∉ l.take (l.idxOf a) := by
   induction l with
   | nil => simp
   | cons b l ih =>
@@ -1205,7 +1187,7 @@ lemma nodup_nodupPrefix (l : List V) : l.nodupPrefix.Nodup := by
       exact notMem_take_idxOf a l.nodupPrefix
     · exact Nodup.cons h1 ih
 
-lemma prefix_nodupPrefix  (l : List V) : l.nodupPrefix <+: l := by
+lemma prefix_nodupPrefix (l : List V) : l.nodupPrefix <+: l := by
   induction l with
   | nil => simp [nodupPrefix]
   | cons a l ih =>
@@ -1245,7 +1227,7 @@ lemma nodupPrefix_max_prefix  {l k : List V} (h : k <+: l) (hk : k.Nodup ) :
 
 def nodupSuffix (l : List V) : List V := l.drop (l.nodupPrefix.length)
 
-lemma nodupPrefix_append_nodupSuffix  (l : List V) :
+lemma nodupPrefix_append_nodupSuffix (l : List V) :
     l.nodupPrefix ++ l.nodupSuffix = l := by
   obtain ⟨s, hs⟩ := prefix_nodupPrefix l
   nth_rw 3 [← hs]
