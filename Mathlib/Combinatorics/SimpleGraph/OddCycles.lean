@@ -7,17 +7,18 @@ import Mathlib.Combinatorics.SimpleGraph.ConcreteColorings
 import Mathlib.Combinatorics.SimpleGraph.Paths
 
 /-! # Walk decompositions and odd cycles
+
 We extend the walk decomposition API. Our main aim here is to prove that if `w` is a closed odd
-length walk then it contains an odd cycle as a subwalk `exists_odd_cycle_subwalk`.
+length walk then it contains an odd cycle `exists_odd_cycle`.
 
 Given a walk `w : G.Walk u v`: we already have `takeUntil` and `dropUntil`
 which satisfy `(w.takeUntil _ hx) ++ (w.dropUntil _ hx) = w`, where `w.takeUntil _ hx` is the part
 of `w` from its start to the first occurence of `x` (given `hx : x ∈ w.support`).
 
 For `w : G.Walk u v` and `x ∈ w.support` we define two new walks, `w.shortCut hx` and
-  `w.shortClosed`: `w.shortCut hx` is the part of `w` from the start `u` to the first occurence of
-  `x` and then from the last occurence of `x` in `w` to `v`, while `w.shortClosed hx` is the closed
-  walk that travels along `w` from the first occurence of `x` to the last occurence of `x`.
+`w.shortClosed`. Here `w.shortCut hx` is the part of `w` from its start `u` to the first
+occurence of `x` and then from the last occurence of `x` in `w` to `v`, while `w.shortClosed hx` is
+the closed walk that travels along `w` from the first occurence of `x` to the last occurence of `x`.
 
 So `w.shortCut hx : G.Walk u v` is `(w.takeUntil _ hx) ++ (w.reverse.takeUntil _ hx).reverse`
 and `w.shortClosed hx : G.Walk x x` is `((w.dropUntil _ hx).reverse.dropUntil _ hx).reverse`.
@@ -50,8 +51,8 @@ or `u` occurs more than twice then we can find a shorter odd closed walk.
 For an odd closed walk `w : G.Walk u u` the condition
   `w.support.count u ≤ 2` and `∀ x, x ≠ u → w.support.count x ≤ 1` is equivalent to being a cycle.
 
-Hence we can use these to prove `exists_odd_cycle_subwalk`: given `w` a closed odd walk there is a
-subwalk of `w` that is an odd cycle.
+Hence we can use these to prove `exists_odd_cycle`: given `w` a closed odd walk there is a subwalk
+of `w` that is an odd cycle.
 
 TODO: what should we do for even closed walks? (There is no guarantee of any cycles but perhaps the
 walk decomposition API developed here could still be useful.)
@@ -111,12 +112,12 @@ lemma isCycle_odd_support_tail_nodup {w : G.Walk u u} (ho : Odd w.length)
   rintro (hf | hf)
   · rw [nil_iff_length_eq.mp hf] at ho
     exact (Nat.not_odd_zero ho).elim
-  · rw [hf] at ho
-    exact (Nat.not_odd_iff_even.2 (by decide) ho).elim
+  · grind
 
+section withDecEq
 variable [DecidableEq α]
-
-lemma not_nil_of_one_lt_count {p : G.Walk u v} (x : α) (h : 1 < p.support.count x) : ¬ p.Nil := by
+/-- If a vertex appears more than once in the support of a walk `w` then `w` is not `Nil` -/
+lemma not_nil_of_one_lt_count {w : G.Walk u v} (x : α) (h : 1 < w.support.count x) : ¬ w.Nil := by
   contrapose! h
   have := h.eq
   subst this
@@ -139,10 +140,9 @@ lemma support_tail_nodup_iff_count_le (w : G.Walk u v) : w.support.tail.Nodup �
     exact ⟨h u, fun x _ h' ↦ by rw [support_eq_cons, count_cons_of_ne h']; exact h x⟩
   · intro ⟨hu, h⟩ a
     by_cases hau : u = a
-    · subst hau; trivial
-    · by_cases ha : a ∈ u :: w.support.tail
-      · have := (w.support_eq_cons ▸ h) a ha hau
-        rwa [count_cons_of_ne hau] at this
+    · exact hau ▸ hu
+    · by_cases ha : a ∈ w.support <;> rw [support_eq_cons] at *
+      · grind
       · exact (count_eq_zero_of_not_mem <| not_mem_of_not_mem_cons ha).le.trans zero_le_one
 
 /-- Given a vertex `x` in a walk `w` form the walk that travels along `w` from the first visit of
@@ -189,8 +189,7 @@ lemma notMem_support_reverse_tail_takeUntil (w : G.Walk u v) (hx : x ∈ w.suppo
       count_support_takeUntil_eq_one, support_eq_concat] at hx2
   simp at hx2
 
-/-- If `x` is a repeated vertex of the walk `w` then `w.shortClosed hx` is
-a non-nil closed walk. -/
+/-- If `x` is a repeated vertex of the walk `w` then `w.shortClosed hx` is not `Nil` -/
 lemma shortClosed_not_nil_of_one_lt_count (w : G.Walk u v) (hx : x ∈ w.support)
     (h2 : 1 < w.support.count x) : ¬ (w.shortClosed hx).Nil := by
   intro h
@@ -276,32 +275,30 @@ lemma length_shorterOdd_lt_length {p : G.Walk u u} (h2 : 2 < p.support.count u) 
   · simp only [lt_add_iff_pos_left, ← not_nil_iff_lt_length]
     exact takeUntilNext_not_nil_of_not_nil (not_nil_of_one_lt_count u (by cutsat) )
 
+end withDecEq
+
 /--
 If `w` is an odd length closed walk in `G` then `w` contains an odd cycle `c` as a subwalk
 -/
 theorem exists_odd_cycle {u : α} {w : G.Walk u u} (ho : Odd w.length) :
     ∃ (x : α) (c : G.Walk x x), c.IsCycle ∧ Odd c.length := by
+  classical
   by_cases h2 : 2 < w.support.count u
   · have := length_shorterOdd_lt_length h2
-    obtain ⟨x, c', hc1, hc2⟩:= exists_odd_cycle (length_shorterOdd_odd ho)
-    exact ⟨x, c', hc1, hc2⟩
+    exact exists_odd_cycle (length_shorterOdd_odd ho)
   · by_cases h1 : ∃ x, (x ∈ w.support ∧ u ≠ x ∧ 1 < w.support.count x)
     · obtain ⟨x, hx, hxu, hx1⟩ := h1
       by_cases ho1 : Odd (w.shortClosed hx).length
       · have := length_shortClosed_lt_length hx hxu
-        obtain ⟨y, c', hc1, hc2⟩ := exists_odd_cycle ho1
-        exact ⟨y, c', hc1, hc2⟩
-      · have ho' : Odd (w.shortCut hx).length := by
-          rw [← w.length_shortCut_add_shortClosed hx] at ho
-          exact (Nat.odd_add.1 ho).2 (Nat.not_odd_iff_even.1 ho1)
+        exact exists_odd_cycle ho1
+      · have ho := (Nat.odd_add.1 (w.length_shortCut_add_shortClosed hx ▸ ho)).2
+                      (Nat.not_odd_iff_even.1 ho1)
         have := length_shortCut_lt_length hx hx1
-        obtain ⟨y, c', hc1, hc2⟩ := exists_odd_cycle ho'
-        exact ⟨y, c', hc1, hc2⟩
+        exact exists_odd_cycle ho
     · push_neg at h1 h2
       have := isCycle_odd_support_tail_nodup ho <| (support_tail_nodup_iff_count_le _).2 ⟨h2, h1⟩
       use u, w
   termination_by w.length
-
 
 lemma two_colorable_iff_forall_isCycle_even {α : Type*} {G : SimpleGraph α} :
     G.Colorable 2 ↔ ∀ u, ∀ (w : G.Walk u u), w.IsCycle → Even w.length := by
@@ -314,5 +311,4 @@ lemma two_colorable_iff_forall_isCycle_even {α : Type*} {G : SimpleGraph α} :
     simpa using ho
 
 end Walk
-
 end SimpleGraph
